@@ -1,12 +1,13 @@
 import rateLimit from "express-rate-limit";
 
 // Limit repeated login / OTP requests to prevent brute-force
+// Relaxed to 20 to allow multiple students from same Library WiFi/Network
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes window
-  max: 5, // limit each IP to 5 requests per windowMs
+  max: 20, // limit each IP to 20 requests per windowMs
   message: {
     success: false,
-    message: "Too many login attempts from this IP, please try again after 15 minutes"
+    message: "Network Security Alert: Too many login attempts from this connection. Please wait 15 minutes."
   },
   standardHeaders: true, 
   legacyHeaders: false, 

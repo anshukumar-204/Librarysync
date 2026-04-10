@@ -11,6 +11,9 @@ import { apiRateLimiter } from "./middlewares/rateLimiter.js";
 
 const app = express();
 
+// Crucial for Render/Cloud platforms to identify real user IPs
+app.set("trust proxy", 1);
+
 // Security Middlewares
 app.use(helmet());
 app.use(
