@@ -37,7 +37,6 @@ services:
   - type: web
     name: library-attendance-frontend
     runtime: static
-    plan: free
     rootDir: client
     buildCommand: npm install && npm run build
     staticPublishPath: client/dist
