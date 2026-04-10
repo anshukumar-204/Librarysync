@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// attendance-system/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js" // Changed back to "prisma-client-js"
+  output   = "../src/generated/client" // Recommended: output to your src folder
+}
+
+datasource db {
+  provider = "postgresql"
+  // url = env("DATABASE_URL") <- REMOVE THIS LINE
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  mobile       String   @unique
+  email        String?  @unique
+  passwordHash String
+  role         String   @default("student")
+  status       String   @default("active")
+  createdAt    DateTime @default(now())
+
+  // Security & Authentication
+  emailVerified       Boolean   @default(false)
+  verifyOtp           String?
+  verifyOtpExpiresAt  DateTime?
+  resetOtp            String?
+  resetOtpExpiresAt   DateTime?
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  tokenVersion        Int       @default(1)
+  lastLoginAt         DateTime?
+
+  student Student?
+}
+
+model Student {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  fullName     String
+  fatherName   String
+  profileImage String?
+  address      String
+  village      String?
+  post         String?
+  district     String?
+  city         String?
+  state        String?
+  pincode      String?
+  joinDate     DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id])
+  attendances Attendance[]
+}
+
+model Attendance {
+  id           Int       @id @default(autoincrement())
+  studentId    Int
+  date         DateTime
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  createdAt    DateTime  @default(now())
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, date])
+}

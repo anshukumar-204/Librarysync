@@ -1,0 +1,163 @@
+import type { Request, Response } from "express";
+import { prisma } from "../db/prisma.js";
+import { hashPassword } from "../utils/security.js";
+
+// Basic Student creation handler (Admin feature)
+export const createStudent = async (req: Request, res: Response) => {
+  try {
+    // Only Admin can create students (Temporarily disabled for testing)
+    /* if (req.user?.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Forbidden: Admin access required" });
+    } */
+
+    const { 
+      fullName, fatherName, profileImage, mobile, email, 
+      address, village, post, district, city, state, pincode 
+    } = req.body;
+
+    if (!fullName || !fatherName || !mobile || !address) {
+      return res.status(400).json({ success: false, message: "Full Name, Guardian Name, Mobile, and Address are required" });
+    }
+
+    // Default password as mobile number
+    const defaultPassword = await hashPassword(mobile);
+
+    // Create the User profile AND attached Student profile transactionally
+    const newStudent = await prisma.user.create({
+      data: {
+        name: fullName,
+        mobile,
+        email: email || null,
+        passwordHash: defaultPassword,
+        role: "student",
+        student: {
+          create: {
+            fullName,
+            fatherName,
+            profileImage,
+            address,
+            village,
+            post,
+            district,
+            city,
+            state,
+            pincode
+          }
+        }
+      },
+      include: {
+        student: true
+      }
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Student profile securely created",
+      data: newStudent.student
+    });
+
+  } catch (error: any) {
+    console.error("CRITICAL REGISTRY ERROR:", error);
+    if (error.code === 'P2002') {
+      return res.status(400).json({ success: false, message: "Duplicate Entity: Mobile number or Email already exists in the registry" });
+    }
+    // Return the specific error message in development for faster debugging
+    return res.status(500).json({ 
+      success: false, 
+      message: "Registry Node Failure", 
+      error: error.message,
+      code: error.code,
+      meta: error.meta 
+    });
+  }
+};
+
+export const getStudents = async (req: Request, res: Response) => {
+  try {
+    /* if (req.user?.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Forbidden: Admin access required" });
+    } */
+
+    const students = await prisma.student.findMany({
+      include: {
+        user: {
+          select: {
+            mobile: true,
+            email: true,
+            status: true
+          }
+        }
+      },
+      orderBy: { joinDate: 'desc' }
+    });
+
+    return res.json({ success: true, data: students });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Server error occurred" });
+  }
+};
+
+export const updateStudent = async (req: Request, res: Response) => {
+  try {
+    /* if (req.user?.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Forbidden: Admin access required" });
+    } */
+
+    const studentId = Number(req.params.id);
+    const { 
+      fullName, fatherName, profileImage, mobile, email, 
+      address, village, post, district, city, state, pincode, status 
+    } = req.body;
+
+    if (!fullName || !fatherName || !mobile || !address) {
+      return res.status(400).json({ success: false, message: "Update aborted: Mandatory fields (Name, Guardian, Mobile, Address) missing" });
+    }
+
+    // Check if student exists
+    const existingStudent = await prisma.student.findUnique({ where: { id: studentId } });
+    if (!existingStudent) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    // Update Transaction
+    const updatedUser = await prisma.user.update({
+      where: { id: existingStudent.userId },
+      data: {
+        name: fullName,
+        ...(mobile && { mobile }),
+        ...(email !== undefined && { email }),
+        ...(status && { status }),
+        student: {
+          update: {
+            fullName,
+            fatherName,
+            profileImage,
+            address,
+            village,
+            post,
+            district,
+            city,
+            state,
+            pincode
+          }
+        }
+      },
+      include: {
+        student: true
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: "Student profile updated successfully",
+      data: updatedUser.student
+    });
+
+  } catch (error: any) {
+    console.error("Error updating student:", error);
+    if (error.code === 'P2002') {
+      return res.status(400).json({ success: false, message: "Mobile number or Email already in use by another account" });
+    }
+    return res.status(500).json({ success: false, message: "Server error occurred" });
+  }
+};

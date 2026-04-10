@@ -1,0 +1,348 @@
+import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  User, Mail, Lock, Phone, MapPin, 
+  ArrowRight, ArrowLeft, Loader2, AlertCircle, 
+  CheckCircle2, Sparkles, GraduationCap, Search,
+  ShieldCheck, KeyRound, RefreshCw
+} from 'lucide-react';
+import { registerStudent, clearError } from '../../store/slices/authSlice';
+import authApi from '../../services/authApi';
+import toast from 'react-hot-toast';
+
+export default function StudentRegisterPage() {
+  const [credential, setCredential] = useState('');
+  const [otp, setOtp] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [showOtpStage, setShowOtpStage] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    fullName: '',
+    mobile: '',
+    email: '',
+    password: '',
+    fatherName: '',
+    address: '',
+    village: '',
+    post: '',
+    district: '',
+    city: '',
+    state: '',
+    pincode: ''
+  });
+
+  const [step, setStep] = useState(1);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { loading, error } = useSelector((state) => state.adminAuth);
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    setIsVerifying(true);
+    try {
+      const response = await authApi.verifyRegistration(credential);
+      if (response.success) {
+        const { fullName, mobile, email, student } = response.data;
+        setFormData(prev => ({
+          ...prev,
+          fullName: fullName || '',
+          mobile: mobile || '',
+          email: email || '',
+          fatherName: student?.fatherName || '',
+          address: student?.address || '',
+          village: student?.village || '',
+          post: student?.post || '',
+          district: student?.district || '',
+          city: student?.city || '',
+          state: student?.state || '',
+          pincode: student?.pincode || '',
+        }));
+        setIsVerified(true);
+        toast.success("Identity discovered in registry. Masked nodes synchronized.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Identity not found in institute registry.");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (step === 1) {
+      setStep(2);
+      return;
+    }
+
+    dispatch(clearError());
+    try {
+      // Step 2 submit triggers OTP send
+      const response = await authApi.register({
+        ...formData,
+        credential: credential // Use original identifier
+      });
+      if (response.pendingVerification) {
+        setShowOtpStage(true);
+        toast.success("Activation cipher dispatched to your registry email.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Activation failed to initiate.");
+    }
+  };
+
+  const handleFinalActivation = async (e) => {
+    e.preventDefault();
+    setIsActivating(true);
+    try {
+      const response = await authApi.completeRegistration(credential, otp);
+      if (response.success) {
+        toast.success("Portal Node Active. Welcome to Librync.");
+        // We manually update state or just navigate to login
+        // Re-using login logic for seamless entry
+        localStorage.setItem('token', response.accessToken);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        navigate('/student/portal');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Activation cipher declined.");
+    } finally {
+      setIsActivating(false);
+    }
+  };
+
+  // Inquiry Stage (Screen 1)
+  if (!isVerified) {
+    return (
+      <div className="min-h-screen bg-[#0B0D17] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[130px] rounded-full" />
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md z-10">
+          <div className="glass-card p-10 rounded-3xl relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
+            
+            <div className="text-center mb-10 relative">
+              <div className="w-20 h-20 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-6 mx-auto">
+                <ShieldCheck size={42} strokeWidth={1} />
+              </div>
+              <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Access Inquiry</h1>
+              <p className="text-gray-400 text-sm">Verify your institute identity to initialize nodes.</p>
+            </div>
+
+            <form onSubmit={handleVerify} className="space-y-6 relative">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Mobile or Email</label>
+                <div className="relative group/input">
+                  <div className="absolute inset-y-0 left-4 flex items-center text-gray-400 group-focus-within/input:text-blue-400 transition-colors">
+                    <Search size={18} />
+                  </div>
+                  <input 
+                    type="text" 
+                    value={credential}
+                    onChange={(e) => setCredential(e.target.value)}
+                    placeholder="Search registry..."
+                    className="w-full bg-[#161B22]/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-blue-500/50 transition-all font-mono"
+                    required
+                  />
+                </div>
+              </div>
+
+              <motion.button 
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={isVerifying}
+                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all group"
+              >
+                {isVerifying ? <Loader2 className="animate-spin" size={20} /> : (
+                  <>
+                    <span>Decrypt Identity</span>
+                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </motion.button>
+            </form>
+
+            <div className="mt-8 pt-6 border-t border-white/5 text-center">
+              <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest">Institute Verification node active</p>
+              <Link to="/login" className="inline-block mt-4 text-sm text-gray-400 hover:text-white transition-colors">Return to entry grid</Link>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // OTP Stage (Screen 3)
+  if (showOtpStage) {
+    return (
+      <div className="min-h-screen bg-[#0B0D17] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/5 blur-[130px] rounded-full" />
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md z-10">
+          <div className="glass-card p-10 rounded-3xl relative overflow-hidden text-center">
+            <div className="w-20 h-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-6 mx-auto">
+              <KeyRound size={42} strokeWidth={1} />
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Final Activation</h2>
+            <p className="text-gray-400 text-sm mb-10">Enter the 6-digit registry cipher sent to your email.</p>
+
+            <form onSubmit={handleFinalActivation} className="space-y-8">
+              <input 
+                type="text" 
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                placeholder="0 0 0 0 0 0"
+                className="w-full bg-transparent border-b-2 border-white/10 text-center text-4xl font-bold tracking-[0.8em] text-white focus:outline-none focus:border-emerald-500 transition-all pb-4"
+                autoFocus
+                required
+              />
+
+              <div className="flex flex-col gap-4">
+                <motion.button 
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  disabled={isActivating}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white font-bold py-4 rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all"
+                >
+                  {isActivating ? <Loader2 className="animate-spin" size={20} /> : "Finalize Activation"}
+                </motion.button>
+                <button 
+                  type="button"
+                  onClick={handleSubmit} 
+                  className="flex items-center justify-center gap-2 text-xs text-gray-500 hover:text-emerald-400 transition-colors py-2 uppercase tracking-widest font-bold"
+                >
+                  <RefreshCw size={14} />
+                  Resend Cipher
+                </button>
+              </div>
+            </form>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Profile Form Stage (Screen 2)
+  return (
+    <div className="min-h-screen bg-[#0B0D17] flex items-center justify-center p-4 md:p-8 relative overflow-hidden font-sans">
+      <div className="absolute top-[-5%] left-[-5%] w-[40%] h-[40%] bg-blue-500/5 blur-[120px] rounded-full" />
+      <div className="absolute bottom-[-5%] right-[-5%] w-[40%] h-[40%] bg-indigo-500/5 blur-[120px] rounded-full" />
+
+      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-2xl z-10">
+        <div className="glass-card p-6 md:p-10 rounded-[2.5rem] relative overflow-hidden">
+          <div className="mb-10 text-center md:text-left">
+            <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center md:justify-start gap-3">
+              <Sparkles className="text-blue-400" />
+              Establish Access Nodes
+            </h1>
+            <p className="text-gray-400 text-sm">Privacy masking active. Update your localization nodes before activation.</p>
+          </div>
+
+          <div className="flex items-center gap-4 mb-10 overflow-x-auto pb-2 scrollbar-hide">
+            {[1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-2 flex-shrink-0">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  step === i ? 'bg-blue-500 text-white' : step > i ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/5 text-gray-500 border border-white/5'
+                }`}>
+                  {step > i ? <CheckCircle2 size={16} /> : i}
+                </div>
+                <span className={`text-xs font-semibold uppercase tracking-widest ${step === i ? 'text-white' : 'text-gray-500'}`}>
+                  {i === 1 ? 'Nodes' : 'Access Cipher'}
+                </span>
+                {i === 1 && <div className="w-8 h-px bg-white/5 mx-2" />}
+              </div>
+            ))}
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <AnimatePresence mode="wait">
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                  className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex items-center gap-3 text-red-400 text-sm"
+                >
+                  <AlertCircle size={18} />
+                  <span>{error}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {step === 1 ? (
+                <>
+                  <Input label="Registry Name" value={formData.fullName} readOnly icon={User} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
+                  <Input label="Masked Mobile" value={formData.mobile} readOnly icon={Phone} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
+                  <Input label="Masked Guardian" value={formData.fatherName} readOnly icon={User} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
+                  <Input label="Masked Email" value={formData.email} readOnly icon={Mail} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
+                  <div className="md:col-span-2">
+                    <Input label="Registry Address" name="address" value={formData.address} readOnly icon={MapPin} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
+                  </div>
+                  <Input label="Village/Area" name="village" value={formData.village} readOnly icon={MapPin} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
+                  <Input label="City Hub" name="city" value={formData.city} readOnly icon={MapPin} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
+                </>
+              ) : (
+                <>
+                  <div className="md:col-span-2 space-y-4">
+                    <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 text-blue-400/80 text-xs flex gap-3">
+                      <ShieldCheck size={18} className="flex-shrink-0" />
+                      <p>Registry nodes mapped. Profile data is locked by administration. Define your 8+ character portal cipher to activate.</p>
+                    </div>
+                    <Input label="Set Access Cipher" name="password" icon={Lock} placeholder="••••••••" value={formData.password} onChange={handleInputChange} type="password" required />
+                  </div>
+                  <Input label="State" name="state" value={formData.state} readOnly icon={MapPin} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
+                  <Input label="Point Code" name="pincode" value={formData.pincode} readOnly icon={MapPin} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col-reverse md:flex-row gap-4 pt-6">
+              {step === 2 && (
+                <button type="button" onClick={() => setStep(1)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all">
+                  <ArrowLeft size={18} />
+                  Back
+                </button>
+              )}
+              <motion.button 
+                whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} disabled={loading}
+                className="flex-[2] bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all group"
+              >
+                {loading ? <Loader2 className="animate-spin" size={20} /> : (
+                  <>
+                    <span>{step === 1 ? 'Synchronize Nodes' : 'Initiate Activation'}</span>
+                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </motion.button>
+            </div>
+          </form>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function Input({ label, icon: Icon, className, ...props }) {
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">{label}</label>
+      <div className="relative group/input">
+        {Icon && (
+          <div className="absolute inset-y-0 left-4 flex items-center text-gray-400 group-focus-within/input:text-blue-400 transition-colors">
+            <Icon size={16} />
+          </div>
+        )}
+        <input 
+          {...props}
+          className={`w-full bg-[#161B22]/50 border border-white/5 rounded-xl py-3.5 ${Icon ? 'pl-11' : 'px-4'} pr-4 text-white text-sm focus:outline-none focus:border-blue-500/50 focus:bg-[#161B22] transition-all ${className}`}
+        />
+      </div>
+    </div>
+  );
+}

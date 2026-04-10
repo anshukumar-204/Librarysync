@@ -1,0 +1,23 @@
+node_modules
+# Keep environment variables out of version control
+.env
+.env.*
+!.env.example
+
+# Build outputs
+dist/
+/src/generated/prisma
+
+# Logs
+*.log
+error.log
+
+# Prisma config artifacts
+prisma.config.js
+prisma.config.js.map
+prisma.config.d.ts
+prisma.config.d.ts.map
+
+# Local testing and UI artifacts
+test-db.js
+*.png

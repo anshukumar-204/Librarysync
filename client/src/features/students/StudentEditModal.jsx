@@ -1,0 +1,387 @@
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  X, User, Settings, ShieldCheck,
+  Loader2, Camera, Check, ChevronRight, AlertCircle,
+  GraduationCap, Mail, MapPin, Home
+} from "lucide-react";
+import { closeEditModal, registerStudent, modifyStudent } from './studentSlice';
+import StudentProfileView from './StudentProfileView';
+import { uploadImageToCloudinary } from '../../services/cloudinary';
+import toast from "react-hot-toast";
+
+export default function StudentEditModal() {
+  const dispatch = useDispatch();
+  const { isEditModalOpen, editingStudent, editModalMode, loading } = useSelector(state => state.students);
+
+  const [activeSection, setActiveSection] = useState("personal");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [errors, setErrors] = useState({});
+
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    mobile: "",
+    fatherName: "",
+    profileImage: "",
+    address: "",
+    village: "",
+    post: "",
+    district: "",
+    city: "",
+    state: "",
+    pincode: "",
+    status: "Active",
+    bio: ""
+  });
+
+  useEffect(() => {
+    if (isEditModalOpen) {
+      if (editingStudent) {
+        setFormData({
+          fullName: editingStudent.fullName || editingStudent.name || "",
+          email: editingStudent.email || editingStudent.user?.email || "",
+          mobile: editingStudent.mobile || editingStudent.user?.mobile || "",
+          fatherName: editingStudent.fatherName || "",
+          profileImage: editingStudent.profileImage || "",
+          address: editingStudent.address || "",
+          village: editingStudent.village || "",
+          post: editingStudent.post || "",
+          district: editingStudent.district || "",
+          city: editingStudent.city || "",
+          state: editingStudent.state || "",
+          pincode: editingStudent.pincode || "",
+          status: editingStudent.status || editingStudent.user?.status || "Active",
+          bio: editingStudent.bio || ""
+        });
+      } else {
+        setFormData({
+          fullName: "", email: "", mobile: "", fatherName: "", profileImage: "",
+          address: "", village: "", post: "", district: "", city: "", state: "", pincode: "",
+          status: "Active", bio: ""
+        });
+      }
+      setErrors({});
+      setImageFile(null);
+      setActiveSection("personal");
+    }
+  }, [editingStudent, isEditModalOpen]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const validate = () => {
+    let newErrors = {};
+    if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
+    if (!formData.fatherName.trim()) newErrors.fatherName = "Guardian name is required";
+    if (!formData.mobile.trim()) newErrors.mobile = "Mobile number is required";
+    if (!formData.address.trim()) newErrors.address = "Full physical address is mandatory";
+
+    // Mandatory address components
+    if (!formData.village.trim()) newErrors.village = "Village/Locality is mandatory";
+    if (!formData.post.trim()) newErrors.post = "Post Office is mandatory";
+    if (!formData.district.trim()) newErrors.district = "District is required";
+
+    setErrors(newErrors);
+
+    if (newErrors.fullName || newErrors.fatherName || newErrors.mobile) setActiveSection("personal");
+    else if (newErrors.village || newErrors.post || newErrors.district || newErrors.address) setActiveSection("residence");
+
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!validate()) return;
+
+    setIsSubmitting(true);
+    try {
+      let imageUrl = formData.profileImage;
+      if (imageFile) {
+        setUploading(true);
+        imageUrl = await uploadImageToCloudinary(imageFile);
+        setUploading(false);
+      }
+
+      const payload = { ...formData, profileImage: imageUrl };
+
+      if (editingStudent) {
+        await dispatch(modifyStudent({ id: editingStudent.id, data: payload })).unwrap();
+        toast.success("Student Registry Updated");
+      } else {
+        await dispatch(registerStudent(payload)).unwrap();
+        toast.success("Student Onboarded Successfully");
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message || "Operation Failed";
+      const detail = err.response?.data?.error ? ` (${err.response.data.error})` : "";
+      toast.error(errorMsg + detail);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const sections = [
+    { id: "personal", label: "Identity", icon: User, hasError: !!errors.fullName || !!errors.fatherName || !!errors.mobile },
+    { id: "residence", label: "Residence", icon: Home, hasError: !!errors.village || !!errors.post || !!errors.district || !!errors.address },
+    { id: "academic", label: "Administrative", icon: ShieldCheck, hasError: false },
+  ];
+
+  if (!isEditModalOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[150] flex justify-center items-center p-4 bg-black/80 backdrop-blur-xl font-sans text-white">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="bg-[#09090b] border border-white/5 w-full max-w-4xl h-[640px] rounded-[40px] shadow-[0_32px_80px_rgba(0,0,0,0.5)] flex overflow-hidden"
+      >
+        {/* SIDEBAR */}
+        <div className="w-16 sm:w-60 bg-zinc-900/30 border-r border-white/[0.03] p-4 sm:p-6 flex flex-col justify-between shrink-0">
+          <div className="space-y-10">
+            <div className="px-2 hidden sm:block pt-2 text-left">
+              <h2 className="text-xl font-black tracking-tighter italic text-white uppercase leading-none text-blue-500">LIBRYNC</h2>
+              <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mt-1.5 opacity-80">Advanced Registry</p>
+            </div>
+
+            <nav className="space-y-3">
+              {editModalMode === 'view' ? (
+                <button className="w-full relative flex items-center justify-center sm:justify-start gap-4 p-4 sm:px-5 sm:py-3.5 rounded-2xl transition-all font-bold text-[11px] uppercase tracking-wider bg-blue-600 text-white shadow-lg shadow-blue-500/10">
+                  <User size={16} />
+                  <span className="hidden sm:block">Full Profile</span>
+                </button>
+              ) : (
+                sections.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setActiveSection(s.id)}
+                    className={`w-full relative flex items-center justify-center sm:justify-start gap-4 p-4 sm:px-5 sm:py-3.5 rounded-2xl transition-all font-bold text-[11px] uppercase tracking-wider ${activeSection === s.id
+                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/10'
+                      : 'text-zinc-500 hover:bg-white/[0.03] hover:text-zinc-300'
+                      }`}
+                  >
+                    <s.icon size={16} />
+                    <span className="hidden sm:block">{s.label}</span>
+                    {s.hasError && (
+                      <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#09090b]" />
+                    )}
+                  </button>
+                ))
+              )}
+            </nav>
+          </div>
+
+          <div className="p-2 sm:p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 mb-2">
+            <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-700 ease-out ${(loading || isSubmitting) ? 'bg-blue-500 animate-pulse' : Object.keys(errors).length > 0 ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                style={{ width: editModalMode === 'view' ? '100%' : (activeSection === 'personal' ? '33%' : activeSection === 'residence' ? '66%' : '100%') }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* CONTENT AREA */}
+        <div className="flex-1 flex flex-col bg-[#0c0c0e]">
+          <div className="px-8 py-6 border-b border-white/[0.03] flex justify-between items-center bg-zinc-900/40 backdrop-blur-md shrink-0">
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">{activeSection} Control</span>
+            <button
+              onClick={() => dispatch(closeEditModal())}
+              className="w-10 h-10 flex items-center justify-center bg-white/[0.03] hover:bg-rose-500/10 hover:text-rose-500 rounded-xl transition-all text-zinc-500"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-10 py-10 custom-scrollbar focus:outline-none">
+            <AnimatePresence mode="wait">
+              {editModalMode === 'view' ? (
+                <motion.div key="view" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                  <div className="flex items-center gap-6 mb-8">
+                    <div className="w-24 h-24 rounded-[32px] bg-zinc-900 border border-white/5 overflow-hidden shadow-2xl">
+                      {editingStudent?.profileImage ? (
+                        <img src={editingStudent.profileImage} className="w-full h-full object-cover" alt="profile" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-3xl font-black text-blue-500 bg-gradient-to-br from-blue-500/10 to-indigo-500/5">
+                          {(editingStudent?.fullName || editingStudent?.name)?.[0]}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-white tracking-tight leading-none">{editingStudent?.fullName || editingStudent?.name}</h3>
+                      <p className="text-zinc-500 text-[10px] mt-2 font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                        Authenticated Registry
+                      </p>
+                    </div>
+                  </div>
+                  <StudentProfileView student={editingStudent} />
+                </motion.div>
+              ) : (
+                <>
+                  {activeSection === "personal" && (
+                    <motion.div key="p" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 text-left">
+                      <div className="flex flex-col sm:flex-row items-center gap-8">
+                        <div className="relative group shrink-0">
+                          <div className="w-28 h-28 rounded-[36px] bg-zinc-900 border border-dashed border-white/10 flex items-center justify-center text-zinc-700 group-hover:border-emerald-500/50 transition-all cursor-pointer overflow-hidden shadow-inner">
+                            {uploading ? <Loader2 className="animate-spin text-emerald-500" /> :
+                              formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" alt="preview" /> :
+                                <Camera size={28} />}
+                          </div>
+                          <label className="absolute -bottom-1 -right-1 w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white border-4 border-[#0c0c0e] cursor-pointer hover:scale-110 transition-transform shadow-lg">
+                            <span className="text-xl font-bold">+</span>
+                            <input type="file" accept="image/*" hidden onChange={(e) => {
+                              const file = e.target.files[0];
+                              if (!file) return;
+                              setImageFile(file);
+                              setFormData((prev) => ({ ...prev, profileImage: URL.createObjectURL(file) }));
+                            }} />
+                          </label>
+                        </div>
+                        <div className="flex-1 w-full">
+                          <h3 className="text-lg font-black text-white tracking-tight leading-none">Institutional Identity</h3>
+                          <p className="text-zinc-500 text-[11px] mt-2 italic font-medium leading-relaxed">System requires a high-resolution identification photo for the smart-card and library portal.</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-8">
+                        <div className="col-span-2">
+                          <Field label="Identification Full Name *" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Alex Thompson" error={errors.fullName} isLarge />
+                        </div>
+                        <div className="col-span-2">
+                          <Field label="Guardian Name / Relationship *" name="fatherName" value={formData.fatherName} onChange={handleChange} placeholder="David Smith" error={errors.fatherName} isLarge />
+                        </div>
+                        <div className="col-span-2">
+                          <Field label="Primary Contact Number *" name="mobile" value={formData.mobile} onChange={handleChange} placeholder="+1 (555) 000-0000" error={errors.mobile} isLarge />
+                        </div>
+                        <div className="col-span-2">
+                          <Field label="Official Email" name="email" value={formData.email} onChange={handleChange} placeholder="alex@institute.edu" isLarge />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeSection === "residence" && (
+                    <motion.div key="r" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 text-left">
+                      <div className="flex items-center gap-3 mb-2">
+                        <MapPin size={18} className="text-emerald-500" />
+                        <h3 className="text-sm font-black text-white uppercase tracking-widest leading-none">Geographic Location</h3>
+                      </div>
+                      <div className="grid grid-cols-2 gap-8">
+                        <div className="col-span-2">
+                          <Field label="Village/Locality *" name="village" value={formData.village} onChange={handleChange} placeholder="North Block / Village Name" error={errors.village} isLarge />
+                        </div>
+                        <div className="col-span-2">
+                          <Field label="Post Office *" name="post" value={formData.post} onChange={handleChange} placeholder="Main P.O." error={errors.post} isLarge />
+                        </div>
+                        <div className="col-span-2">
+                          <Field label="District Registry *" name="district" value={formData.district} onChange={handleChange} placeholder="New York District" error={errors.district} isLarge />
+                        </div>
+                        <div className="col-span-2">
+                          <Field label="City Node" name="city" value={formData.city} onChange={handleChange} placeholder="Metropolis City" isLarge />
+                        </div>
+                        <div className="col-span-2">
+                          <Field label="State / Province" name="state" value={formData.state} onChange={handleChange} placeholder="California" isLarge />
+                        </div>
+                        <div className="col-span-2">
+                          <Field label="Postal Index Code" name="pincode" value={formData.pincode} onChange={handleChange} placeholder="10001" isLarge />
+                        </div>
+                        <div className="col-span-2">
+                          <Field label="Full Physical Address *" name="address" value={formData.address} onChange={handleChange} placeholder="Floor, Street, Landmark..." isTextArea error={errors.address} />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeSection === "academic" && (
+                    <motion.div key="a" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 text-left">
+                      <div className="grid grid-cols-2 gap-8">
+                        <div className="space-y-2 col-span-2">
+                          <label className="text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest block">Operational Status</label>
+                          <div className="relative">
+                            <select
+                              name="status"
+                              value={formData.status}
+                              onChange={handleChange}
+                              className="w-full bg-zinc-900 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white outline-none appearance-none transition-all focus:border-emerald-500/30"
+                            >
+                              <option value="Active">Active Subscription</option>
+                              <option value="Inactive">Registry Hold</option>
+                            </select>
+                            <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 rotate-90 text-zinc-600 pointer-events-none" size={16} />
+                          </div>
+                        </div>
+                        <div className="col-span-2">
+                          <Field label="Internal Administrative Notes" name="bio" value={formData.bio} onChange={handleChange} placeholder="Scholarships, behavioral records, etc..." isTextArea />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* FOOTER */}
+          <div className="px-10 py-6 border-t border-white/[0.03] bg-zinc-900/20 shrink-0 flex justify-between items-center">
+            {editModalMode === 'edit' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => { if (activeSection === 'residence') setActiveSection('personal'); if (activeSection === 'academic') setActiveSection('residence'); }}
+                  className={`px-6 py-2 text-[11px] font-black uppercase tracking-widest transition-all ${activeSection === 'personal' ? 'opacity-0 pointer-events-none' : 'text-zinc-500 hover:text-white'}`}
+                >
+                  Back
+                </button>
+                <button
+                  onClick={activeSection !== 'academic' ? () => { if (activeSection === 'personal') setActiveSection('residence'); if (activeSection === 'residence') setActiveSection('academic'); } : handleSubmit}
+                  disabled={isSubmitting || uploading}
+                  className="flex items-center gap-3 px-10 py-5 bg-emerald-600 text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/20 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : activeSection === 'academic' ? <Check size={16} strokeWidth={3} /> : <ChevronRight size={16} strokeWidth={3} />}
+                  <span>{activeSection === 'academic' ? (editingStudent ? 'Synchronize Record' : 'Finalize Registry') : 'Continue Registry'}</span>
+                </button>
+              </>
+            ) : (
+              <div className="w-full flex justify-end">
+                <button onClick={() => dispatch(closeEditModal())} className="px-12 py-5 bg-white/[0.03] hover:bg-white/[0.08] text-white rounded-[24px] text-[11px] font-black uppercase tracking-widest transition-all border border-white/5 shadow-xl">Dismiss</button>
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// Internal Styled Sub-components
+const Field = ({ label, error, isTextArea, isLarge, ...props }) => (
+  <div className="space-y-2 text-left">
+    <label className="text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest block">
+      {label}
+    </label>
+    <div className="relative">
+      {isTextArea ? (
+        <textarea
+          {...props}
+          className={`w-full bg-zinc-900 border ${error ? 'border-rose-500' : 'border-white/5 focus:border-emerald-500/30'} rounded-[32px] p-4 text-sm h-32 text-white outline-none resize-none transition-all placeholder:text-zinc-800 shadow-inner`}
+        />
+      ) : (
+        <input
+          {...props}
+          className={`w-full bg-zinc-900 border ${error ? 'border-rose-500' : 'border-white/5 focus:border-emerald-500/30'} ${isLarge ? 'p-4 text-base tracking-tight' : 'p-4.5 text-sm'} rounded-2xl font-bold text-white outline-none transition-all placeholder:text-zinc-800 shadow-inner`}
+        />
+      )}
+      {error && <AlertCircle className="absolute right-4 top-1/2 -translate-y-1/2 text-rose-500" size={16} />}
+    </div>
+    {error && <p className="text-[9px] text-rose-500 font-bold ml-1 uppercase">{error}</p>}
+  </div>
+);
