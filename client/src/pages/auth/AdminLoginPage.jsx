@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LogIn, Mail, Lock, Loader2, ShieldCheck, 
-  ArrowRight, AlertCircle, Sparkles 
+  ArrowRight, AlertCircle, Sparkles, Eye, EyeOff 
 } from 'lucide-react';
 import { loginAdmin, verifyLoginOtpAdmin, clearError } from '../../store/slices/authSlice';
 import toast from 'react-hot-toast';
@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 export default function AdminLoginPage() {
   const [credential, setCredential] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
   const [otp, setOtp] = useState('');
   const [loginId, setLoginId] = useState(null);
@@ -125,13 +126,20 @@ export default function AdminLoginPage() {
                     <Lock size={18} />
                   </div>
                   <input 
-                    type="password" 
+                    type={showPassword ? "text" : "password"} 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-[#161B22]/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-[#161B22] transition-all duration-300"
+                    className="w-full bg-[#161B22]/50 border border-white/5 rounded-2xl py-4 pl-12 pr-12 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-[#161B22] transition-all duration-300"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-4 flex items-center text-gray-500 hover:text-emerald-400 transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
 

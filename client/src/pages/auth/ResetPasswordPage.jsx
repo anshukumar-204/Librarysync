@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { KeyRound, Lock, ArrowLeft, Loader2, CheckCircle2, ShieldEllipsis } from 'lucide-react';
+import { KeyRound, Lock, ArrowLeft, Loader2, CheckCircle2, ShieldEllipsis, Eye, EyeOff } from 'lucide-react';
 import { resetPasswordAdmin } from '../../store/slices/authSlice';
 import toast from 'react-hot-toast';
 
@@ -11,6 +11,7 @@ export default function ResetPasswordPage() {
   const [email, setEmail] = useState(location.state?.email || '');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const dispatch = useDispatch();
@@ -91,13 +92,20 @@ export default function ResetPasswordPage() {
                   <Lock size={18} />
                 </div>
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Minimum 8 characters"
-                  className="w-full bg-[#161B22]/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-emerald-500/50 transition-all font-sans"
+                  className="w-full bg-[#161B22]/50 border border-white/5 rounded-2xl py-4 pl-12 pr-12 text-white focus:outline-none focus:border-emerald-500/50 transition-all font-sans"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-4 flex items-center text-gray-500 hover:text-emerald-400 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 

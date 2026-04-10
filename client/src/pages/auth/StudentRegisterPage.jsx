@@ -6,7 +6,7 @@ import {
   User, Mail, Lock, Phone, MapPin, 
   ArrowRight, ArrowLeft, Loader2, AlertCircle, 
   CheckCircle2, Sparkles, GraduationCap, Search,
-  ShieldCheck, KeyRound, RefreshCw
+  ShieldCheck, KeyRound, RefreshCw, Eye, EyeOff
 } from 'lucide-react';
 import { registerStudent, clearError } from '../../store/slices/authSlice';
 import authApi from '../../services/authApi';
@@ -328,7 +328,11 @@ export default function StudentRegisterPage() {
   );
 }
 
-function Input({ label, icon: Icon, className, ...props }) {
+function Input({ label, icon: Icon, className, type, ...props }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === 'password';
+  const effectiveType = isPassword ? (showPassword ? 'text' : 'password') : type;
+
   return (
     <div className="space-y-2">
       <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">{label}</label>
@@ -340,8 +344,18 @@ function Input({ label, icon: Icon, className, ...props }) {
         )}
         <input 
           {...props}
-          className={`w-full bg-[#161B22]/50 border border-white/5 rounded-xl py-3.5 ${Icon ? 'pl-11' : 'px-4'} pr-4 text-white text-sm focus:outline-none focus:border-blue-500/50 focus:bg-[#161B22] transition-all ${className}`}
+          type={effectiveType}
+          className={`w-full bg-[#161B22]/50 border border-white/5 rounded-xl py-3.5 ${Icon ? 'pl-11' : 'px-4'} ${isPassword ? 'pr-12' : 'pr-4'} text-white text-sm focus:outline-none focus:border-blue-500/50 focus:bg-[#161B22] transition-all ${className}`}
         />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute inset-y-0 right-4 flex items-center text-gray-500 hover:text-blue-400 transition-colors"
+          >
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        )}
       </div>
     </div>
   );
