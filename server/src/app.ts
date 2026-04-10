@@ -35,7 +35,7 @@ app.use(compression());
 app.use("/api", apiRateLimiter);
 
 // Routes
-app.get("/", (req, res) => {
+app.get("/", (req: express.Request, res: express.Response) => {
   res.send("Library Attendance System API Running 🔥");
 });
 

@@ -259,8 +259,11 @@ export const resetPassword = async (req: Request, res: Response) => {
 
 const maskEmail = (email: string | null) => {
   if (!email) return "N/A";
-  const [name, domain] = email.split("@");
-  if (!domain) return email;
+  const parts = email.split("@");
+  if (parts.length !== 2) return email;
+  const name = parts[0];
+  const domain = parts[1];
+  if (!name || !domain) return email;
   return `${name[0]}****${name[name.length - 1]}@${domain}`;
 };
 
