@@ -31,8 +31,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(compression());
 
-// General API Rate limit
-app.use("/api", apiRateLimiter);
+// General API Rate limit (Disabled as requested)
+// app.use("/api", apiRateLimiter);
 
 // Routes
 app.get("/", (req: express.Request, res: express.Response) => {
