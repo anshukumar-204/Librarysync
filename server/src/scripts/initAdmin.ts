@@ -17,7 +17,7 @@ async function initAdmin() {
 
   try {
     console.log(`Ensuring Admin exists with email: ${adminEmail}`);
-    
+
     const passwordHash = await hashPassword(adminPassword);
 
     // Upsert the Admin user
