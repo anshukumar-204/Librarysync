@@ -34,5 +34,7 @@
     "skipLibCheck": true,
     "noImplicitAny": false,
     "strict": false
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "prisma/seed.ts", "prisma.config.ts"]
 }
