@@ -54,16 +54,19 @@ export const login = async (req: Request, res: Response) => {
 
     const isMatch = await verifyPassword(password, user.passwordHash);
     if (!isMatch) {
-      // Brute force protection disabled as requested
-      /*
       const attempts = user.failedLoginAttempts + 1;
-      const lockedUntil = attempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000) : null;
+      const attemptsLeft = Math.max(0, 5 - attempts);
+      
       await prisma.user.update({
         where: { id: user.id },
-        data: { failedLoginAttempts: attempts, lockedUntil }
+        data: { failedLoginAttempts: attempts }
       });
-      */
-      return res.status(401).json({ success: false, message: "Invalid credentials" });
+
+      return res.status(401).json({ 
+        success: false, 
+        message: `Invalid credentials. Attempts left: ${attemptsLeft}`,
+        attemptsLeft 
+      });
     }
 
     // Success! Reset attempts

@@ -114,7 +114,7 @@ export default function StudentEditModal() {
       const payload = { ...formData, profileImage: imageUrl };
 
       if (editingStudent) {
-        await dispatch(modifyStudent({ id: editingStudent.id, data: payload })).unwrap();
+        await dispatch(modifyStudent({ id: editingStudent.id, studentData: payload })).unwrap();
         toast.success("Student Registry Updated");
       } else {
         await dispatch(registerStudent(payload)).unwrap();

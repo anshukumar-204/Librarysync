@@ -14,7 +14,7 @@ export type RefreshTokenPayload = {
 };
 
 export const generateAccessToken = (payload: AccessTokenPayload) => {
-  return jwt.sign(payload, ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+  return jwt.sign(payload, ACCESS_TOKEN_SECRET, { expiresIn: "24h" });
 };
 
 export const generateRefreshToken = (payload: RefreshTokenPayload) => {
