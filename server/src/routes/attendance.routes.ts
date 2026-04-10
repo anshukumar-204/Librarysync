@@ -4,8 +4,8 @@ import { authenticate, requireVerified } from "../middlewares/auth.middleware.js
 
 const router = Router();
 
-// Endpoint for the QR Scanner device/app to submit the scanned token
-router.post("/scan", markAttendance);
+// Endpoint for marking attendance (Student scans library QR or vice-versa)
+router.post("/mark", authenticate, markAttendance);
 
 // Endpoint for Students to generate their QR Code for the day
 router.get("/generate-qr", authenticate, requireVerified, generateStudentQR);
