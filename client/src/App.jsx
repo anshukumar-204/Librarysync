@@ -15,6 +15,7 @@ import PublicRoute from './components/auth/PublicRoute';
 
 import StudentDashboard from './pages/StudentDashboard';
 import AdminScanStation from './pages/AdminScanStation';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 function App() {
   return (
@@ -34,10 +35,7 @@ function App() {
         {/* Protected Admin Routes */}
         <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
           <Route element={<MainLayout />}>
-            <Route path="/admin/dashboard" element={<div className="text-white p-6 leading-relaxed">
-              <h2 className="text-3xl font-bold mb-4">Command Center</h2>
-              <p className="text-gray-400">Registry nodes active. Secure communications established.</p>
-            </div>} />
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
             <Route path="/admin/students" element={<StudentManagementPage />} />
             <Route path="/admin/scan-station" element={<AdminScanStation />} />
             <Route path="/admin/*" element={<Navigate to="/admin/dashboard" replace />} />

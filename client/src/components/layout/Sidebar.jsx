@@ -12,11 +12,7 @@ import { logoutAdmin } from '../../store/slices/authSlice';
 const navItems = [
   { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
   { name: 'Scan Station', path: '/admin/scan-station', icon: QrCode },
-  { name: 'Students', path: '/admin/students', icon: Users },
-  { name: 'Sessions', path: '/admin/sessions', icon: Library },
-  { name: 'Knowledge', path: '/admin/knowledge', icon: Database },
-  { name: 'Attendance', path: '/admin/appointments', icon: CalendarCheck },
-  { name: 'Settings', path: '/admin/settings', icon: Settings }
+  { name: 'Students', path: '/admin/students', icon: Users }
 ];
 
 export default function Sidebar() {

@@ -14,6 +14,21 @@ const dashboardApi = {
   getStudentMetrics: async () => {
     const response = await API.get('/dashboard/student/metrics');
     return response.data;
+  },
+
+  getAdminLiveAttendance: async () => {
+    const response = await API.get('/dashboard/admin/live');
+    return response.data;
+  },
+
+  getAdminAttendanceTrends: async () => {
+    const response = await API.get('/dashboard/admin/trends');
+    return response.data;
+  },
+
+  getAdminAttendanceFilters: async (params) => {
+    const response = await API.get('/dashboard/admin/filters', { params });
+    return response.data;
   }
 };
 

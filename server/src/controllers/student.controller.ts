@@ -53,7 +53,14 @@ export const createStudent = async (req: Request, res: Response) => {
     return res.status(201).json({
       success: true,
       message: "Student profile securely created",
-      data: newStudent.student
+      data: {
+        ...newStudent.student,
+        user: {
+          mobile: newStudent.mobile,
+          email: newStudent.email,
+          status: newStudent.status
+        }
+      }
     });
 
   } catch (error: any) {
@@ -150,7 +157,14 @@ export const updateStudent = async (req: Request, res: Response) => {
     return res.json({
       success: true,
       message: "Student profile updated successfully",
-      data: updatedUser.student
+      data: {
+        ...updatedUser.student,
+        user: {
+          mobile: updatedUser.mobile,
+          email: updatedUser.email,
+          status: updatedUser.status
+        }
+      }
     });
 
   } catch (error: any) {

@@ -77,3 +77,38 @@ export const getAttendanceFilters = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+export const getAttendanceTrends = async (req: Request, res: Response) => {
+  try {
+    if (req.user?.role !== "admin") return res.status(403).json({ success: false, message: "Forbidden" });
+
+    const trends = [];
+    const now = new Date();
+
+    // Loop through the last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      d.setHours(0, 0, 0, 0);
+      const start = d;
+      const end = new Date(d);
+      end.setHours(23, 59, 59, 999);
+
+      const count = await prisma.attendance.count({
+        where: {
+          date: { gte: start, lte: end }
+        }
+      });
+
+      trends.push({
+        date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        count
+      });
+    }
+
+    return res.json({ success: true, data: trends });
+
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Trend analysis failure" });
+  }
+};
