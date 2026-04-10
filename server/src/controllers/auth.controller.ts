@@ -55,16 +55,21 @@ export const login = async (req: Request, res: Response) => {
     const isMatch = await verifyPassword(password, user.passwordHash);
     if (!isMatch) {
       const attempts = user.failedLoginAttempts + 1;
+      const lockedUntil = attempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000) : null;
       const attemptsLeft = Math.max(0, 5 - attempts);
       
       await prisma.user.update({
         where: { id: user.id },
-        data: { failedLoginAttempts: attempts }
+        data: { failedLoginAttempts: attempts, lockedUntil }
       });
+
+      const message = attempts >= 5 
+        ? "Account temporarily locked for 15 minutes due to too many failed attempts."
+        : `Invalid credentials. Attempts left: ${attemptsLeft}`;
 
       return res.status(401).json({ 
         success: false, 
-        message: `Invalid credentials. Attempts left: ${attemptsLeft}`,
+        message,
         attemptsLeft 
       });
     }

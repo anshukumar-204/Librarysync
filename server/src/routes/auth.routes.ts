@@ -5,14 +5,14 @@ import { authenticate } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-// Auth routes (Rate limiting disabled as requested)
-router.post("/login", login);
-router.post("/verify-login-otp", verifyLoginOtp);
-router.post("/register", register);
-router.post("/verify-registration", verifyRegistration);
-router.post("/complete-registration", completeRegistration);
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
+// Auth routes with rate limiting
+router.post("/login", authRateLimiter, login);
+router.post("/verify-login-otp", authRateLimiter, verifyLoginOtp);
+router.post("/register", authRateLimiter, register);
+router.post("/verify-registration", authRateLimiter, verifyRegistration);
+router.post("/complete-registration", authRateLimiter, completeRegistration);
+router.post("/forgot-password", authRateLimiter, forgotPassword);
+router.post("/reset-password", authRateLimiter, resetPassword);
 router.post("/logout", authenticate, logout);
 
 export default router;
