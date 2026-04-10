@@ -2,7 +2,7 @@ services:
   # Backend Web Service
   - type: web
     name: library-attendance-backend
-    env: node
+    runtime: node
     rootDir: server
     buildCommand: npm install && npx prisma generate && npm run build
     startCommand: npm start
@@ -33,12 +33,12 @@ services:
         sync: false
 
   # Frontend Static Site
-  - type: static
+  - type: web
     name: library-attendance-frontend
-    env: static
+    runtime: static
     rootDir: client
     buildCommand: npm install && npm run build
-    publishDir: dist
+    staticPublishPath: client/dist
     envVars:
       - key: VITE_API_BASE_URL
         sync: false
