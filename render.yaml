@@ -3,6 +3,7 @@ services:
   - type: web
     name: library-attendance-backend
     runtime: node
+    plan: free
     rootDir: server
     buildCommand: npm install && npx prisma generate && npm run build
     startCommand: npm start
@@ -36,6 +37,7 @@ services:
   - type: web
     name: library-attendance-frontend
     runtime: static
+    plan: free
     rootDir: client
     buildCommand: npm install && npm run build
     staticPublishPath: client/dist
