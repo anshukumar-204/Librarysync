@@ -139,7 +139,12 @@ export const login = async (req: Request, res: Response) => {
         );
 
         if (!mailSent.success) {
-          return res.status(500).json({ success: false, message: "Failed to dispatch security code. Please check mailer nodes." });
+          return res.status(500).json({ 
+            success: false, 
+            message: "Failed to dispatch security code. Please check mailer nodes.",
+            details: (mailSent.error as any)?.message || "Unknown SMTP Error",
+            code: (mailSent.error as any)?.code || "SMTP_ERR"
+          });
         }
 
         return res.json({
@@ -480,7 +485,12 @@ export const register = async (req: Request, res: Response) => {
         where: { id: existingUser.id },
         data: { verifyOtp: null, verifyOtpExpiresAt: null }
       });
-      return res.status(500).json({ success: false, message: "Failed to dispatch activation cipher. Please check mailer settings." });
+      return res.status(500).json({ 
+        success: false, 
+        message: "Failed to dispatch activation cipher. Please check mailer settings.",
+        details: (mailSent.error as any)?.message || "Unknown SMTP Error",
+        code: (mailSent.error as any)?.code || "SMTP_ERR"
+      });
     }
 
     console.log("[REGISTRY] Response dispatched. Portal activating.");
@@ -561,5 +571,36 @@ export const logout = async (req: Request, res: Response) => {
     return res.json({ success: true, message: "Logged out from all sessions" });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+export const mailerHealthCheck = async (req: Request, res: Response) => {
+  const host = process.env.SMTP_HOST || "smtp-relay.brevo.com";
+  const port = process.env.SMTP_PORT;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS ? "***SET***" : "***MISSING***";
+  const sender = process.env.SENDER_EMAIL;
+
+  const results = {
+    env: {
+      SMTP_HOST: host,
+      SMTP_PORT: port,
+      SMTP_USER: user ? "***SET***" : "***MISSING***",
+      SMTP_PASS: pass,
+      SENDER_EMAIL: sender ? "***SET***" : "***MISSING***"
+    },
+    connectionTest: "Pending"
+  };
+
+  try {
+    const mailer = getTransporter();
+    if (!mailer) throw new Error("Transporter could not be initialized (Missing Credentials)");
+    
+    await mailer.verify();
+    results.connectionTest = "SUCCESS: SMTP Server is reachable and authorized.";
+    return res.json({ success: true, ...results });
+  } catch (error: any) {
+    results.connectionTest = `FAILED: ${error.message}`;
+    return res.status(500).json({ success: false, ...results, error_code: error.code });
   }
 };
