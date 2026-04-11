@@ -36,7 +36,8 @@ import {
   updateDailyGoal,
   fetchLeaderboard,
   fetchStudyLogs,
-  createStudyLog
+  createStudyLog,
+  deleteStudyLog
 } from '../store/slices/studentDashboardSlice';
 import {
   ResponsiveContainer,
@@ -66,10 +67,7 @@ export default function StudentDashboard() {
     actionLoading
   } = useSelector((state) => state.studentDashboard);
 
-  const [showQR, setShowQR] = React.useState(false);
-  const [showLeaderboard, setShowLeaderboard] = React.useState(false);
-  const [showLogModal, setShowLogModal] = React.useState(false);
-  const [showGoalModal, setShowGoalModal] = React.useState(false);
+  const [activeModal, setActiveModal] = React.useState(null); // 'qr' | 'leaderboard' | 'log' | 'goal'
   const [chartRange, setChartRange] = React.useState('week'); // 'week' | 'month' | 'year'
   const [tempGoal, setTempGoal] = React.useState(metrics?.dailyGoalHours || 8);
   const [logFormData, setLogFormData] = React.useState({
@@ -78,6 +76,8 @@ export default function StudentDashboard() {
     hoursSpent: todayStatus?.studyHours?.toFixed(1) || 0,
     productivityRating: 5
   });
+
+  const registryRef = React.useRef(null);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -93,7 +93,7 @@ export default function StudentDashboard() {
   const handleUpdateGoal = async () => {
     try {
       await dispatch(updateDailyGoal(tempGoal)).unwrap();
-      setShowGoalModal(false);
+      setActiveModal(null);
       toast.success("Focus target recalibrated.");
     } catch (err) {
       toast.error("Failed to update goal");
@@ -106,7 +106,7 @@ export default function StudentDashboard() {
 
     try {
       await dispatch(createStudyLog(logFormData)).unwrap();
-      setShowLogModal(false);
+      setActiveModal(null);
       toast.success("Study node preserved in registry.");
       setLogFormData({
         subject: '',
@@ -149,7 +149,7 @@ export default function StudentDashboard() {
 
     if (!qrValue) return;
 
-    setShowQR(false);
+    setActiveModal(null);
     try {
       await dispatch(autoMarkAttendance(qrValue)).unwrap();
       toast.success("Attendance Synchronized!");
@@ -311,7 +311,7 @@ export default function StudentDashboard() {
               </div>
 
               <button
-                onClick={() => setShowLeaderboard(true)}
+                onClick={() => setActiveModal('leaderboard')}
                 className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all hover:scale-105 active:scale-95 shadow-lg group"
               >
                 <Trophy size={18} className="group-hover:rotate-12 transition-transform" />
@@ -329,7 +329,7 @@ export default function StudentDashboard() {
               </div>
 
               <button
-                onClick={handleShowQR}
+                onClick={() => setActiveModal('qr')}
                 disabled={todayStatus?.status === 'Completed' || actionLoading}
                 className={`group relative w-full rounded-[3rem] overflow-hidden transition-all duration-700 active:scale-[0.96] border-4 ${todayStatus?.status === 'Completed'
                     ? 'border-white/5 opacity-50 grayscale cursor-not-allowed'
@@ -419,7 +419,7 @@ export default function StudentDashboard() {
                       <span className="text-2xl font-black text-white tracking-tighter">{metrics?.dailyGoalHours || 8}H</span>
                     </div>
                     <button
-                      onClick={() => { setTempGoal(metrics?.dailyGoalHours || 8); setShowGoalModal(true); }}
+                      onClick={() => { setTempGoal(metrics?.dailyGoalHours || 8); setActiveModal('goal'); }}
                       className="p-4 bg-blue-600/10 text-blue-500 rounded-2xl hover:bg-blue-600/20 transition-all active:scale-90"
                     >
                       <Settings size={22} />
@@ -441,7 +441,7 @@ export default function StudentDashboard() {
             {/* Quick Actions Journal Trigger */}
             <div className="space-y-4">
               <button
-                onClick={() => setShowLogModal(true)}
+                onClick={() => setActiveModal('log')}
                 className="w-full py-6 rounded-3xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-all flex items-center justify-center gap-3 font-black text-[10px] uppercase tracking-[0.3em]"
               >
                 <PenLine size={20} />
@@ -531,7 +531,7 @@ export default function StudentDashboard() {
             )}
 
             {/* Archive / History */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+            <motion.div ref={registryRef} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-zinc-500/10 flex items-center justify-center text-gray-500">
@@ -561,20 +561,20 @@ export default function StudentDashboard() {
 
         {/* QR Scanner Modal */}
         <AnimatePresence>
-          {showQR && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowQR(false)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
+          {activeModal === 'qr' && (
+            <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
                 className="relative bg-zinc-900 border border-white/10 p-8 rounded-[3rem] w-full max-w-sm shadow-2xl overflow-hidden"
               >
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-black text-white">Registry Auth</h3>
-                  <button onClick={() => setShowQR(false)} className="p-2 rounded-xl bg-white/5 text-gray-500 hover:text-white"><XCircle size={20} /></button>
+                  <button onClick={() => setActiveModal(null)} className="p-2 rounded-xl bg-white/5 text-gray-500 hover:text-white"><XCircle size={20} /></button>
                 </div>
                 <div className="bg-black/50 rounded-[2rem] mb-6 overflow-hidden border border-white/5 h-[300px] relative">
                   <Scanner onScan={handleScanSuccess} components={{ audio: false, finder: true }} styles={{ container: { width: '100%', height: '100%' } }} />
                 </div>
-                <button onClick={() => setShowQR(false)} className="w-full py-4 rounded-2xl bg-white/5 text-gray-500 font-black text-[10px] uppercase tracking-widest hover:bg-white/10">Terminate Node</button>
+                <button onClick={() => setActiveModal(null)} className="w-full py-4 rounded-2xl bg-white/5 text-gray-500 font-black text-[10px] uppercase tracking-widest hover:bg-white/10">Terminate Node</button>
               </motion.div>
             </div>
           )}
@@ -582,15 +582,15 @@ export default function StudentDashboard() {
 
         {/* Leaderboard Modal */}
         <AnimatePresence>
-          {showLeaderboard && (
-            <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-6">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowLeaderboard(false)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
+          {activeModal === 'leaderboard' && (
+            <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center sm:p-6">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
               <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
                 className="relative bg-[#0c0c0e] border-t sm:border border-white/10 p-8 sm:p-10 rounded-t-[4rem] sm:rounded-[4rem] w-full max-w-lg h-[90vh] sm:h-[80vh] flex flex-col overflow-hidden"
               >
                 <div className="flex items-center justify-between mb-10 shrink-0">
                   <h3 className="text-3xl font-black text-white tracking-tighter italic">Wall of <span className="text-blue-500">Excellence</span></h3>
-                  <button onClick={() => setShowLeaderboard(false)} className="p-4 rounded-2xl bg-white/5 text-gray-500 hover:text-white transition-all"><XCircle size={24} /></button>
+                  <button onClick={() => setActiveModal(null)} className="p-4 rounded-2xl bg-white/5 text-gray-500 hover:text-white transition-all"><XCircle size={24} /></button>
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-4 custom-scrollbar pr-2 pb-10">
                   {leaderboard.map((item, index) => (
@@ -614,15 +614,15 @@ export default function StudentDashboard() {
 
         {/* Goal Modal */}
         <AnimatePresence>
-          {showGoalModal && (
+          {activeModal === 'goal' && (
             <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowGoalModal(false)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
                 className="relative bg-zinc-900 border border-white/10 p-8 rounded-[3rem] w-full max-w-sm overflow-hidden"
               >
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="text-2xl font-black text-white">Target</h3>
-                  <button onClick={() => setShowGoalModal(false)} className="p-2 rounded-xl bg-white/5 text-gray-500"><XCircle size={20} /></button>
+                  <button onClick={() => setActiveModal(null)} className="p-2 rounded-xl bg-white/5 text-gray-500"><XCircle size={20} /></button>
                 </div>
                 <div className="space-y-8">
                   <div className="grid grid-cols-4 gap-2">
@@ -632,7 +632,7 @@ export default function StudentDashboard() {
                   </div>
                   <input type="number" value={tempGoal} onChange={(e) => setTempGoal(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 text-3xl font-black text-center text-white focus:border-blue-500 outline-none" />
                   <div className="flex gap-3">
-                    <button onClick={() => setShowGoalModal(false)} className="flex-1 py-5 bg-white/5 text-gray-500 font-bold rounded-2xl">Cancel</button>
+                    <button onClick={() => setActiveModal(null)} className="flex-1 py-5 bg-white/5 text-gray-500 font-bold rounded-2xl">Cancel</button>
                     <button onClick={handleUpdateGoal} className="flex-2 px-8 py-5 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20">Save</button>
                   </div>
                 </div>
@@ -643,15 +643,15 @@ export default function StudentDashboard() {
 
         {/* Journal Log Modal */}
         <AnimatePresence>
-          {showLogModal && (
+          {activeModal === 'log' && (
             <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowLogModal(false)} className="absolute inset-0 bg-black/95 backdrop-blur-xl" />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="absolute inset-0 bg-black/95 backdrop-blur-xl" />
               <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
                 className="relative bg-[#0c0c0e] border border-white/10 p-6 sm:p-10 rounded-[3rem] w-full max-w-lg shadow-2xl overflow-hidden max-h-[95vh] flex flex-col"
               >
                 <div className="flex items-center justify-between mb-8 shrink-0">
                   <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tighter italic">Archive <span className="text-blue-500">Session</span></h3>
-                  <button onClick={() => setShowLogModal(false)} className="p-3 sm:p-4 rounded-2xl bg-white/5 text-gray-500 hover:text-white"><XCircle size={24} /></button>
+                  <button onClick={() => setActiveModal(null)} className="p-3 sm:p-4 rounded-2xl bg-white/5 text-gray-500 hover:text-white"><XCircle size={24} /></button>
                 </div>
 
                 <form onSubmit={handleCreateLog} className="space-y-8 overflow-y-auto pr-2 custom-scrollbar pb-4">
@@ -696,38 +696,41 @@ export default function StudentDashboard() {
       </main>
 
       {/* --- HOTSTAR STYLE BOTTOM NAVIGATION (MOBILE ONLY) --- */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[200] px-4 pb-6 pt-2">
+      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[250] w-[92%] max-w-lg">
         <motion.div 
-          initial={{ y: 100 }} animate={{ y: 0 }}
-          className="bg-[#0B0D17]/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-2 flex items-center justify-around shadow-2xl shadow-blue-500/10"
+          initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+          className="bg-[#0B0D17]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex items-center justify-around shadow-[0_20px_50px_rgba(59,130,246,0.15)]"
         >
-          <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="flex flex-col items-center gap-1 p-3 text-blue-500">
-            <LayoutGrid size={24} />
-            <span className="text-[9px] font-black uppercase tracking-widest">Hub</span>
+          <button onClick={() => { setActiveModal(null); window.scrollTo({top: 0, behavior: 'smooth'}); }} className={`flex flex-col items-center gap-1 p-3 transition-colors ${!activeModal ? 'text-blue-500' : 'text-gray-500'}`}>
+            <LayoutGrid size={22} />
+            <span className="text-[8px] font-black uppercase tracking-widest">Hub</span>
           </button>
           
-          <button onClick={() => setShowLeaderboard(true)} className="flex flex-col items-center gap-1 p-3 text-gray-500">
-            <Trophy size={24} />
-            <span className="text-[9px] font-black uppercase tracking-widest">Ranks</span>
+          <button onClick={() => setActiveModal('leaderboard')} className={`flex flex-col items-center gap-1 p-3 transition-colors ${activeModal === 'leaderboard' ? 'text-blue-500' : 'text-gray-500'}`}>
+            <Trophy size={22} />
+            <span className="text-[8px] font-black uppercase tracking-widest">Ranks</span>
           </button>
 
-          <div className="relative -mt-10">
+          <div className="relative">
             <button 
-              onClick={handleShowQR}
-              className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-2xl shadow-blue-600/40 border-4 border-[#0B0D17]"
+              onClick={() => setActiveModal('qr')}
+              className={`w-14 h-14 rounded-full flex items-center justify-center text-white shadow-2xl transition-all active:scale-90 -mt-8 border-4 border-[#0B0D17] ${activeModal === 'qr' ? 'bg-indigo-600 scale-110' : 'bg-blue-600'}`}
             >
-              <Camera size={28} />
+              <Camera size={26} />
             </button>
           </div>
 
-          <button onClick={() => setShowLogModal(true)} className="flex flex-col items-center gap-1 p-3 text-gray-500">
-            <PenLine size={24} />
-            <span className="text-[9px] font-black uppercase tracking-widest">Journal</span>
+          <button onClick={() => setActiveModal('log')} className={`flex flex-col items-center gap-1 p-3 transition-colors ${activeModal === 'log' ? 'text-blue-500' : 'text-gray-500'}`}>
+            <PenLine size={22} />
+            <span className="text-[8px] font-black uppercase tracking-widest">Journal</span>
           </button>
 
-          <button onClick={() => { /* Scroll to history */ }} className="flex flex-col items-center gap-1 p-3 text-gray-500">
-            <History size={24} />
-            <span className="text-[9px] font-black uppercase tracking-widest">History</span>
+          <button 
+            onClick={() => { setActiveModal(null); registryRef.current?.scrollIntoView({ behavior: 'smooth' }); }} 
+            className="flex flex-col items-center gap-1 p-3 text-gray-500 hover:text-blue-400 transition-colors"
+          >
+            <History size={22} />
+            <span className="text-[8px] font-black uppercase tracking-widest">History</span>
           </button>
         </motion.div>
       </div>
