@@ -219,6 +219,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
 
     return res.json({ success: true, data: topStudents });
   } catch (error) {
+    console.error("LEADERBOARD ERROR:", error);
     return res.status(500).json({ success: false, message: "Leaderboard sync failed" });
   }
 };
@@ -282,5 +283,106 @@ export const deleteStudyLog = async (req: Request, res: Response) => {
     return res.json({ success: true, message: "Log node purged from history" });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Log deletion failure" });
+  }
+};
+export const getTasks = async (req: Request, res: Response) => {
+  try {
+    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const { date } = req.query;
+    let whereClause: any = { studentId: student.id };
+
+    if (date) {
+      const targetDate = new Date(date as string);
+      const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+      whereClause.createdAt = { gte: startOfDay, lte: endOfDay };
+    } else {
+      // Logic for active dashboard: show incomplete tasks OR tasks completed today
+      const today = new Date();
+      const startOfToday = new Date(today.setHours(0, 0, 0, 0));
+      whereClause.OR = [
+        { isCompleted: false },
+        { createdAt: { gte: startOfToday } }
+      ];
+    }
+
+    const tasks = await prisma.task.findMany({
+      where: whereClause,
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return res.json({ success: true, data: tasks });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Task retrieval failure" });
+  }
+};
+
+export const createTask = async (req: Request, res: Response) => {
+  try {
+    const { title, estimatedMinutes, priority } = req.body;
+    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const task = await prisma.task.create({
+      data: {
+        studentId: student.id,
+        title,
+        estimatedMinutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
+        priority: priority || "medium"
+      }
+    });
+
+    return res.status(201).json({ success: true, data: task });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Task creation failure" });
+  }
+};
+
+export const toggleTaskStatus = async (req: Request, res: Response) => {
+  try {
+    const taskId = Number(req.params.id);
+    const { isCompleted } = req.body;
+    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+    
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!task || task.studentId !== student.id) {
+      return res.status(403).json({ success: false, message: "Unauthorized task access" });
+    }
+
+    const updatedTask = await prisma.task.update({
+      where: { id: taskId },
+      data: { 
+        isCompleted,
+        completedAt: isCompleted ? new Date() : null
+      }
+    });
+
+    return res.json({ success: true, data: updatedTask });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Task update failure" });
+  }
+};
+
+export const deleteTask = async (req: Request, res: Response) => {
+  try {
+    const taskId = Number(req.params.id);
+    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+    
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!task || task.studentId !== student.id) {
+      return res.status(403).json({ success: false, message: "Unauthorized task access" });
+    }
+
+    await prisma.task.delete({ where: { id: taskId } });
+
+    return res.json({ success: true, message: "Task node removed" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Task deletion failure" });
   }
 };

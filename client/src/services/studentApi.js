@@ -45,3 +45,25 @@ export const deleteStudyLog = async (id) => {
   const response = await API.delete(`/students/logs/${id}`);
   return response.data;
 };
+
+// Preparation Tasks
+export const fetchTasks = async (date) => {
+  const url = date ? `/students/tasks?date=${date}` : '/students/tasks';
+  const response = await API.get(url);
+  return response.data;
+};
+
+export const createTask = async (taskData) => {
+  const response = await API.post('/students/tasks', taskData);
+  return response.data;
+};
+
+export const toggleTaskStatus = async (id, isCompleted) => {
+  const response = await API.put(`/students/tasks/${id}`, { isCompleted });
+  return response.data;
+};
+
+export const deleteTask = async (id) => {
+  const response = await API.delete(`/students/tasks/${id}`);
+  return response.data;
+};

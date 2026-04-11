@@ -111,6 +111,55 @@ export const deleteStudyLog = createAsyncThunk(
   }
 );
 
+// Preparation Tasks
+export const fetchTasks = createAsyncThunk(
+  'studentDashboard/fetchTasks',
+  async (date, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.fetchTasks(date);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to fetch tasks');
+    }
+  }
+);
+
+export const createTask = createAsyncThunk(
+  'studentDashboard/createTask',
+  async (taskData, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.createTask(taskData);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to create task');
+    }
+  }
+);
+
+export const toggleTaskStatus = createAsyncThunk(
+  'studentDashboard/toggleTaskStatus',
+  async ({ id, isCompleted }, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.toggleTaskStatus(id, isCompleted);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to update task');
+    }
+  }
+);
+
+export const deleteTask = createAsyncThunk(
+  'studentDashboard/deleteTask',
+  async (id, { rejectWithValue }) => {
+    try {
+      await studentApi.deleteTask(id);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to remove task');
+    }
+  }
+);
+
 export const autoMarkAttendance = createAsyncThunk(
   'studentDashboard/markAttendance',
   async (scannedToken, { rejectWithValue }) => {
@@ -132,14 +181,32 @@ const studentDashboardSlice = createSlice({
     history: [],
     leaderboard: [],
     studyLogs: [],
+    tasks: [],
     qrToken: null,
     loading: false,
     error: null,
     actionLoading: false, 
+    // Pomodoro State (Persistent across navigation)
+    pomodoro: {
+      mode: 'focus', // 'focus' | 'break'
+      focusDuration: 25,
+      breakDuration: 5,
+      timeLeft: 25 * 60,
+      isRunning: false,
+      sessionsCompleted: 0
+    }
   },
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    updatePomodoro: (state, action) => {
+      state.pomodoro = { ...state.pomodoro, ...action.payload };
+    },
+    tickPomodoro: (state) => {
+      if (state.pomodoro.isRunning && state.pomodoro.timeLeft > 0) {
+        state.pomodoro.timeLeft -= 1;
+      }
     }
   },
   extraReducers: (builder) => {
@@ -187,6 +254,21 @@ const studentDashboardSlice = createSlice({
       .addCase(deleteStudyLog.fulfilled, (state, action) => {
         state.studyLogs = state.studyLogs.filter(log => log.id !== action.payload);
       })
+      
+      // Tasks
+      .addCase(fetchTasks.fulfilled, (state, action) => {
+        state.tasks = action.payload;
+      })
+      .addCase(createTask.fulfilled, (state, action) => {
+        state.tasks.unshift(action.payload);
+      })
+      .addCase(toggleTaskStatus.fulfilled, (state, action) => {
+        const index = state.tasks.findIndex(t => t.id === action.payload.id);
+        if (index !== -1) state.tasks[index] = action.payload;
+      })
+      .addCase(deleteTask.fulfilled, (state, action) => {
+        state.tasks = state.tasks.filter(t => t.id !== action.payload);
+      })
 
       // Mark Attendance
       .addCase(autoMarkAttendance.pending, (state) => {
@@ -227,5 +309,5 @@ const studentDashboardSlice = createSlice({
   }
 });
 
-export const { clearError } = studentDashboardSlice.actions;
+export const { clearError, updatePomodoro, tickPomodoro } = studentDashboardSlice.actions;
 export default studentDashboardSlice.reducer;

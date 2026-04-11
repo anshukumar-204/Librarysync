@@ -18,13 +18,13 @@ app.set("trust proxy", 1);
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.ALLOWED_ORIGINS 
-      ? process.env.ALLOWED_ORIGINS.split(",") 
+    origin: process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(",")
       : [
-          "http://localhost:5173", 
-          "http://localhost:5174",
-          "https://cheerful-sfogliatella-8ee1fa.netlify.app"
-        ],
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "https://cheerful-sfogliatella-8ee1fa.netlify.app"
+      ],
     credentials: true,
   })
 );

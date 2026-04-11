@@ -8,8 +8,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // url = env("DATABASE_URL") <- REMOVE THIS LINE
-  // directUrl = env("DIRECT_URL")
 }
 
 
@@ -61,6 +59,20 @@ model Student {
   user         User     @relation(fields: [userId], references: [id])
   attendances  Attendance[]
   studyLogs    StudyLog[]
+  tasks        Task[]
+}
+
+model Task {
+  id               Int      @id @default(autoincrement())
+  studentId        Int
+  title            String
+  isCompleted      Boolean  @default(false)
+  estimatedMinutes Int?
+  priority         String   @default("medium")
+  createdAt        DateTime @default(now())
+  completedAt      DateTime?
+
+  student     Student  @relation(fields: [studentId], references: [id])
 }
 
 model StudyLog {

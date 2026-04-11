@@ -21,7 +21,13 @@ import {
   Award,
   Settings,
   LayoutGrid,
-  ChevronRight
+  ChevronRight,
+  Play,
+  Pause,
+  RotateCcw,
+  CheckSquare,
+  PlusCircle,
+  Timer
 } from 'lucide-react';
 import { logoutAdmin } from '../store/slices/authSlice';
 import { Scanner } from '@yudiel/react-qr-scanner';
@@ -34,7 +40,13 @@ import {
   fetchLeaderboard,
   fetchStudyLogs,
   createStudyLog,
-  deleteStudyLog
+  deleteStudyLog,
+  fetchTasks,
+  createTask,
+  toggleTaskStatus,
+  deleteTask,
+  updatePomodoro,
+  tickPomodoro
 } from '../store/slices/studentDashboardSlice';
 import {
   ResponsiveContainer,
@@ -59,6 +71,8 @@ export default function StudentDashboard() {
     history,
     leaderboard,
     studyLogs,
+    tasks,
+    pomodoro,
     loading,
     actionLoading
   } = useSelector((state) => state.studentDashboard);
@@ -73,6 +87,11 @@ export default function StudentDashboard() {
     hoursSpent: '',
     productivityRating: 5
   });
+  const [newTaskTitle, setNewTaskTitle] = React.useState('');
+  const [newTaskETM, setNewTaskETM] = React.useState('');
+  const [newTaskPriority, setNewTaskPriority] = React.useState('medium');
+  const [taskView, setTaskView] = React.useState('today'); // 'today' | 'archived'
+  const [showPomodoroSettings, setShowPomodoroSettings] = React.useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -83,7 +102,112 @@ export default function StudentDashboard() {
     dispatch(fetchHistory());
     dispatch(fetchLeaderboard());
     dispatch(fetchStudyLogs());
+    dispatch(fetchTasks());
   }, [dispatch]);
+
+  // Pomodoro Ticker
+  useEffect(() => {
+    let interval;
+    if (pomodoro.isRunning && pomodoro.timeLeft > 0) {
+      interval = setInterval(() => {
+        dispatch(tickPomodoro());
+      }, 1000);
+    } else if (pomodoro.timeLeft === 0) {
+      handlePomodoroComplete();
+    }
+    return () => clearInterval(interval);
+  }, [pomodoro.isRunning, pomodoro.timeLeft, dispatch]);
+
+  const handlePomodoroComplete = () => {
+    const isFocus = pomodoro.mode === 'focus';
+    const nextMode = isFocus ? 'break' : 'focus';
+    const nextTime = nextMode === 'focus' ? 25 * 60 : 5 * 60;
+    
+    dispatch(updatePomodoro({ 
+      isRunning: false, 
+      mode: nextMode, 
+      timeLeft: nextTime,
+      sessionsCompleted: isFocus ? pomodoro.sessionsCompleted + 1 : pomodoro.sessionsCompleted
+    }));
+
+    if (isFocus) {
+      toast.success("Focus Session Synchronized! Time for a short recharge.");
+      const focusedHours = (pomodoro.focusDuration / 60).toFixed(1);
+      setLogFormData(prev => ({ 
+        ...prev, 
+        hoursSpent: ((parseFloat(prev.hoursSpent) || 0) + parseFloat(focusedHours)).toFixed(1),
+        topicsCovered: prev.topicsCovered + `\n- Focus session: ${pomodoro.focusDuration}m completed`
+      }));
+    } else {
+      toast.success("Break Terminated. Ready for the next focus node?");
+    }
+  };
+
+  const handleUpdatePomodoroSettings = (focus, breakTime) => {
+    dispatch(updatePomodoro({ 
+      focusDuration: focus, 
+      breakDuration: breakTime,
+      timeLeft: pomodoro.mode === 'focus' ? focus * 60 : breakTime * 60,
+      isRunning: false
+    }));
+    setShowPomodoroSettings(false);
+    toast.success("Terminal rhythms updated.");
+  };
+
+  const handleToggleTimer = () => {
+    dispatch(updatePomodoro({ isRunning: !pomodoro.isRunning }));
+  };
+
+  const handleResetTimer = () => {
+    const time = pomodoro.mode === 'focus' ? pomodoro.focusDuration * 60 : pomodoro.breakDuration * 60;
+    dispatch(updatePomodoro({ isRunning: false, timeLeft: time }));
+  };
+
+  const handleAddTask = async (e) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+    try {
+      await dispatch(createTask({ 
+        title: newTaskTitle, 
+        estimatedMinutes: newTaskETM, 
+        priority: newTaskPriority 
+      })).unwrap();
+      setNewTaskTitle('');
+      setNewTaskETM('');
+      toast.success("Preparation node added.");
+    } catch (err) {
+      toast.error("Failed to add task");
+    }
+  };
+
+  const handleToggleTaskView = (view) => {
+    setTaskView(view);
+    if (view === 'archived') {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      dispatch(fetchTasks(yesterday.toISOString().split('T')[0]));
+    } else {
+      dispatch(fetchTasks());
+    }
+  };
+
+  const handleToggleTask = async (id, isCompleted) => {
+    try {
+      await dispatch(toggleTaskStatus({ id, isCompleted: !isCompleted })).unwrap();
+    } catch (err) {
+      toast.error("Status sync failed");
+    }
+  };
+
+  const handleDeleteTask = async (id) => {
+    if (!window.confirm("Purge this task node?")) return;
+    try {
+      await dispatch(deleteTask(id)).unwrap();
+      toast.success("Node purged.");
+    } catch (err) {
+      toast.error("Purge failed");
+    }
+  };
 
   // Sync logFormData hours when todayStatus changes
   useEffect(() => {
@@ -225,7 +349,125 @@ export default function StudentDashboard() {
     return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  const formatTimer = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   // --- VIEW RENDERING FUNCTIONS ---
+
+  const renderFocusTerminal = () => (
+    <div className="glass-card p-6 rounded-[2.5rem] bg-indigo-600/5 border border-indigo-500/10 shadow-2xl overflow-hidden relative group">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${pomodoro.isRunning ? 'bg-emerald-500 animate-pulse' : 'bg-gray-600'}`} />
+          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{pomodoro.mode === 'focus' ? 'Focus Terminal' : 'Recharge Node'}</span>
+        </div>
+        <button onClick={() => setShowPomodoroSettings(!showPomodoroSettings)} className="text-gray-500 hover:text-indigo-400 transition-colors">
+          <Settings size={14} />
+        </button>
+      </div>
+
+      {showPomodoroSettings ? (
+        <div className="space-y-4 py-4 animate-in fade-in slide-in-from-bottom-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block mb-1">Focus (Min)</label>
+              <input type="number" defaultValue={pomodoro.focusDuration} onBlur={(e) => handleUpdatePomodoroSettings(parseInt(e.target.value), pomodoro.breakDuration)} className="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-white text-xs outline-none focus:border-indigo-500" />
+            </div>
+            <div>
+              <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block mb-1">Break (Min)</label>
+              <input type="number" defaultValue={pomodoro.breakDuration} onBlur={(e) => handleUpdatePomodoroSettings(pomodoro.focusDuration, parseInt(e.target.value))} className="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-white text-xs outline-none focus:border-indigo-500" />
+            </div>
+          </div>
+          <button onClick={() => setShowPomodoroSettings(false)} className="w-full py-2 bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase rounded-xl hover:bg-indigo-500/20">Save Configuration</button>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center">
+          <div className="text-6xl font-black text-white tracking-tighter mb-6 font-mono tabular-nums">
+            {formatTimer(pomodoro.timeLeft)}
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <button onClick={handleToggleTimer} className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all active:scale-90 ${pomodoro.isRunning ? 'bg-orange-500/10 text-orange-500' : 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'}`}>
+              {pomodoro.isRunning ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
+            </button>
+            <button onClick={handleResetTimer} className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all active:scale-90">
+              <RotateCcw size={24} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Background Decor */}
+      <div className="absolute -bottom-6 -right-6 text-indigo-500/5 pointer-events-none group-hover:scale-110 transition-transform">
+        <Timer size={100} />
+      </div>
+    </div>
+  );
+
+  const renderDailyTasks = () => (
+    <div className="glass-card rounded-[3rem] p-8 border border-white/5 shadow-2xl h-full flex flex-col">
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><CheckSquare size={20} /></div>
+          <div>
+            <h2 className="text-xl font-black text-white uppercase tracking-tight">Daily Prep</h2>
+            <div className="flex gap-2 mt-1">
+              <button onClick={() => handleToggleTaskView('today')} className={`text-[8px] font-black uppercase tracking-widest ${taskView === 'today' ? 'text-indigo-500' : 'text-gray-600'}`}>Today</button>
+              <button onClick={() => handleToggleTaskView('archived')} className={`text-[8px] font-black uppercase tracking-widest ${taskView === 'archived' ? 'text-orange-500' : 'text-gray-600'}`}>Yesterday's Wins</button>
+            </div>
+          </div>
+        </div>
+        <span className="text-[10px] font-black text-gray-600 uppercase">
+          {tasks.filter(t => t.isCompleted).length}/{tasks.length} SYNCED
+        </span>
+      </div>
+
+      <div className="space-y-3 mb-6 flex-1 overflow-y-auto max-h-[250px] pr-2 custom-scrollbar">
+        {tasks.length === 0 && (
+          <div className="text-center py-8 opacity-20">
+            <CheckSquare size={40} className="mx-auto mb-2" />
+            <p className="text-[10px] font-black uppercase tracking-widest">No {taskView} nodes</p>
+          </div>
+        )}
+        <AnimatePresence>
+          {tasks.map((task) => (
+            <motion.div key={task.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className={`flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border group transition-all ${task.priority === 'high' ? 'border-orange-500/20' : 'border-white/5'}`}>
+              <button onClick={() => handleToggleTask(task.id, task.isCompleted)} className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.isCompleted ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-white/10 hover:border-indigo-500/50'}`}>
+                {task.isCompleted && <CheckSquare size={14} />}
+              </button>
+              <div className="flex-1">
+                <span className={`text-sm font-bold block transition-all ${task.isCompleted ? 'text-gray-600 line-through' : 'text-gray-300'}`}>{task.title}</span>
+                {task.estimatedMinutes && <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{task.estimatedMinutes}m node</span>}
+              </div>
+              <button onClick={() => handleDeleteTask(task.id)} className="p-2 text-red-500/20 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                <Trash2 size={16} />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {taskView === 'today' && (
+        <form onSubmit={handleAddTask} className="relative mt-auto space-y-2">
+          <input type="text" placeholder="Add preparation goal..." value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-bold text-white outline-none focus:border-indigo-500/50 transition-all" />
+          <div className="flex gap-2">
+            <input type="number" placeholder="Min (ETM)" value={newTaskETM} onChange={(e) => setNewTaskETM(e.target.value)} className="w-24 bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-[10px] font-bold text-white outline-none" />
+            <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)} className="flex-1 bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-[10px] font-bold text-gray-500 outline-none">
+              <option value="low">Low Priority</option>
+              <option value="medium">Medium Priority</option>
+              <option value="high">High Priority</option>
+            </select>
+            <button type="submit" className="p-2 bg-indigo-500/10 text-indigo-500 rounded-xl hover:bg-indigo-500/20 transition-all">
+              <PlusCircle size={20} />
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
 
   const renderHub = () => (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8 pb-32">
@@ -334,10 +576,36 @@ export default function StudentDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Pomodoro Focus Terminal */}
+          {renderFocusTerminal()}
         </div>
 
-        {/* Right Analytics */}
+        {/* Right Analytics & Tasks */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-8">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            <div className="xl:col-span-1">
+              {renderDailyTasks()}
+            </div>
+            
+            <div className="xl:col-span-1">
+              <div className="glass-card p-6 rounded-[2.5rem] bg-orange-500/5 border border-orange-500/10 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+                    <Flame size={24} className="animate-pulse" />
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Current Velocity</span>
+                    <span className="text-xl font-black text-white tracking-tighter">{metrics?.currentStreak || 0} DAY STREAK</span>
+                  </div>
+                </div>
+                <button onClick={() => setActiveView('rank')} className="p-3 rounded-2xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all">
+                  <Trophy size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="glass-card rounded-[3rem] p-5 sm:p-8 border border-white/5 shadow-2xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
               <div className="flex items-center gap-3">

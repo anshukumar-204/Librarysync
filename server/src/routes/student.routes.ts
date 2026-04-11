@@ -7,7 +7,11 @@ import {
   getLeaderboard,
   createStudyLog,
   getStudyLogs,
-  deleteStudyLog
+  deleteStudyLog,
+  getTasks,
+  createTask,
+  toggleTaskStatus,
+  deleteTask
 } from "../controllers/student.controller.js";
 import { authenticate, requireVerified } from "../middlewares/auth.middleware.js";
 
@@ -22,6 +26,12 @@ router.get("/leaderboard", getLeaderboard);
 router.get("/logs", getStudyLogs);
 router.post("/logs", createStudyLog);
 router.delete("/logs/:id", deleteStudyLog);
+
+// Preparation Tasks
+router.get("/tasks", getTasks);
+router.post("/tasks", createTask);
+router.put("/tasks/:id", toggleTaskStatus);
+router.delete("/tasks/:id", deleteTask);
 
 // Registry Management (Admin usually)
 router.post("/", createStudent); 

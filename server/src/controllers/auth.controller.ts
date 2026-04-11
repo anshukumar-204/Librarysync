@@ -4,29 +4,48 @@ import { generateSecureOTP, hashPassword, verifyPassword } from "../utils/securi
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 import nodemailer from "nodemailer";
 
-// Setup mailer (Updated with Brevo credentials from .env)
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp-relay.brevo.com",
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+// Mailer logic optimized for ESM environment variable loading
+let transporter: nodemailer.Transporter | null = null;
+
+const getTransporter = () => {
+  if (transporter) return transporter;
+  
+  const host = process.env.SMTP_HOST || "smtp-relay.brevo.com";
+  const port = Number(process.env.SMTP_PORT) || 587;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (!user || !pass) {
+    console.error("[MAILER] Critical Error: SMTP credentials missing from environment.");
+  }
+
+  transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: false,
+    auth: { user, pass },
+  });
+
+  return transporter;
+};
 
 const sendMail = async (email: string, subject: string, html: string) => {
   try {
-    await transporter.sendMail({
-      from: process.env.SENDER_EMAIL || '"Librync Hub" <no-reply@librync.io>',
+    const mailer = getTransporter();
+    const fromAddress = process.env.SENDER_EMAIL || "no-reply@librync.io";
+    
+    await mailer.sendMail({
+      from: `"Librync Hub" <${fromAddress}>`,
       to: email,
       subject,
       html,
     });
-    console.log(`[MAILER] Successfully sent email to: ${email}`);
+    console.log(`[MAILER] Successfully dispatched email to: ${email}`);
     return { success: true };
-  } catch (error) {
-    console.error(`[MAILER] Failed to send email to: ${email}`, error);
+  } catch (error: any) {
+    console.error(`[MAILER] Dispatch Failure to: ${email}`);
+    console.error(`[MAILER] Error Code: ${error.code}`);
+    console.error(`[MAILER] Error Message: ${error.message}`);
     return { success: false, error };
   }
 };
