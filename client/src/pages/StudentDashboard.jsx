@@ -244,18 +244,18 @@ export default function StudentDashboard() {
 
         {/* Live Status Card */}
         <div className={`p-1 rounded-3xl transition-all duration-700 ${todayStatus?.status === 'In Library' ? 'bg-gradient-to-r from-emerald-500/20 to-blue-500/20' : 'bg-white/5'}`}>
-          <div className="bg-[#0B0D17] rounded-[1.4rem] px-6 py-4 flex items-center gap-6">
+          <div className="bg-[#0B0D17] rounded-[1.4rem] px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
             <div className="flex flex-col">
               <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block mb-1">Live Terminal Status</span>
               <div className="flex items-center gap-3">
-                <span className={`text-xl font-black ${todayStatus?.status === 'In Library' ? 'text-emerald-400' : 'text-white'}`}>
+                <span className={`text-lg sm:text-xl font-black ${todayStatus?.status === 'In Library' ? 'text-emerald-400' : 'text-white'}`}>
                   {todayStatus?.status === 'In Library' ? 'ACTIVE_SESSION' : todayStatus?.status === 'Completed' ? 'SHIFT_ARCHIVED' : 'STANDBY_MODE'}
                 </span>
               </div>
             </div>
             
             {todayStatus?.status === 'In Library' && (
-              <div className="flex gap-6 border-l border-white/10 pl-6">
+              <div className="flex gap-6 border-t sm:border-t-0 sm:border-l border-white/10 pt-4 sm:pt-0 sm:pl-6">
                 <div>
                   <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block mb-1">Check-in</span>
                   <span className="text-sm font-black text-white">{formatTime(todayStatus.checkIn)}</span>
