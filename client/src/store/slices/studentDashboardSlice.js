@@ -99,6 +99,18 @@ export const createStudyLog = createAsyncThunk(
   }
 );
 
+export const deleteStudyLog = createAsyncThunk(
+  'studentDashboard/deleteStudyLog',
+  async (id, { rejectWithValue }) => {
+    try {
+      await studentApi.deleteStudyLog(id);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to delete log');
+    }
+  }
+);
+
 export const autoMarkAttendance = createAsyncThunk(
   'studentDashboard/markAttendance',
   async (scannedToken, { rejectWithValue }) => {
@@ -171,6 +183,9 @@ const studentDashboardSlice = createSlice({
       })
       .addCase(createStudyLog.fulfilled, (state, action) => {
         state.studyLogs.unshift(action.payload);
+      })
+      .addCase(deleteStudyLog.fulfilled, (state, action) => {
+        state.studyLogs = state.studyLogs.filter(log => log.id !== action.payload);
       })
 
       // Mark Attendance

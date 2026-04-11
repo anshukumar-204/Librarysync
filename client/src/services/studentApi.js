@@ -40,3 +40,8 @@ export const createStudyLog = async (logData) => {
   const response = await API.post('/students/logs', logData);
   return response.data;
 };
+
+export const deleteStudyLog = async (id) => {
+  const response = await API.delete(`/students/logs/${id}`);
+  return response.data;
+};

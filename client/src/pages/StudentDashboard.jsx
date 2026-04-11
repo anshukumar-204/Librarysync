@@ -8,6 +8,7 @@ import {
   Clock,
   Calendar,
   History,
+  Trash2,
   CheckCircle2,
   XCircle,
   Loader2,
@@ -20,7 +21,9 @@ import {
   ChevronRight,
   TrendingUp,
   Award,
-  Settings
+  Settings,
+  LayoutGrid,
+  Search
 } from 'lucide-react';
 import { logoutAdmin } from '../store/slices/authSlice';
 import { Scanner } from '@yudiel/react-qr-scanner';
@@ -99,13 +102,30 @@ export default function StudentDashboard() {
 
   const handleCreateLog = async (e) => {
     e.preventDefault();
+    if (actionLoading) return;
+
     try {
       await dispatch(createStudyLog(logFormData)).unwrap();
       setShowLogModal(false);
-      setLogFormData({ subject: '', topicsCovered: '', hoursSpent: 0, productivityRating: 5 });
-      toast.success("Session preserved in journals.");
+      toast.success("Study node preserved in registry.");
+      setLogFormData({
+        subject: '',
+        topicsCovered: '',
+        hoursSpent: todayStatus?.studyHours?.toFixed(1) || 0,
+        productivityRating: 5
+      });
     } catch (err) {
-      toast.error("Failed to save log");
+      toast.error(err || "Failed to preserve log");
+    }
+  };
+
+  const handleDeleteLog = async (id) => {
+    if (!window.confirm("Purge this study node from history?")) return;
+    try {
+      await dispatch(deleteStudyLog(id)).unwrap();
+      toast.success("Node purged successfully.");
+    } catch (err) {
+      toast.error(err || "Purge failed");
     }
   };
 
@@ -185,15 +205,37 @@ export default function StudentDashboard() {
     return date.toLocaleDateString(undefined, { weekday: 'short' });
   };
 
-  const formatTime = (dateString) => {
-    if (!dateString) return '--';
-    return new Date(dateString).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return '--';
     return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
+
+  // --- SKELETON LOADING UI (PREMIUM UX) ---
+  const DashboardSkeleton = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 animate-pulse">
+      {/* Header Skeleton */}
+      <div className="lg:col-span-12 mb-4">
+        <div className="h-20 w-64 bg-white/5 rounded-3xl" />
+        <div className="h-4 w-40 bg-white/5 rounded-full mt-4" />
+      </div>
+
+      {/* Left Column Skeleton */}
+      <div className="lg:col-span-5 xl:col-span-4 space-y-8">
+        <div className="glass-card p-6 rounded-[2.5rem] bg-white/[0.03] border border-white/5 h-24" />
+        <div className="w-full aspect-[4/3] rounded-[3rem] bg-white/[0.03] border border-white/5" />
+        <div className="w-full h-80 rounded-[3rem] bg-white/[0.03] border border-white/5" />
+      </div>
+
+      {/* Right Column Skeleton */}
+      <div className="lg:col-span-7 xl:col-span-8 space-y-10">
+        <div className="glass-card rounded-[2.5rem] sm:rounded-[3rem] p-8 border border-white/5 h-[350px] bg-white/[0.03]" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="h-48 rounded-[2.5rem] bg-white/[0.03] border border-white/5" />
+          <div className="h-48 rounded-[2.5rem] bg-white/[0.03] border border-white/5" />
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0B0D17] text-gray-300 font-sans selection:bg-blue-500/30 overflow-x-hidden pb-20">
@@ -203,45 +245,52 @@ export default function StudentDashboard() {
         <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-indigo-600/10 blur-[120px] rounded-full" />
       </div>
 
-      {/* Navigation */}
       <nav className="relative z-50 border-b border-white/5 bg-[#0B0D17]/50 backdrop-blur-xl sticky top-0">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 h-14 sm:h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
               <GraduationCap size={18} />
             </div>
-            <span className="text-lg font-bold text-white tracking-tight">Student<span className="text-blue-500">Panel</span></span>
+            <span className="text-base sm:text-lg font-bold text-white tracking-tight">Student<span className="text-blue-500 text-glow">Panel</span></span>
           </div>
 
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-colors"
+            className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-colors"
           >
-            <LogOut size={18} />
+            <LogOut size={16} />
           </button>
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-4 pt-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 pt-4 sm:pt-8">
+        {loading && !todayStatus ? (
+          <DashboardSkeleton />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12">
+            {/* HEADER SECTION (Full Width) */}
+            <div className="lg:col-span-12 mb-2 sm:mb-4">
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h1 className="text-3xl md:text-5xl font-black text-white leading-tight tracking-tighter">
+                      HUB<span className="text-blue-500">_</span>NODE
+                    </h1>
+                    <div className="flex items-center gap-2 mt-1 opacity-60">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Protocol Active: {user?.name || 'STUDENT_01'}</span>
+                    </div>
+                  </div>
 
-          {/* HEADER SECTION (Full Width) */}
-          <div className="lg:col-span-12 mb-4">
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                  <h1 className="text-4xl md:text-5xl font-black text-white leading-tight tracking-tighter">
-                    Hub Node:<br />
-                    <span className="text-blue-500">{user?.name?.split(' ')[0] || 'Member'}</span>
-                  </h1>
-                  <p className="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-[0.3em] mt-3 flex items-center gap-2">
-                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                    Productivity Sync Active
-                  </p>
+                  <div className="hidden md:flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/10">
+                    <div className="text-right px-4">
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Global Status</p>
+                      <p className="text-sm font-black text-white">{todayStatus?.status || 'IDLE'}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          </div>
+              </motion.div>
+            </div>
 
           {/* LEFT COLUMN: PRIMARY DYNAMIC ACTIONS (Excellence -> Attendance -> Goal) */}
           <div className="lg:col-span-5 xl:col-span-4 space-y-8">
@@ -453,20 +502,28 @@ export default function StudentDashboard() {
                   </div>
                   <h2 className="text-xl font-black text-white tracking-tight">Journal Chronology</h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {studyLogs.slice(0, 4).map((log) => (
-                    <div key={log.id} className="glass-card p-6 rounded-[2.5rem] border border-white/5 relative overflow-hidden group hover:border-indigo-500/30 transition-all">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="px-3 py-1 bg-indigo-500/10 text-indigo-400 text-[9px] font-black uppercase tracking-widest rounded-lg">
-                          {log.subject}
+                <div className="space-y-4">
+                  {studyLogs.map((log) => (
+                    <div key={log.id} className="p-6 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all group flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">
+                            {log.subject}
+                          </span>
+                          <span className="text-[10px] text-gray-600 font-bold uppercase">{formatDate(log.date)}</span>
                         </div>
-                        <span className="text-[10px] text-gray-600 font-bold">{formatDate(log.date)}</span>
+                        <p className="text-sm text-gray-400 group-hover:text-gray-200 transition-colors leading-relaxed">{log.topicsCovered}</p>
+                        <div className="flex items-center gap-4 mt-4 text-[10px] font-black uppercase tracking-tighter text-gray-500">
+                          <span className="flex items-center gap-1.5"><Clock size={12} /> {log.hoursSpent}H Focus</span>
+                          <span className="flex items-center gap-1.5"><TrendingUp size={12} /> {log.productivityRating}/5 Tier</span>
+                        </div>
                       </div>
-                      <p className="text-gray-300 text-sm font-medium leading-relaxed italic mb-4">"{log.topicsCovered}"</p>
-                      <div className="flex items-center gap-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                        <span className="flex items-center gap-1.5"><Clock size={12} /> {log.hoursSpent}H Focus</span>
-                        <span className="flex items-center gap-1.5"><Award size={12} /> {log.productivityRating}/5 Rating</span>
-                      </div>
+                      <button 
+                        onClick={() => handleDeleteLog(log.id)}
+                        className="p-3 rounded-2xl bg-red-500/5 text-red-500/20 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -497,7 +554,7 @@ export default function StudentDashboard() {
               </div>
             </motion.div>
           </div>
-        </div>
+        )}
 
         {/* --- MODALS SECTION --- */}
 
@@ -583,20 +640,17 @@ export default function StudentDashboard() {
           )}
         </AnimatePresence>
 
-        {/* Study Log Modal */}
+        {/* Journal Log Modal */}
         <AnimatePresence>
           {showLogModal && (
-            <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowLogModal(false)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                className="relative bg-zinc-900 border border-white/10 p-10 rounded-[4rem] w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
+            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowLogModal(false)} className="absolute inset-0 bg-black/95 backdrop-blur-xl" />
+              <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="relative bg-[#0c0c0e] border border-white/10 p-6 sm:p-10 rounded-[3rem] w-full max-w-lg shadow-2xl overflow-hidden max-h-[95vh] flex flex-col"
               >
-                <div className="flex items-center justify-between mb-10 shrink-0">
-                  <div>
-                    <h2 className="text-3xl font-black text-white italic tracking-tighter">Daily Journal</h2>
-                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] mt-1">Preserving focus nodes</p>
-                  </div>
-                  <button onClick={() => setShowLogModal(false)} className="p-4 rounded-2xl bg-white/5 text-gray-400 hover:text-white transition-all"><XCircle size={24} /></button>
+                <div className="flex items-center justify-between mb-8 shrink-0">
+                  <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tighter italic">Archive <span className="text-blue-500">Session</span></h3>
+                  <button onClick={() => setShowLogModal(false)} className="p-3 sm:p-4 rounded-2xl bg-white/5 text-gray-500 hover:text-white"><XCircle size={24} /></button>
                 </div>
 
                 <form onSubmit={handleCreateLog} className="space-y-8 overflow-y-auto pr-2 custom-scrollbar pb-4">
@@ -624,7 +678,14 @@ export default function StudentDashboard() {
                       </select>
                     </div>
                   </div>
-                  <button type="submit" className="w-full py-6 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[30px] shadow-2xl shadow-blue-500/30 active:scale-[0.98] transition-all mt-4"> Secure Node in History </button>
+                  <button 
+                    type="submit" 
+                    disabled={actionLoading}
+                    className={`w-full py-6 bg-blue-600 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[30px] shadow-2xl shadow-blue-500/30 transition-all mt-4 flex items-center justify-center gap-3 ${actionLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-500 active:scale-[0.98]'}`}
+                  > 
+                    {actionLoading ? <Loader2 size={18} className="animate-spin" /> : null}
+                    {actionLoading ? 'Syncing...' : 'Secure Node in History'} 
+                  </button>
                 </form>
               </motion.div>
             </div>
@@ -632,6 +693,43 @@ export default function StudentDashboard() {
         </AnimatePresence>
 
       </main>
+
+      {/* --- HOTSTAR STYLE BOTTOM NAVIGATION (MOBILE ONLY) --- */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[200] px-4 pb-6 pt-2">
+        <motion.div 
+          initial={{ y: 100 }} animate={{ y: 0 }}
+          className="bg-[#0B0D17]/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-2 flex items-center justify-around shadow-2xl shadow-blue-500/10"
+        >
+          <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="flex flex-col items-center gap-1 p-3 text-blue-500">
+            <LayoutGrid size={24} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Hub</span>
+          </button>
+          
+          <button onClick={() => setShowLeaderboard(true)} className="flex flex-col items-center gap-1 p-3 text-gray-500">
+            <Trophy size={24} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Ranks</span>
+          </button>
+
+          <div className="relative -mt-10">
+            <button 
+              onClick={handleShowQR}
+              className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-2xl shadow-blue-600/40 border-4 border-[#0B0D17]"
+            >
+              <Camera size={28} />
+            </button>
+          </div>
+
+          <button onClick={() => setShowLogModal(true)} className="flex flex-col items-center gap-1 p-3 text-gray-500">
+            <PenLine size={24} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Journal</span>
+          </button>
+
+          <button onClick={() => { /* Scroll to history */ }} className="flex flex-col items-center gap-1 p-3 text-gray-500">
+            <History size={24} />
+            <span className="text-[9px] font-black uppercase tracking-widest">History</span>
+          </button>
+        </motion.div>
+      </div>
     </div>
   );
 }

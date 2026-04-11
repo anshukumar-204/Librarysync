@@ -262,3 +262,25 @@ export const getStudyLogs = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: "Log retrieval failure" });
   }
 };
+
+export const deleteStudyLog = async (req: Request, res: Response) => {
+  try {
+    const logId = Number(req.params.id);
+    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+    
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const log = await prisma.studyLog.findUnique({ where: { id: logId } });
+    if (!log) return res.status(404).json({ success: false, message: "Log not found" });
+
+    if (log.studentId !== student.id) {
+      return res.status(403).json({ success: false, message: "Unauthorized log access" });
+    }
+
+    await prisma.studyLog.delete({ where: { id: logId } });
+
+    return res.json({ success: true, message: "Log node purged from history" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Log deletion failure" });
+  }
+};

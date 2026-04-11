@@ -6,7 +6,8 @@ import {
   updateDailyGoal,
   getLeaderboard,
   createStudyLog,
-  getStudyLogs
+  getStudyLogs,
+  deleteStudyLog
 } from "../controllers/student.controller.js";
 import { authenticate, requireVerified } from "../middlewares/auth.middleware.js";
 
