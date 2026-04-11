@@ -245,8 +245,8 @@ export default function StudentDashboard() {
             </motion.div>
           </div>
 
-          {/* LEFT COLUMN: PRIMARY DYNAMIC ACTIONS (Scanner prioritized) */}
-          <div className="lg:col-span-12 xl:col-span-4 space-y-8 order-2 xl:order-1">
+          {/* LEFT COLUMN: PRIMARY DYNAMIC ACTIONS (Excellence -> Attendance -> Goal) */}
+          <div className="lg:col-span-5 xl:col-span-4 space-y-8">
 
             {/* EXCELLENCE HUB (Ranks & Streak) - POSITION #1 */}
             <motion.div
@@ -403,7 +403,7 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: ANALYTICS, JOURNALS & HISTORY */}
+          {/* RIGHT COLUMN: ANALYTICS, JOURNALS & HISTORY - POSITION #4 */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-10">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
