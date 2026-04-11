@@ -456,8 +456,8 @@ export default function StudentDashboard() {
       </div>
 
       {/* Top Bar */}
-      <nav className="relative z-50 border-b border-white/5 bg-[#0B0D17]/50 backdrop-blur-xl sticky top-0">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <nav className="relative z-50 border-b border-white/5 bg-[#0B0D17]/50 backdrop-blur-xl sticky top-0 pt-[env(safe-area-inset-top)]">
+        <div className="max-w-7xl mx-auto px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
               <GraduationCap size={22} />
@@ -481,7 +481,7 @@ export default function StudentDashboard() {
       </main>
 
       {/* --- HOTSTAR STYLE NAVIGATION BAR --- */}
-      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[200] w-[90%] max-w-md">
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[200] w-full max-w-md px-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-4">
         <div className="bg-[#0B0D17]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex items-center justify-around shadow-[0_25px_50px_-12px_rgba(59,130,246,0.3)]">
           <button onClick={() => setActiveView('hub')} className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'hub' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
             <LayoutGrid size={24} />
