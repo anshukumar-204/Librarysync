@@ -46,6 +46,27 @@ export const deleteStudyLog = async (id) => {
   return response.data;
 };
 
+export const fetchSubjectAnalytics = async () => {
+  const response = await API.get('/students/analytics/subjects');
+  return response.data;
+};
+
+// Weekly Routine
+export const fetchRoutine = async () => {
+  const response = await API.get('/students/routine');
+  return response.data;
+};
+
+export const createRoutineNode = async (routineData) => {
+  const response = await API.post('/students/routine', routineData);
+  return response.data;
+};
+
+export const deleteRoutineNode = async (id) => {
+  const response = await API.delete(`/students/routine/${id}`);
+  return response.data;
+};
+
 // Preparation Tasks
 export const fetchTasks = async (date) => {
   const url = date ? `/students/tasks?date=${date}` : '/students/tasks';

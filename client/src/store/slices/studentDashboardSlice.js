@@ -172,6 +172,54 @@ export const updateTask = createAsyncThunk(
   }
 );
 
+export const fetchRoutine = createAsyncThunk(
+  'studentDashboard/fetchRoutine',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.fetchRoutine();
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to fetch routine');
+    }
+  }
+);
+
+export const createRoutineNode = createAsyncThunk(
+  'studentDashboard/createRoutineNode',
+  async (nodeData, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.createRoutineNode(nodeData);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to create routine node');
+    }
+  }
+);
+
+export const deleteRoutineNode = createAsyncThunk(
+  'studentDashboard/deleteRoutineNode',
+  async (id, { rejectWithValue }) => {
+    try {
+      await studentApi.deleteRoutineNode(id);
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to delete routine node');
+    }
+  }
+);
+
+export const fetchSubjectAnalytics = createAsyncThunk(
+  'studentDashboard/fetchSubjectAnalytics',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.fetchSubjectAnalytics();
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to fetch analytics');
+    }
+  }
+);
+
 export const autoMarkAttendance = createAsyncThunk(
   'studentDashboard/markAttendance',
   async (scannedToken, { rejectWithValue }) => {
@@ -194,6 +242,8 @@ const studentDashboardSlice = createSlice({
     leaderboard: [],
     studyLogs: [],
     tasks: [],
+    weeklyRoutine: [],
+    subjectAnalytics: [],
     qrToken: null,
     loading: false,
     error: null,
@@ -303,6 +353,22 @@ const studentDashboardSlice = createSlice({
       .addCase(updateTask.fulfilled, (state, action) => {
         const index = state.tasks.findIndex(t => t.id === action.payload.id);
         if (index !== -1) state.tasks[index] = action.payload;
+      })
+
+      // Weekly Routine
+      .addCase(fetchRoutine.fulfilled, (state, action) => {
+        state.weeklyRoutine = action.payload;
+      })
+      .addCase(createRoutineNode.fulfilled, (state, action) => {
+        state.weeklyRoutine.push(action.payload);
+      })
+      .addCase(deleteRoutineNode.fulfilled, (state, action) => {
+        state.weeklyRoutine = state.weeklyRoutine.filter(r => r.id !== action.payload);
+      })
+
+      // Analytics
+      .addCase(fetchSubjectAnalytics.fulfilled, (state, action) => {
+        state.subjectAnalytics = action.payload;
       })
 
       // Mark Attendance

@@ -60,6 +60,19 @@ model Student {
   attendances  Attendance[]
   studyLogs    StudyLog[]
   tasks        Task[]
+  routines     WeeklyRoutine[]
+}
+
+model WeeklyRoutine {
+  id               Int      @id @default(autoincrement())
+  studentId        Int
+  dayOfWeek        Int      // 0-6 (Sunday-Saturday)
+  subject          String
+  estimatedMinutes Int?
+  priority         String   @default("medium")
+  createdAt        DateTime @default(now())
+
+  student     Student  @relation(fields: [studentId], references: [id])
 }
 
 model Task {

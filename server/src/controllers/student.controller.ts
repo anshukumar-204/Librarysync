@@ -313,6 +313,29 @@ export const getTasks = async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' }
     });
 
+    // AUTO-POPULATE LOGIC: If it's today and NO tasks exist, fetch from WeeklyRoutine
+    if (!date && tasks.length === 0) {
+      const todayDay = new Date().getDay(); // 0 (Sun) to 6 (Sat)
+      const routines = await prisma.weeklyRoutine.findMany({
+        where: { studentId: student.id, dayOfWeek: todayDay }
+      });
+
+      if (routines.length > 0) {
+        // Bulk create tasks for today from routines
+        const createdTasks = await Promise.all(routines.map(r => 
+          prisma.task.create({
+            data: {
+              studentId: student.id,
+              title: r.subject,
+              estimatedMinutes: r.estimatedMinutes,
+              priority: r.priority
+            }
+          })
+        ));
+        return res.json({ success: true, data: createdTasks, message: "Routine rhythms synchronized for today." });
+      }
+    }
+
     return res.json({ success: true, data: tasks });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Task retrieval failure" });
@@ -412,5 +435,105 @@ export const updateTask = async (req: Request, res: Response) => {
     return res.json({ success: true, data: updatedTask });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Task update failure" });
+  }
+};
+
+// --- Weekly Routine Management ---
+
+export const getWeeklyRoutine = async (req: Request, res: Response) => {
+  try {
+    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const routines = await prisma.weeklyRoutine.findMany({
+      where: { studentId: student.id },
+      orderBy: [{ dayOfWeek: 'asc' }, { createdAt: 'asc' }]
+    });
+
+    return res.json({ success: true, data: routines });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Routine retrieval error" });
+  }
+};
+
+export const createRoutineNode = async (req: Request, res: Response) => {
+  try {
+    const { dayOfWeek, subject, estimatedMinutes, priority } = req.body;
+    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const routine = await prisma.weeklyRoutine.create({
+      data: {
+        studentId: student.id,
+        dayOfWeek: parseInt(dayOfWeek),
+        subject,
+        estimatedMinutes: estimatedMinutes ? parseInt(estimatedMinutes) : null,
+        priority: priority || "medium"
+      }
+    });
+
+    return res.status(201).json({ success: true, data: routine });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Routine design error" });
+  }
+};
+
+export const deleteRoutineNode = async (req: Request, res: Response) => {
+  try {
+    const routineId = Number(req.params.id);
+    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const routine = await prisma.weeklyRoutine.findUnique({ where: { id: routineId } });
+    if (!routine || routine.studentId !== student.id) {
+      return res.status(403).json({ success: false, message: "Unauthorized access" });
+    }
+
+    await prisma.weeklyRoutine.delete({ where: { id: routineId } });
+    return res.json({ success: true, message: "Routine node purged" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Purge failure" });
+  }
+};
+
+export const getSubjectAnalytics = async (req: Request, res: Response) => {
+  try {
+    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    // Aggregate time spent per subject from COMPLETED tasks and StudyLogs
+    const completedTasks = await prisma.task.findMany({
+      where: { studentId: student.id, isCompleted: true, estimatedMinutes: { not: null } },
+      select: { title: true, estimatedMinutes: true }
+    });
+
+    const studyLogs = await prisma.studyLog.findMany({
+      where: { studentId: student.id, hoursSpent: { not: null } },
+      select: { subject: true, hoursSpent: true }
+    });
+
+    const subjectData: Record<string, number> = {};
+
+    // Process tasks (minutes to hours)
+    completedTasks.forEach(task => {
+      const subject = task.title.split(":")[0].trim(); // Extract subject if title is "Subject: Topic"
+      const hours = (task.estimatedMinutes || 0) / 60;
+      subjectData[subject] = (subjectData[subject] || 0) + hours;
+    });
+
+    // Process study logs
+    studyLogs.forEach(log => {
+      const subject = log.subject || "Uncategorized";
+      subjectData[subject] = (subjectData[subject] || 0) + (log.hoursSpent || 0);
+    });
+
+    const formattedData = Object.keys(subjectData).map(subject => ({
+      subject,
+      hours: Number(subjectData[subject].toFixed(2))
+    }));
+
+    return res.json({ success: true, data: formattedData });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Analytics sync error" });
   }
 };

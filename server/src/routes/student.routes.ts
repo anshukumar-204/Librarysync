@@ -12,7 +12,11 @@ import {
   createTask,
   toggleTaskStatus,
   deleteTask,
-  updateTask
+  updateTask,
+  getWeeklyRoutine,
+  createRoutineNode,
+  deleteRoutineNode,
+  getSubjectAnalytics
 } from "../controllers/student.controller.js";
 import { authenticate, requireVerified } from "../middlewares/auth.middleware.js";
 
@@ -24,9 +28,15 @@ router.use(authenticate, requireVerified);
 // Productivity & Profile Management (Students)
 router.put("/goal", updateDailyGoal);
 router.get("/leaderboard", getLeaderboard);
+router.get("/analytics/subjects", getSubjectAnalytics);
 router.get("/logs", getStudyLogs);
 router.post("/logs", createStudyLog);
 router.delete("/logs/:id", deleteStudyLog);
+
+// Weekly Routine
+router.get("/routine", getWeeklyRoutine);
+router.post("/routine", createRoutineNode);
+router.delete("/routine/:id", deleteRoutineNode);
 
 // Preparation Tasks
 router.get("/tasks", getTasks);

@@ -73,11 +73,13 @@ export default function StudentDashboard() {
     studyLogs,
     tasks,
     pomodoro,
+    weeklyRoutine,
+    subjectAnalytics,
     loading,
     actionLoading
   } = useSelector((state) => state.studentDashboard);
 
-  const [activeView, setActiveView] = React.useState('hub'); // 'hub' | 'rank' | 'journal' | 'history'
+  const [activeView, setActiveView] = React.useState('hub'); // 'hub' | 'rank' | 'journal' | 'history' | 'routine'
   const [activeModal, setActiveModal] = React.useState(null); // 'qr' | 'goal'
   const [chartRange, setChartRange] = React.useState('week'); // 'week' | 'month' | 'year'
   const [tempGoal, setTempGoal] = React.useState(metrics?.dailyGoalHours || 8);
@@ -97,6 +99,11 @@ export default function StudentDashboard() {
   const [activeTaskTimer, setActiveTaskTimer] = React.useState(null); // { id, timeLeft, isRunning }
   const [isAlarmActive, setIsAlarmActive] = React.useState(false);
   const vibrationInterval = React.useRef(null);
+  
+  const [routineDay, setRoutineDay] = React.useState(new Date().getDay());
+  const [newRoutineSubject, setNewRoutineSubject] = React.useState('');
+  const [newRoutineHrs, setNewRoutineHrs] = React.useState('');
+  const [newRoutineMin, setNewRoutineMin] = React.useState('');
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -108,6 +115,8 @@ export default function StudentDashboard() {
     dispatch(fetchLeaderboard());
     dispatch(fetchStudyLogs());
     dispatch(fetchTasks());
+    dispatch(fetchRoutine());
+    dispatch(fetchSubjectAnalytics());
   }, [dispatch]);
 
   // Pomodoro Ticker
@@ -229,9 +238,39 @@ export default function StudentDashboard() {
       setNewTaskTitle('');
       setNewTaskHrs('');
       setNewTaskMin('');
+      dispatch(fetchSubjectAnalytics()); // Refresh analytics when task added
       toast.success("Preparation node added.");
     } catch (err) {
       toast.error("Failed to add task");
+    }
+  };
+
+  const handleCreateRoutineNode = async (e) => {
+    e.preventDefault();
+    if (!newRoutineSubject.trim()) return;
+    try {
+      const estimatedMinutes = (parseInt(newRoutineHrs) || 0) * 60 + (parseInt(newRoutineMin) || 0);
+      await dispatch(createRoutineNode({
+        dayOfWeek: routineDay,
+        subject: newRoutineSubject,
+        estimatedMinutes,
+        priority: 'medium'
+      })).unwrap();
+      setNewRoutineSubject('');
+      setNewRoutineHrs('');
+      setNewRoutineMin('');
+      toast.success("Rhythm node designed.");
+    } catch (err) {
+      toast.error("Design failure");
+    }
+  };
+
+  const handleDeleteRoutineNode = async (id) => {
+    try {
+      await dispatch(deleteRoutineNode(id)).unwrap();
+      toast.success("Rhythm node purged.");
+    } catch (err) {
+      toast.error("Purge failure");
     }
   };
 
@@ -764,32 +803,51 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          <div className="glass-card rounded-[3rem] p-5 sm:p-8 border border-white/5 shadow-2xl">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500"><TrendingUp size={20} /></div>
-                <h2 className="text-xl font-black text-white uppercase tracking-tight">Analytics</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+              <div className="glass-card rounded-[3rem] p-5 sm:p-8 border border-white/5 shadow-2xl">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500"><TrendingUp size={20} /></div>
+                  <h2 className="text-xl font-black text-white uppercase tracking-tight">Rhythm Velocity</h2>
+                </div>
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={getProcessedChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                      <XAxis dataKey={chartRange === 'year' ? 'label' : 'date'} axisLine={false} tickLine={false} tick={{ fill: '#4B5563', fontSize: 10, fontWeight: '800' }} tickFormatter={getRangeLabel} />
+                      <YAxis hide domain={[0, 'auto']} />
+                      <ReTooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={{ backgroundColor: '#0c0c0e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', fontSize: '10px' }} />
+                      <Bar dataKey="studyHours" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={24} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-              <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 w-fit">
-                {['week', 'month', 'year'].map((range) => (
-                  <button key={range} onClick={() => setChartRange(range)} className={`px-3 sm:px-4 py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all ${chartRange === range ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}>
-                    {range}
-                  </button>
-                ))}
+
+              <div className="glass-card rounded-[3rem] p-5 sm:p-8 border border-white/5 shadow-2xl">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><LayoutGrid size={20} /></div>
+                  <h2 className="text-xl font-black text-white uppercase tracking-tight">Subject Dominance</h2>
+                </div>
+                <div className="h-[250px]">
+                   {subjectAnalytics.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={subjectAnalytics} dataKey="hours" nameKey="subject" cx="50%" cy="50%" innerRadius={60} outerRadius={80} fill="#8884d8" paddingAngle={5}>
+                            {subjectAnalytics.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981'][index % 5]} />
+                            ))}
+                          </Pie>
+                          <ReTooltip contentStyle={{ backgroundColor: '#0c0c0e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', fontSize: '10px' }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                   ) : (
+                      <div className="flex flex-col items-center justify-center h-full opacity-20">
+                        <Activity size={40} className="mb-2" />
+                        <p className="text-[10px] font-black uppercase tracking-widest">No Subject Data</p>
+                      </div>
+                   )}
+                </div>
               </div>
             </div>
-            <div className="h-[250px] sm:h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={getProcessedChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                  <XAxis dataKey={chartRange === 'year' ? 'label' : 'date'} axisLine={false} tickLine={false} tick={{ fill: '#4B5563', fontSize: 10, fontWeight: '800' }} tickFormatter={getRangeLabel} />
-                  <YAxis hide domain={[0, 'auto']} />
-                  <ReTooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={{ backgroundColor: '#0c0c0e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', fontSize: '10px' }} />
-                  <Bar dataKey="studyHours" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={chartRange === 'week' ? 24 : chartRange === 'month' ? 6 : 32} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
         </div>
       </div>
     </motion.div>
@@ -822,45 +880,84 @@ export default function StudentDashboard() {
     </motion.div>
   );
 
-  const renderJournal = () => (
+  const renderRoutineBuilder = () => (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="space-y-12 pb-32 max-w-4xl mx-auto">
       <div className="text-center">
-        <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase">Study <span className="text-blue-500">Archives</span></h2>
-        <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em] mt-2">Maintain Your Focus Logs</p>
+        <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase">Weekly <span className="text-indigo-500">Rhythm</span></h2>
+        <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em] mt-2">Design Your Standard Study Pattern</p>
       </div>
 
-      <form onSubmit={handleCreateLog} className="glass-card p-8 rounded-[3rem] bg-indigo-500/5 border border-indigo-500/10 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Primary Subject</label>
-            <input type="text" placeholder="e.g., Mathematics" value={logFormData.subject} onChange={(e) => setLogFormData({ ...logFormData, subject: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500 outline-none" required />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Focus Hours</label>
-              <input type="number" step="0.1" value={logFormData.hoursSpent} onChange={(e) => setLogFormData({ ...logFormData, hoursSpent: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-black text-white outline-none" required />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Rating</label>
-              <select value={logFormData.productivityRating} onChange={(e) => setLogFormData({ ...logFormData, productivityRating: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-black text-white outline-none">
-                {[5, 4, 3, 2, 1].map(r => <option key={r} value={r} className="bg-zinc-900">{r}/5 Stars</option>)}
-              </select>
-            </div>
-          </div>
-        </div>
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Synthesis of Topics</label>
-          <textarea placeholder="Summarize your progress..." value={logFormData.topicsCovered} onChange={(e) => setLogFormData({ ...logFormData, topicsCovered: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-medium text-white h-24 resize-none outline-none focus:border-blue-500" required />
-        </div>
-        <button type="submit" disabled={actionLoading} className="w-full py-5 bg-blue-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-blue-500/20 hover:bg-blue-500 transition-all flex items-center justify-center gap-2">
-          {actionLoading ? <Loader2 size={18} className="animate-spin" /> : <PenLine size={18} />}
-          {actionLoading ? 'Saving...' : 'Preserve Session Node'}
-        </button>
-      </form>
+      <div className="flex overflow-x-auto gap-2 pb-4 custom-scrollbar no-scrollbar">
+        {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day, idx) => (
+          <button key={day} onClick={() => setRoutineDay(idx)} className={`min-w-[70px] p-4 rounded-2xl border transition-all flex flex-col items-center gap-1 ${routineDay === idx ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20' : 'bg-white/5 border-white/10 text-gray-500'}`}>
+            <span className="text-[8px] font-black uppercase tracking-widest">{day}</span>
+            <span className="text-xs font-black italic">{weeklyRoutine.filter(r => r.dayOfWeek === idx).length} Nodes</span>
+          </button>
+        ))}
+      </div>
 
-      <div className="space-y-4">
-        <h3 className="text-xl font-black text-white flex items-center gap-2 mb-6"><Clock size={20} className="text-indigo-500" /> Recent Chronology</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+        <div className="space-y-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><PenLine size={20} /></div>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight">Design Node</h3>
+          </div>
+          
+          <form onSubmit={handleCreateRoutineNode} className="glass-card p-8 rounded-[3rem] bg-white/[0.03] border border-white/5 space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Planned Subject</label>
+              <input type="text" placeholder="e.g., Mathematics" value={newRoutineSubject} onChange={(e) => setNewRoutineSubject(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-bold text-white focus:border-indigo-500 outline-none transition-all" />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Hours</label>
+                <input type="number" placeholder="2" value={newRoutineHrs} onChange={(e) => setNewRoutineHrs(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-black text-white outline-none" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Minutes</label>
+                <input type="number" placeholder="30" value={newRoutineMin} onChange={(e) => setNewRoutineMin(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-black text-white outline-none" />
+              </div>
+            </div>
+
+            <button type="submit" className="w-full py-5 bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[2rem] shadow-xl hover:bg-indigo-500 transition-all active:scale-95 flex items-center justify-center gap-3">
+              <PlusCircle size={18} />
+              Inject Rhythm Node
+            </button>
+          </form>
+        </div>
+
+        <div className="space-y-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500"><LayoutGrid size={20} /></div>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight">Active Pattern</h3>
+          </div>
+
+          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar no-scrollbar">
+            {weeklyRoutine.filter(r => r.dayOfWeek === routineDay).length === 0 ? (
+              <div className="text-center py-20 opacity-20 bg-white/[0.01] rounded-[3rem] border border-dashed border-white/10">
+                <Calendar size={40} className="mx-auto mb-2" />
+                <p className="text-[10px] font-black uppercase tracking-widest">No nodes for this day</p>
+              </div>
+            ) : (
+              weeklyRoutine.filter(r => r.dayOfWeek === routineDay).map(node => (
+                <div key={node.id} className="p-6 rounded-[2.5rem] bg-white/[0.03] border border-white/5 flex items-center justify-between group">
+                  <div>
+                    <span className="text-lg font-bold text-white block leading-none">{node.subject}</span>
+                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest mt-2 block">{formatDuration(node.estimatedMinutes)} TARGET</span>
+                  </div>
+                  <button onClick={() => handleDeleteRoutineNode(node.id)} className="p-3 text-red-500/20 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+
           {studyLogs.map((log) => (
             <div key={log.id} className="p-6 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all group relative">
               <div className="flex items-center gap-3 mb-3">
@@ -943,7 +1040,7 @@ export default function StudentDashboard() {
         <AnimatePresence mode="wait">
           {activeView === 'hub' && renderHub()}
           {activeView === 'rank' && renderRank()}
-          {activeView === 'journal' && renderJournal()}
+          {activeView === 'routine' && renderRoutineBuilder()}
           {activeView === 'history' && renderHistory()}
         </AnimatePresence>
       </main>
@@ -994,9 +1091,9 @@ export default function StudentDashboard() {
             </button>
           </div>
 
-          <button onClick={() => setActiveView('journal')} className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'journal' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
-            <PenLine size={24} />
-            <span className="text-[9px] font-black uppercase tracking-[0.2em]">Logs</span>
+          <button onClick={() => setActiveView('routine')} className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'routine' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
+            <Calendar size={24} />
+            <span className="text-[9px] font-black uppercase tracking-[0.2em]">Routine</span>
           </button>
 
           <button onClick={() => setActiveView('history')} className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'history' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
