@@ -340,7 +340,7 @@ export const register = async (req: Request, res: Response) => {
   console.log("[REGISTRY] Initializing zero-latency portal activation...");
   try {
     const { 
-      credential, password, email, fatherName, address, 
+      credential, password, email, fullName, profileImage, fatherName, address, 
       village, post, district, city, state, pincode 
     } = req.body;
 
