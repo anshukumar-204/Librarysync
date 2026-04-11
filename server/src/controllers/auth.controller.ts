@@ -4,57 +4,52 @@ import { generateSecureOTP, hashPassword, verifyPassword } from "../utils/securi
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 import nodemailer from "nodemailer";
 
-// Mailer logic optimized for ESM environment variable loading
-let transporter: nodemailer.Transporter | null = null;
-
-const getTransporter = () => {
-  if (transporter) return transporter;
-  
-  const host = process.env.SMTP_HOST || "smtp-relay.brevo.com";
-  const port = Number(process.env.SMTP_PORT) || 587;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-
-  if (!user || !pass) {
-    console.warn("[MAILER] Warning: SMTP credentials missing from environment. Mails will fail fast.");
-    return null;
-  }
-
-  transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: false, // TLS
-    auth: { user, pass },
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-  });
-
-  return transporter;
-};
+// Brevo API Logic (Bypasses SMTP blocks on Render via HTTP/443)
+const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
 const sendMail = async (email: string, subject: string, html: string) => {
+  const apiKey = process.env.SMTP_PASS;
+  const fromAddress = process.env.SENDER_EMAIL || "no-reply@librync.io";
+
+  if (!apiKey) {
+    console.error("[MAILER] Critical Error: SMTP_PASS (API Key) missing.");
+    return { success: false, error: { message: "API Key missing", code: "MISSING_KEY" } };
+  }
+
   try {
-    const mailer = getTransporter();
-    if (!mailer) {
-        throw new Error("SMTP_NOT_CONFIGURED: Missing user or password in environment nodes");
+    const response = await fetch(BREVO_API_URL, {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "api-key": apiKey,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        sender: { name: "Librync Hub", email: fromAddress },
+        to: [{ email }],
+        subject,
+        htmlContent: html
+      })
+    });
+
+    const data: any = await response.json();
+
+    if (!response.ok) {
+      console.error(`[MAILER] Brevo API Error: ${data.message || response.statusText}`);
+      return { 
+        success: false, 
+        error: { 
+          message: data.message || "Brevo API Dispatch Failed", 
+          code: data.code || `HTTP_${response.status}` 
+        } 
+      };
     }
 
-    const fromAddress = process.env.SENDER_EMAIL || "no-reply@librync.io";
-    
-    await mailer.sendMail({
-      from: `"Librync Hub" <${fromAddress}>`,
-      to: email,
-      subject,
-      html,
-    });
-    console.log(`[MAILER] Successfully dispatched email to: ${email}`);
+    console.log(`[MAILER] Brevo API dispatched successfully to: ${email}`);
     return { success: true };
   } catch (error: any) {
-    console.error(`[MAILER] Dispatch Failure to: ${email}`);
-    console.error(`[MAILER] Error Code: ${error.code}`);
-    console.error(`[MAILER] Error Message: ${error.message}`);
-    return { success: false, error };
+    console.error(`[MAILER] Network Failure during API dispatch to: ${email}`);
+    return { success: false, error: { message: error.message, code: error.code || "FETCH_ERR" } };
   }
 };
 
@@ -575,32 +570,36 @@ export const logout = async (req: Request, res: Response) => {
 };
 
 export const mailerHealthCheck = async (req: Request, res: Response) => {
-  const host = process.env.SMTP_HOST || "smtp-relay.brevo.com";
-  const port = process.env.SMTP_PORT;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS ? "***SET***" : "***MISSING***";
+  const apiKey = process.env.SMTP_PASS ? "***SET***" : "***MISSING***";
   const sender = process.env.SENDER_EMAIL;
 
   const results = {
+    mode: "REST_API (Port 443)",
     env: {
-      SMTP_HOST: host,
-      SMTP_PORT: port,
-      SMTP_USER: user ? "***SET***" : "***MISSING***",
-      SMTP_PASS: pass,
+      BREVO_API_KEY: apiKey,
       SENDER_EMAIL: sender ? "***SET***" : "***MISSING***"
     },
-    connectionTest: "Pending"
+    apiTest: "Pending"
   };
 
   try {
-    const mailer = getTransporter();
-    if (!mailer) throw new Error("Transporter could not be initialized (Missing Credentials)");
+    if (!process.env.SMTP_PASS) throw new Error("API Key missing (SMTP_PASS)");
     
-    await mailer.verify();
-    results.connectionTest = "SUCCESS: SMTP Server is reachable and authorized.";
-    return res.json({ success: true, ...results });
+    // Testing connectivity with a dummy account info request or similar
+    // For simplicity, we'll try to check SMTP statistics as a "ping"
+    const response = await fetch("https://api.brevo.com/v3/smtp/statistics", {
+        headers: { "api-key": process.env.SMTP_PASS }
+    });
+
+    if (response.ok) {
+        results.apiTest = "SUCCESS: Brevo API is reachable and authorized.";
+        return res.json({ success: true, ...results });
+    } else {
+        const data: any = await response.json();
+        throw new Error(data.message || "API Authorization Failed");
+    }
   } catch (error: any) {
-    results.connectionTest = `FAILED: ${error.message}`;
+    results.apiTest = `FAILED: ${error.message}`;
     return res.status(500).json({ success: false, ...results, error_code: error.code });
   }
 };
