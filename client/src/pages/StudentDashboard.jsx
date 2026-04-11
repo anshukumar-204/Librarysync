@@ -562,7 +562,7 @@ export default function StudentDashboard() {
         {/* QR Scanner Modal */}
         <AnimatePresence>
           {activeModal === 'qr' && (
-            <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
+            <div className="fixed inset-0 z-[300] flex items-center justify-center p-6">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
                 className="relative bg-zinc-900 border border-white/10 p-8 rounded-[3rem] w-full max-w-sm shadow-2xl overflow-hidden"
@@ -583,7 +583,7 @@ export default function StudentDashboard() {
         {/* Leaderboard Modal */}
         <AnimatePresence>
           {activeModal === 'leaderboard' && (
-            <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center sm:p-6">
+            <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center sm:p-6">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
               <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
                 className="relative bg-[#0c0c0e] border-t sm:border border-white/10 p-8 sm:p-10 rounded-t-[4rem] sm:rounded-[4rem] w-full max-w-lg h-[90vh] sm:h-[80vh] flex flex-col overflow-hidden"
@@ -615,7 +615,7 @@ export default function StudentDashboard() {
         {/* Goal Modal */}
         <AnimatePresence>
           {activeModal === 'goal' && (
-            <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
+            <div className="fixed inset-0 z-[300] flex items-center justify-center p-6">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
                 className="relative bg-zinc-900 border border-white/10 p-8 rounded-[3rem] w-full max-w-sm overflow-hidden"
@@ -644,7 +644,7 @@ export default function StudentDashboard() {
         {/* Journal Log Modal */}
         <AnimatePresence>
           {activeModal === 'log' && (
-            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6">
+            <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="absolute inset-0 bg-black/95 backdrop-blur-xl" />
               <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
                 className="relative bg-[#0c0c0e] border border-white/10 p-6 sm:p-10 rounded-[3rem] w-full max-w-lg shadow-2xl overflow-hidden max-h-[95vh] flex flex-col"
@@ -654,7 +654,7 @@ export default function StudentDashboard() {
                   <button onClick={() => setActiveModal(null)} className="p-3 sm:p-4 rounded-2xl bg-white/5 text-gray-500 hover:text-white"><XCircle size={24} /></button>
                 </div>
 
-                <form onSubmit={handleCreateLog} className="space-y-8 overflow-y-auto pr-2 custom-scrollbar pb-4">
+                <form onSubmit={handleCreateLog} className="space-y-8 overflow-y-auto pr-2 custom-scrollbar pb-12">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Primary Node</label>
                     <input type="text" placeholder="e.g., UPSC GS-II Synthesis" value={logFormData.subject} onChange={(e) => setLogFormData({ ...logFormData, subject: e.target.value })}
