@@ -185,7 +185,7 @@ export default function StudentDashboard() {
         const d = new Date(now);
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
-        
+
         const record = history.find(r => r.date.split('T')[0] === dateStr);
         data.push({
           date: dateStr,
@@ -231,8 +231,8 @@ export default function StudentDashboard() {
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8 pb-32">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl md:text-5xl font-black text-white leading-tight tracking-tighter uppercase">
-            Hub<span className="text-blue-500">_</span>Center
+          <h1 className="text-3xl md:text-5xl font-black text-white leading-tight tracking-tighter">
+            👋 <span className="text-blue-500 uppercase">{user?.name?.split(' ')[0] || 'STUDENT'}</span>
           </h1>
           <div className="flex items-center gap-2 mt-1 opacity-80">
             <span className={`w-2 h-2 rounded-full animate-pulse ${todayStatus?.status === 'In Library' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
@@ -253,7 +253,7 @@ export default function StudentDashboard() {
                 </span>
               </div>
             </div>
-            
+
             {todayStatus?.status === 'In Library' && (
               <div className="flex gap-6 border-t sm:border-t-0 sm:border-l border-white/10 pt-4 sm:pt-0 sm:pl-6">
                 <div>
