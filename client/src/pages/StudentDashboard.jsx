@@ -111,6 +111,7 @@ export default function StudentDashboard() {
   const [newRoutineSubject, setNewRoutineSubject] = React.useState('');
   const [newRoutineHrs, setNewRoutineHrs] = React.useState('');
   const [newRoutineMin, setNewRoutineMin] = React.useState('');
+  const [selectedHistoryDate, setSelectedHistoryDate] = React.useState(null);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
