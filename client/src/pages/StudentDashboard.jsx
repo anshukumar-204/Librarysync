@@ -44,6 +44,7 @@ import {
   createStudyLog,
   deleteStudyLog,
   fetchTasks,
+  fetchHistoryTasks,
   createTask,
   toggleTaskStatus,
   deleteTask,
@@ -81,6 +82,7 @@ export default function StudentDashboard() {
     leaderboard,
     studyLogs,
     tasks,
+    historyTasks,
     pomodoro,
     weeklyRoutine,
     subjectAnalytics,
@@ -151,9 +153,11 @@ export default function StudentDashboard() {
       }, 1000);
     } else if (activeTaskTimer?.timeLeft === 0 && activeTaskTimer.isRunning) {
       handleTimerComplete(`Task: ${tasks.find(t => t.id === activeTaskTimer.id)?.title || 'Task'}`);
+      // Auto-complete the task
+      handleToggleTask(activeTaskTimer.id, false);
     }
     return () => clearInterval(interval);
-  }, [activeTaskTimer?.isRunning, activeTaskTimer?.timeLeft]);
+  }, [activeTaskTimer?.isRunning, activeTaskTimer?.timeLeft, activeTaskTimer?.id, tasks]);
 
   const handleTimerComplete = (source) => {
     if (pomodoro.isRunning) {
@@ -262,6 +266,11 @@ export default function StudentDashboard() {
     } catch (err) {
       toast.error(err || "Rhythm sync failed");
     }
+  };
+
+  const handleSelectHistoryDate = (date) => {
+    setSelectedHistoryDate(date);
+    dispatch(fetchHistoryTasks(date));
   };
 
   const handleCreateRoutineNode = async (e) => {
@@ -998,14 +1007,23 @@ export default function StudentDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 space-y-4">
+          <div className="space-y-4 mb-6 px-2">
+             <div className="relative">
+                <input 
+                  type="date" 
+                  onChange={(e) => handleSelectHistoryDate(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-[10px] font-black uppercase text-gray-400 focus:border-emerald-500 outline-none transition-all [color-scheme:dark]"
+                />
+             </div>
+          </div>
+
           <div className="flex items-center gap-3 mb-2 px-2">
             <Calendar size={18} className="text-emerald-500" />
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Recent Sessions</span>
           </div>
           <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
             {history.map((record) => (
-              <button key={record.id} onClick={() => setSelectedHistoryDate(record.date)} className={`w-full p-5 rounded-[2rem] border transition-all text-left flex flex-col gap-1 ${selectedHistoryDate === record.date ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : 'bg-white/5 border-white/5 text-gray-400 hover:border-emerald-500/30'}`}>
+              <button key={record.id} onClick={() => handleSelectHistoryDate(record.date)} className={`w-full p-5 rounded-[2rem] border transition-all text-left flex flex-col gap-1 ${selectedHistoryDate === record.date ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : 'bg-white/5 border-white/5 text-gray-400 hover:border-emerald-500/30'}`}>
                 <span className="text-xs font-black italic">{new Date(record.date).toLocaleDateString()}</span>
                 <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{record.studyHours?.toFixed(1) || 0}H Total Focus</span>
               </button>
@@ -1034,11 +1052,41 @@ export default function StudentDashboard() {
                     <div className="p-6 rounded-[2.5rem] bg-emerald-500/10 border border-emerald-500/20">
                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest block mb-2">Total Time Invested</span>
                        <span className="text-4xl font-black text-white italic tracking-tighter">
-                          {history.find(h => h.date === selectedHistoryDate)?.studyHours?.toFixed(1) || 0} <span className="text-lg">HOURS</span>
+                          {history.find(h => h.date?.split('T')[0] === selectedHistoryDate?.split('T')[0])?.studyHours?.toFixed(1) || 0} <span className="text-lg">HOURS</span>
                        </span>
                     </div>
+                     
+                     <div className="p-8 rounded-[3rem] bg-indigo-500/5 border border-white/5">
+                        <div className="flex items-center gap-3 mb-6">
+                           <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><PenLine size={16} /></div>
+                           <h4 className="text-sm font-black text-white uppercase tracking-tight">Rhythm Log</h4>
+                        </div>
+                        
+                        <div className="space-y-3">
+                           {historyTasks.length === 0 ? (
+                             <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest italic text-center py-4">No preparations recorded for this day</p>
+                           ) : (
+                             historyTasks.map(task => (
+                               <div key={task.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+                                 <div className="flex items-center gap-3">
+                                   <div className={`w-2 h-2 rounded-full ${task.isCompleted ? 'bg-emerald-500' : 'bg-gray-600'}`} />
+                                   <span className={`text-[12px] font-bold ${task.isCompleted ? 'text-white' : 'text-gray-500'}`}>{task.title}</span>
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                   {task.estimatedMinutes && <span className="text-[9px] text-gray-600 font-bold uppercase">{formatDuration(task.estimatedMinutes)}</span>}
+                                   {task.isCompleted ? (
+                                     <span className="text-[8px] font-black text-emerald-500 uppercase bg-emerald-500/10 px-2 py-1 rounded-lg">VERIFIED</span>
+                                   ) : (
+                                     <span className="text-[8px] font-black text-gray-600 uppercase bg-white/5 px-2 py-1 rounded-lg">PENDING</span>
+                                   )}
+                                 </div>
+                               </div>
+                             ))
+                           )}
+                        </div>
+                     </div>
 
-                    <p className="text-[10px] text-gray-500 font-bold text-center mt-10 italic">"Registry records are verified and finalized."</p>
+                     <p className="text-[10px] text-gray-500 font-bold text-center mt-6 italic">"Registry records are verified and finalized."</p>
                   </div>
                </div>
             </div>

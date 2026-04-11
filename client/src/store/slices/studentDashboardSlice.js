@@ -172,6 +172,19 @@ export const updateTask = createAsyncThunk(
   }
 );
 
+export const fetchHistoryTasks = createAsyncThunk(
+  'studentDashboard/fetchHistoryTasks',
+  async (date, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.fetchTasks(date);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to fetch history tasks');
+    }
+  }
+);
+
+
 export const fetchRoutine = createAsyncThunk(
   'studentDashboard/fetchRoutine',
   async (_, { rejectWithValue }) => {
@@ -254,6 +267,7 @@ const studentDashboardSlice = createSlice({
     leaderboard: [],
     studyLogs: [],
     tasks: [],
+    historyTasks: [],
     weeklyRoutine: [],
     subjectAnalytics: [],
     qrToken: null,
@@ -325,9 +339,13 @@ const studentDashboardSlice = createSlice({
         state.history = action.payload;
       })
 
-      // Leaderboard
       .addCase(fetchLeaderboard.fulfilled, (state, action) => {
         state.leaderboard = action.payload;
+      })
+      
+      // History Tasks
+      .addCase(fetchHistoryTasks.fulfilled, (state, action) => {
+        state.historyTasks = action.payload;
       })
 
       // Goal Update
