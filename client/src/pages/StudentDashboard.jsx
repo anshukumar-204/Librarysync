@@ -66,7 +66,7 @@ export default function StudentDashboard() {
   const [showQR, setShowQR] = React.useState(false);
   const [showLeaderboard, setShowLeaderboard] = React.useState(false);
   const [showLogModal, setShowLogModal] = React.useState(false);
-  const [isEditingGoal, setIsEditingGoal] = React.useState(false);
+  const [showGoalModal, setShowGoalModal] = React.useState(false);
   const [tempGoal, setTempGoal] = React.useState(metrics?.dailyGoalHours || 8);
   const [logFormData, setLogFormData] = React.useState({
     subject: '',
@@ -89,7 +89,7 @@ export default function StudentDashboard() {
   const handleUpdateGoal = async () => {
     try {
       await dispatch(updateDailyGoal(tempGoal)).unwrap();
-      setIsEditingGoal(false);
+      setShowGoalModal(false);
       toast.success("Focus target recalibrated.");
     } catch (err) {
       toast.error("Failed to update goal");
@@ -252,29 +252,17 @@ export default function StudentDashboard() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Daily Focus Goal</span>
                     <button 
-                      onClick={() => { setTempGoal(metrics?.dailyGoalHours || 8); setIsEditingGoal(true); }}
-                      className="text-blue-500 hover:text-blue-400 transition-colors"
+                      onClick={() => { setTempGoal(metrics?.dailyGoalHours || 8); setShowGoalModal(true); }}
+                      className="p-3 -m-3 text-blue-500 hover:text-blue-400 transition-colors active:scale-125"
                     >
-                      <Settings size={14} />
+                      <Settings size={18} />
                     </button>
                   </div>
-                  {isEditingGoal ? (
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="number" value={tempGoal} onChange={(e) => setTempGoal(e.target.value)}
-                        className="w-16 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-sm text-white outline-none focus:border-blue-500"
-                      />
-                      <button onClick={handleUpdateGoal} className="bg-blue-600 text-white p-1 rounded-lg hover:bg-blue-500"><CheckCircle2 size={16}/></button>
-                      <button onClick={() => setIsEditingGoal(false)} className="bg-white/5 text-gray-400 p-1 rounded-lg hover:text-white"><XCircle size={16}/></button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="text-2xl font-black text-white tracking-tighter">
-                        {todayStatus?.studyHours?.toFixed(1) || 0} / {metrics?.dailyGoalHours || 8} <span className="text-xs font-medium text-gray-500 tracking-normal">HRS</span>
-                      </div>
-                      <p className="text-[11px] text-gray-400 mt-1">Keep pushing to hit your peak state.</p>
-                    </>
-                  )}
+                  
+                  <div className="text-2xl font-black text-white tracking-tighter">
+                    {todayStatus?.studyHours?.toFixed(1) || 0} / {metrics?.dailyGoalHours || 8} <span className="text-xs font-medium text-gray-500 tracking-normal">HRS</span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-1">Keep pushing to hit your peak state.</p>
                 </div>
               </div>
             </div>
@@ -597,8 +585,51 @@ export default function StudentDashboard() {
                   <div className="text-[10px] font-black text-blue-500/80">{record.studyHours?.toFixed(1)} HRS</div>
                 </div>
              ))}
-          </div>
-        </motion.div>
+        {/* Goal Calibration Modal */}
+        <AnimatePresence>
+          {showGoalModal && (
+            <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowGoalModal(false)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                className="relative bg-zinc-900 border border-white/10 p-8 rounded-[3rem] w-full max-w-sm overflow-hidden"
+              >
+                <div className="mb-6">
+                  <h3 className="text-2xl font-black text-white">Focus Target</h3>
+                  <p className="text-xs text-gray-500 mt-2">Adjust your daily study ceiling to match your preparation intensity.</p>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="grid grid-cols-4 gap-2">
+                    {[6, 8, 10, 12].map(hrs => (
+                      <button
+                        key={hrs}
+                        onClick={() => setTempGoal(hrs)}
+                        className={`py-3 rounded-2xl text-xs font-black transition-all border ${Number(tempGoal) === hrs ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-white/5 border-white/5 text-gray-400'}`}
+                      >
+                        {hrs}H
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1">Custom Hours</label>
+                    <input 
+                      type="number" 
+                      value={tempGoal} 
+                      onChange={(e) => setTempGoal(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-2xl font-black text-center text-white focus:border-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button onClick={() => setShowGoalModal(false)} className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-gray-400 font-bold rounded-2xl transition-all">Cancel</button>
+                    <button onClick={handleUpdateGoal} className="flex-2 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20 active:scale-95 transition-all">Save Goal</button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
       </main>
     </div>
