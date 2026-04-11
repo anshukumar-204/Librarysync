@@ -159,11 +159,30 @@ export default function StudentDashboard() {
 
   const getProcessedChartData = () => {
     if (!history) return [];
-    if (chartRange === 'week') return [...history].slice(0, 7).reverse();
-    if (chartRange === 'month') return [...history].slice(0, 30).reverse();
+
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
+
+    if (chartRange === 'week' || chartRange === 'month') {
+      const daysCount = chartRange === 'week' ? 7 : 30;
+      const data = [];
+
+      for (let i = daysCount - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        
+        const record = history.find(r => r.date.split('T')[0] === dateStr);
+        data.push({
+          date: dateStr,
+          studyHours: record ? (record.studyHours || 0) : 0
+        });
+      }
+      return data;
+    }
+
     if (chartRange === 'year') {
       const monthlyData = {};
-      const now = new Date();
       for (let i = 11; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const key = d.toLocaleString('default', { month: 'short' });
@@ -176,6 +195,7 @@ export default function StudentDashboard() {
       });
       return Object.values(monthlyData);
     }
+
     return [];
   };
 
@@ -276,28 +296,28 @@ export default function StudentDashboard() {
 
         {/* Right Analytics */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-8">
-          <div className="glass-card rounded-[3rem] p-8 border border-white/5 shadow-2xl">
-            <div className="flex items-center justify-between mb-8">
+          <div className="glass-card rounded-[3rem] p-5 sm:p-8 border border-white/5 shadow-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500"><TrendingUp size={20} /></div>
-                <h2 className="text-xl font-black text-white uppercase tracking-tight">Performance Chart</h2>
+                <h2 className="text-xl font-black text-white uppercase tracking-tight">Analytics</h2>
               </div>
-              <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10">
+              <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 w-fit">
                 {['week', 'month', 'year'].map((range) => (
-                  <button key={range} onClick={() => setChartRange(range)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${chartRange === range ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}>
+                  <button key={range} onClick={() => setChartRange(range)} className={`px-3 sm:px-4 py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all ${chartRange === range ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}>
                     {range}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="h-[300px]">
+            <div className="h-[250px] sm:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={getProcessedChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
                   <XAxis dataKey={chartRange === 'year' ? 'label' : 'date'} axisLine={false} tickLine={false} tick={{ fill: '#4B5563', fontSize: 10, fontWeight: '800' }} tickFormatter={getRangeLabel} />
                   <YAxis hide domain={[0, 'auto']} />
                   <ReTooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={{ backgroundColor: '#0c0c0e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', fontSize: '10px' }} />
-                  <Bar dataKey="studyHours" fill="#3B82F6" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="studyHours" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={chartRange === 'week' ? 24 : chartRange === 'month' ? 6 : 32} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -461,18 +481,16 @@ export default function StudentDashboard() {
       </main>
 
       {/* --- HOTSTAR STYLE NAVIGATION BAR --- */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] w-[90%] max-w-md">
+      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[200] w-[90%] max-w-md">
         <div className="bg-[#0B0D17]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex items-center justify-around shadow-[0_25px_50px_-12px_rgba(59,130,246,0.3)]">
           <button onClick={() => setActiveView('hub')} className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'hub' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
             <LayoutGrid size={24} />
             <span className="text-[9px] font-black uppercase tracking-[0.2em]">Hub</span>
-            {activeView === 'hub' && <motion.div layoutId="nav-indicator" className="w-1 h-1 bg-blue-500 rounded-full mt-1" />}
           </button>
-          
+
           <button onClick={() => setActiveView('rank')} className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'rank' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
             <Trophy size={24} />
             <span className="text-[9px] font-black uppercase tracking-[0.2em]">Rank</span>
-            {activeView === 'rank' && <motion.div layoutId="nav-indicator" className="w-1 h-1 bg-blue-500 rounded-full mt-1" />}
           </button>
 
           <div className="relative">
@@ -484,13 +502,11 @@ export default function StudentDashboard() {
           <button onClick={() => setActiveView('journal')} className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'journal' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
             <PenLine size={24} />
             <span className="text-[9px] font-black uppercase tracking-[0.2em]">Logs</span>
-            {activeView === 'journal' && <motion.div layoutId="nav-indicator" className="w-1 h-1 bg-blue-500 rounded-full mt-1" />}
           </button>
 
           <button onClick={() => setActiveView('history')} className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'history' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
             <History size={24} />
             <span className="text-[9px] font-black uppercase tracking-[0.2em]">Vault</span>
-            {activeView === 'history' && <motion.div layoutId="nav-indicator" className="w-1 h-1 bg-blue-500 rounded-full mt-1" />}
           </button>
         </div>
       </div>
