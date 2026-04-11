@@ -88,7 +88,8 @@ export default function StudentDashboard() {
     productivityRating: 5
   });
   const [newTaskTitle, setNewTaskTitle] = React.useState('');
-  const [newTaskETM, setNewTaskETM] = React.useState('');
+  const [newTaskHrs, setNewTaskHrs] = React.useState('');
+  const [newTaskMin, setNewTaskMin] = React.useState('');
   const [newTaskPriority, setNewTaskPriority] = React.useState('medium');
   const [taskView, setTaskView] = React.useState('today'); // 'today' | 'archived'
   const [showPomodoroSettings, setShowPomodoroSettings] = React.useState(false);
@@ -219,13 +220,15 @@ export default function StudentDashboard() {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
     try {
+      const estimatedMinutes = (parseInt(newTaskHrs) || 0) * 60 + (parseInt(newTaskMin) || 0);
       await dispatch(createTask({ 
         title: newTaskTitle, 
-        estimatedMinutes: newTaskETM, 
+        estimatedMinutes: estimatedMinutes || null, 
         priority: newTaskPriority 
       })).unwrap();
       setNewTaskTitle('');
-      setNewTaskETM('');
+      setNewTaskHrs('');
+      setNewTaskMin('');
       toast.success("Preparation node added.");
     } catch (err) {
       toast.error("Failed to add task");
@@ -263,14 +266,20 @@ export default function StudentDashboard() {
   };
 
   const handleEditTask = (task) => {
-    setEditingTask({ ...task });
+    const hrs = Math.floor((task.estimatedMinutes || 0) / 60);
+    const mins = (task.estimatedMinutes || 0) % 60;
+    setEditingTask({ ...task, editHrs: hrs, editMin: mins });
   };
 
   const handleUpdateTask = async (e) => {
     e.preventDefault();
     if (!editingTask.title.trim()) return;
     try {
-      await dispatch(updateTask(editingTask)).unwrap();
+      const totalMinutes = (parseInt(editingTask.editHrs) || 0) * 60 + (parseInt(editingTask.editMin) || 0);
+      await dispatch(updateTask({
+        ...editingTask,
+        estimatedMinutes: totalMinutes || null
+      })).unwrap();
       setEditingTask(null);
       toast.success("Node updated.");
     } catch (err) {
@@ -535,12 +544,16 @@ export default function StudentDashboard() {
                 </button>
                 <div className="flex-1">
                   {editingTask?.id === task.id ? (
-                    <div className="space-y-2">
-                       <input type="text" value={editingTask.title} onChange={(e) => setEditingTask({...editingTask, title: e.target.value})} className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-xs text-white" />
-                       <div className="flex gap-2">
-                          <input type="number" value={editingTask.estimatedMinutes} onChange={(e) => setEditingTask({...editingTask, estimatedMinutes: e.target.value})} className="w-20 bg-white/10 border border-white/20 rounded-lg p-2 text-xs text-white" />
-                          <button onClick={handleUpdateTask} className="bg-blue-600 text-white px-3 py-1 rounded-lg text-[10px] font-bold">SAVE</button>
-                          <button onClick={() => setEditingTask(null)} className="bg-white/10 text-white px-3 py-1 rounded-lg text-[10px] font-bold">CANCEL</button>
+                    <div className="space-y-3 bg-white/5 p-3 rounded-xl border border-white/10">
+                       <input type="text" value={editingTask.title} onChange={(e) => setEditingTask({...editingTask, title: e.target.value})} className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-xs text-white outline-none" placeholder="Task Title" />
+                       <div className="flex flex-wrap gap-2">
+                          <div className="flex bg-white/10 rounded-lg border border-white/20 p-1 flex-1">
+                            <input type="number" value={editingTask.editHrs} onChange={(e) => setEditingTask({...editingTask, editHrs: e.target.value})} className="w-12 bg-transparent text-[10px] font-bold text-white outline-none px-1 text-center" placeholder="H" title="Hours" />
+                            <div className="w-[1px] bg-white/20 h-3 self-center" />
+                            <input type="number" value={editingTask.editMin} onChange={(e) => setEditingTask({...editingTask, editMin: e.target.value})} className="w-12 bg-transparent text-[10px] font-bold text-white outline-none px-1 text-center" placeholder="M" title="Minutes" />
+                          </div>
+                          <button onClick={handleUpdateTask} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest">SAVE</button>
+                          <button onClick={() => setEditingTask(null)} className="bg-white/10 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest">CANCEL</button>
                        </div>
                     </div>
                   ) : (
@@ -592,16 +605,20 @@ export default function StudentDashboard() {
       </div>
 
       {taskView === 'today' && (
-        <form onSubmit={handleAddTask} className="relative mt-auto space-y-2">
-          <input type="text" placeholder="Add preparation goal..." value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-bold text-white outline-none focus:border-indigo-500/50 transition-all" />
-          <div className="flex gap-2">
-            <input type="number" placeholder="Min (ETM)" value={newTaskETM} onChange={(e) => setNewTaskETM(e.target.value)} className="w-24 bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-[10px] font-bold text-white outline-none" />
-            <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)} className="flex-1 bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-[10px] font-bold text-gray-500 outline-none">
+        <form onSubmit={handleAddTask} className="relative mt-auto space-y-3">
+          <input type="text" placeholder="Add preparation goal..." value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-bold text-white outline-none focus:border-indigo-500/50 transition-all shadow-inner" />
+          <div className="flex flex-wrap gap-2">
+            <div className="flex bg-white/5 rounded-xl border border-white/10 p-1 flex-1">
+              <input type="number" placeholder="Hrs" value={newTaskHrs} onChange={(e) => setNewTaskHrs(e.target.value)} className="w-14 bg-transparent text-[10px] font-bold text-white outline-none px-2 text-center" />
+              <div className="w-[1px] bg-white/10 h-4 self-center" />
+              <input type="number" placeholder="Min" value={newTaskMin} onChange={(e) => setNewTaskMin(e.target.value)} className="w-14 bg-transparent text-[10px] font-bold text-white outline-none px-2 text-center" />
+            </div>
+            <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-[10px] font-bold text-gray-500 outline-none flex-1 min-w-[100px]">
               <option value="low">Low Priority</option>
               <option value="medium">Medium Priority</option>
               <option value="high">High Priority</option>
             </select>
-            <button type="submit" className="p-2 bg-indigo-500/10 text-indigo-500 rounded-xl hover:bg-indigo-500/20 transition-all">
+            <button type="submit" className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-500/10 transition-all active:scale-90">
               <PlusCircle size={20} />
             </button>
           </div>
@@ -934,19 +951,26 @@ export default function StudentDashboard() {
       {/* Alarm Notification Overlay */}
       <AnimatePresence>
         {isAlarmActive && (
-          <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[300] w-[90%] max-w-sm">
-            <div className="bg-red-600 rounded-[2rem] p-6 shadow-[0_0_50px_rgba(239,68,68,0.4)] flex flex-col items-center gap-4 border border-red-500/50 animate-bounce">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-white">
-                <Timer size={32} className="animate-spin" />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-[#0B0D17]/80 backdrop-blur-md">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="w-full max-w-sm bg-red-600 rounded-[2.5rem] p-8 shadow-[0_0_80px_rgba(239,68,68,0.5)] flex flex-col items-center gap-6 border border-red-500/50 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-white/20 animate-pulse" />
+              
+              <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center text-white relative">
+                <div className="absolute inset-0 bg-white/5 rounded-full animate-ping" />
+                <Timer size={40} className="animate-bounce" />
               </div>
-              <div className="text-center">
-                <h3 className="text-xl font-black text-white italic tracking-tighter uppercase">Goal Reached!</h3>
-                <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Terminal Rhythms Completed</p>
+              
+              <div className="text-center space-y-2">
+                <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none">Goal Reached</h3>
+                <p className="text-[11px] text-white/70 font-black uppercase tracking-[0.2em]">Terminal Rhythms Completed</p>
               </div>
-              <button onClick={stopAlarm} className="w-full py-4 bg-white text-red-600 font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl active:scale-95 transition-all">
+
+              <div className="w-full h-[1px] bg-white/10" />
+
+              <button onClick={stopAlarm} className="w-full py-5 bg-white text-red-600 font-black text-sm uppercase tracking-[0.3em] rounded-2xl shadow-2xl active:scale-95 transition-all hover:bg-gray-100">
                 Deactivate Alert
               </button>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
