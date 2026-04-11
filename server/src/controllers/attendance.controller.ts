@@ -55,14 +55,60 @@ export const markAttendance = async (req: Request, res: Response) => {
 
     // Case 1: First Scan -> Check-in
     if (!existingRecord) {
-      await prisma.attendance.create({
-        data: {
-          studentId,
-          date: todayMidnight, // Stored as today's date
-          checkInTime: new Date()
+      // --- STREAK CALCULATION LOGIC ---
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      let newStreak = 1;
+      let lastDate = student.lastAttendanceDate;
+      
+      if (lastDate) {
+        const last = new Date(lastDate);
+        last.setHours(0, 0, 0, 0);
+        
+        const diffTime = today.getTime() - last.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 1) {
+          // Consecutive day
+          newStreak = student.currentStreak + 1;
+        } else if (diffDays === 2 && today.getDay() === 1) {
+          // Sunday Exception: Last was Saturday, today is Monday
+          newStreak = student.currentStreak + 1;
+        } else if (diffDays === 0) {
+          // Already have a streak for today (safety check)
+          newStreak = student.currentStreak;
+        } else {
+          // Streak broken
+          newStreak = 1;
         }
+      }
+
+      // Record attendance and update streak transactionally
+      await prisma.$transaction([
+        prisma.attendance.create({
+          data: {
+            studentId,
+            date: todayMidnight,
+            checkInTime: new Date()
+          }
+        }),
+        prisma.student.update({
+          where: { id: studentId },
+          data: {
+            currentStreak: newStreak,
+            maxStreak: Math.max(student.maxStreak, newStreak),
+            lastAttendanceDate: today
+          }
+        })
+      ]);
+
+      return res.json({ 
+        success: true, 
+        message: "Check-in successful", 
+        status: "In Library",
+        streak: newStreak
       });
-      return res.json({ success: true, message: "Check-in successful", status: "In Library" });
     }
 
     // Case 2: Second Scan -> Check-out

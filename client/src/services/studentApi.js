@@ -19,3 +19,24 @@ export const deleteStudent = async (id) => {
   const response = await API.delete(`/students/${id}`);
   return response.data;
 };
+
+// Productivity Features
+export const fetchLeaderboard = async () => {
+  const response = await API.get('/students/leaderboard');
+  return response.data;
+};
+
+export const updateDailyGoal = async (dailyGoalHours) => {
+  const response = await API.put('/students/goal', { dailyGoalHours });
+  return response.data;
+};
+
+export const fetchStudyLogs = async () => {
+  const response = await API.get('/students/logs');
+  return response.data;
+};
+
+export const createStudyLog = async (logData) => {
+  const response = await API.post('/students/logs', logData);
+  return response.data;
+};

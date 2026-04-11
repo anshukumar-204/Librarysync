@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import dashboardApi from '../../services/dashboardApi';
 import attendanceApi from '../../services/attendanceApi';
+import * as studentApi from '../../services/studentApi';
 
 export const generateQR = createAsyncThunk(
   'studentDashboard/generateQR',
@@ -50,6 +51,54 @@ export const fetchHistory = createAsyncThunk(
   }
 );
 
+export const fetchLeaderboard = createAsyncThunk(
+  'studentDashboard/fetchLeaderboard',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.fetchLeaderboard();
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to fetch leaderboard');
+    }
+  }
+);
+
+export const updateDailyGoal = createAsyncThunk(
+  'studentDashboard/updateDailyGoal',
+  async (hours, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.updateDailyGoal(hours);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to update goal');
+    }
+  }
+);
+
+export const fetchStudyLogs = createAsyncThunk(
+  'studentDashboard/fetchStudyLogs',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.fetchStudyLogs();
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to fetch logs');
+    }
+  }
+);
+
+export const createStudyLog = createAsyncThunk(
+  'studentDashboard/createStudyLog',
+  async (logData, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.createStudyLog(logData);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to create log');
+    }
+  }
+);
+
 export const autoMarkAttendance = createAsyncThunk(
   'studentDashboard/markAttendance',
   async (scannedToken, { rejectWithValue }) => {
@@ -68,6 +117,8 @@ const studentDashboardSlice = createSlice({
     todayStatus: null,
     metrics: null,
     history: [],
+    leaderboard: [],
+    studyLogs: [],
     qrToken: null,
     loading: false,
     error: null,
@@ -101,13 +152,32 @@ const studentDashboardSlice = createSlice({
         state.history = action.payload;
       })
 
+      // Leaderboard
+      .addCase(fetchLeaderboard.fulfilled, (state, action) => {
+        state.leaderboard = action.payload;
+      })
+
+      // Goal Update
+      .addCase(updateDailyGoal.fulfilled, (state, action) => {
+        if (state.metrics) {
+          state.metrics.dailyGoalHours = action.payload.dailyGoalHours;
+        }
+      })
+
+      // Study Logs
+      .addCase(fetchStudyLogs.fulfilled, (state, action) => {
+        state.studyLogs = action.payload;
+      })
+      .addCase(createStudyLog.fulfilled, (state, action) => {
+        state.studyLogs.unshift(action.payload);
+      })
+
       // Mark Attendance
       .addCase(autoMarkAttendance.pending, (state) => {
         state.actionLoading = true;
       })
       .addCase(autoMarkAttendance.fulfilled, (state, action) => {
         state.actionLoading = false;
-        // Optionally update checkIn/checkOut immediately if matched to response
         if (state.todayStatus) {
            if (action.payload.status === 'In Library') {
               state.todayStatus.status = 'In Library';
@@ -116,6 +186,10 @@ const studentDashboardSlice = createSlice({
               state.todayStatus.status = 'Completed';
               state.todayStatus.checkOut = new Date().toISOString();
            }
+        }
+        // Update streak if returned from server
+        if (action.payload.streak && state.metrics) {
+          state.metrics.currentStreak = action.payload.streak;
         }
       })
       .addCase(autoMarkAttendance.rejected, (state, action) => {

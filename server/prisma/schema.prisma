@@ -52,8 +52,27 @@ model Student {
   pincode      String?
   joinDate     DateTime @default(now())
 
+  // Productivity Platform Fields
+  dailyGoalHours Float    @default(8.0)
+  currentStreak  Int      @default(0)
+  maxStreak      Int      @default(0)
+  lastAttendanceDate DateTime?
+
   user         User     @relation(fields: [userId], references: [id])
   attendances  Attendance[]
+  studyLogs    StudyLog[]
+}
+
+model StudyLog {
+  id            Int      @id @default(autoincrement())
+  studentId     Int
+  date          DateTime @default(now())
+  subject       String?
+  topicsCovered String?
+  hoursSpent    Float?
+  productivityRating Int? // 1-5 scale
+
+  student       Student  @relation(fields: [studentId], references: [id])
 }
 
 model Attendance {

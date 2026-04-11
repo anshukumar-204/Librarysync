@@ -177,3 +177,88 @@ export const updateStudent = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: "Server error occurred" });
   }
 };
+
+export const updateDailyGoal = async (req: Request, res: Response) => {
+  try {
+    const { dailyGoalHours } = req.body;
+    if (dailyGoalHours < 0 || dailyGoalHours > 24) {
+      return res.status(400).json({ success: false, message: "Invalid goal range (0-24 hrs)" });
+    }
+
+    const student = await prisma.student.update({
+      where: { userId: req.user!.id },
+      data: { dailyGoalHours: Number(dailyGoalHours) }
+    });
+
+    return res.json({ success: true, data: student });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Goal update failure" });
+  }
+};
+
+export const getLeaderboard = async (req: Request, res: Response) => {
+  try {
+    // Rank by Current Streak and then by joining date
+    const topStudents = await prisma.student.findMany({
+      take: 10,
+      orderBy: [
+        { currentStreak: 'desc' },
+        { joinDate: 'asc' }
+      ],
+      select: {
+        id: true,
+        fullName: true,
+        currentStreak: true,
+        maxStreak: true,
+        profileImage: true,
+        user: {
+          select: { status: true }
+        }
+      }
+    });
+
+    return res.json({ success: true, data: topStudents });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Leaderboard sync failed" });
+  }
+};
+
+export const createStudyLog = async (req: Request, res: Response) => {
+  try {
+    const { subject, topicsCovered, hoursSpent, productivityRating } = req.body;
+    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+    
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const log = await prisma.studyLog.create({
+      data: {
+        studentId: student.id,
+        subject,
+        topicsCovered,
+        hoursSpent: Number(hoursSpent),
+        productivityRating: Number(productivityRating)
+      }
+    });
+
+    return res.status(201).json({ success: true, data: log });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Log preservation failure" });
+  }
+};
+
+export const getStudyLogs = async (req: Request, res: Response) => {
+  try {
+    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const logs = await prisma.studyLog.findMany({
+      where: { studentId: student.id },
+      orderBy: { date: 'desc' },
+      take: 20
+    });
+
+    return res.json({ success: true, data: logs });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Log retrieval failure" });
+  }
+};
