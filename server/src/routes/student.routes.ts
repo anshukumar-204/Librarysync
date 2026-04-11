@@ -21,6 +21,7 @@ router.put("/goal", updateDailyGoal);
 router.get("/leaderboard", getLeaderboard);
 router.get("/logs", getStudyLogs);
 router.post("/logs", createStudyLog);
+router.delete("/logs/:id", deleteStudyLog);
 
 // Registry Management (Admin usually)
 router.post("/", createStudent); 
