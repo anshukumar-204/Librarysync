@@ -310,12 +310,22 @@ export const verifyRegistration = async (req: Request, res: Response) => {
       message: "Identity found",
       data: {
         fullName: user.name,
+        // Mobile is always there as its the primary ID, we mask it
         mobile: maskMobile(user.mobile),
-        email: maskEmail(user.email),
-        // Student details are pre-filled, we keep them for the form but we want to show privacy
+        // If email is missing, return empty string so frontend can enable editing
+        email: user.email ? maskEmail(user.email) : "",
         student: {
           ...user.student,
-          fatherName: user.student?.fatherName ? maskMobile(user.student.fatherName).replace("@", "") : "", // Simple masking
+          // Mask fatherName only if it exists
+          fatherName: user.student?.fatherName ? maskMobile(user.student.fatherName).replace("@", "") : "",
+          // Return other fields as is (they will be empty strings if null in DB)
+          address: user.student?.address || "",
+          village: user.student?.village || "",
+          post: user.student?.post || "",
+          district: user.student?.district || "",
+          city: user.student?.city || "",
+          state: user.student?.state || "",
+          pincode: user.student?.pincode || "",
         }
       }
     });
@@ -329,7 +339,10 @@ export const verifyRegistration = async (req: Request, res: Response) => {
 export const register = async (req: Request, res: Response) => {
   console.log("[REGISTRY] Initializing zero-latency portal activation...");
   try {
-    const { credential, password } = req.body;
+    const { 
+      credential, password, email, fatherName, address, 
+      village, post, district, city, state, pincode 
+    } = req.body;
 
     if (!credential || !password) {
       return res.status(400).json({ success: false, message: "Credential and Password node required" });
@@ -342,33 +355,55 @@ export const register = async (req: Request, res: Response) => {
           { role: "student" },
           { OR: [{ mobile: credential }, { email: credential }] }
         ]
-      }
+      },
+      include: { student: true }
     });
 
-    if (!existingUser || !existingUser.email) {
-      console.warn("[REGISTRY] Identity node not found or email missing.");
-      return res.status(404).json({ success: false, message: "Institute Registry node missing or email not mapped. Contact Admin." });
+    if (!existingUser) {
+      console.warn("[REGISTRY] Identity node not found.");
+      return res.status(404).json({ success: false, message: "Institute Registry node missing. Contact Admin." });
     }
 
-    console.log("[REGISTRY] Found identity node. Synchronizing database...");
+    // Determine target email for activation
+    const targetEmail = email || existingUser.email;
+    if (!targetEmail) {
+      return res.status(400).json({ success: false, message: "Activation requires an email node. Please provide one." });
+    }
+
+    console.log("[REGISTRY] Synchronizing profile components...");
     const passwordHash = await hashPassword(password);
     const otp = generateSecureOTP();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
 
-    // STRICT LOCKDOWN: Only update security nodes (Password and OTP)
-    await prisma.user.update({
+    // TRANSACTIONAL UPDATE: Sync security nodes AND profile data
+    const updatedUser = await prisma.user.update({
       where: { id: existingUser.id },
       data: {
         passwordHash,
         verifyOtp: otp,
-        verifyOtpExpiresAt: expiresAt
+        verifyOtpExpiresAt: expiresAt,
+        // Update email only if student provided a new one
+        ...(email && { email }),
+        student: {
+          update: {
+            // Update address nodes if provided and previously missing
+            ...(fatherName && { fatherName }),
+            ...(address && { address }),
+            ...(village && { village }),
+            ...(post && { post }),
+            ...(district && { district }),
+            ...(city && { city }),
+            ...(state && { state }),
+            ...(pincode && { pincode }),
+          }
+        }
       }
     });
 
     // Send Activation Email (AWAITED DISPATCH)
-    console.log("[REGISTRY] Dispatching activation cipher...");
+    console.log(`[REGISTRY] Dispatching activation cipher to: ${targetEmail}`);
     const mailSent = await sendMail(
-      existingUser.email,
+      targetEmail,
       "Hub Activation Cipher",
       `
       <div style="font-family: sans-serif; padding: 20px; color: #333; background: #fafafa;">

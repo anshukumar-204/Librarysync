@@ -19,6 +19,7 @@ export default function StudentRegisterPage() {
   const [isVerified, setIsVerified] = useState(false);
   const [showOtpStage, setShowOtpStage] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
+  const [editableFields, setEditableFields] = useState([]);
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -62,7 +63,19 @@ export default function StudentRegisterPage() {
           pincode: student?.pincode || '',
         }));
         setIsVerified(true);
-        toast.success("Identity discovered in registry. Masked nodes synchronized.");
+        // Only names in this array will be editable
+        const editable = [];
+        if (!fullName) editable.push('fullName');
+        if (!email) editable.push('email');
+        if (!student?.fatherName) editable.push('fatherName');
+        if (!student?.address) editable.push('address');
+        if (!student?.village) editable.push('village');
+        if (!student?.city) editable.push('city');
+        if (!student?.state) editable.push('state');
+        if (!student?.pincode) editable.push('pincode');
+        
+        setEditableFields(editable);
+        toast.success("Identity discovered. Missing data nodes unlocked for entry.");
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Identity not found in institute registry.");
@@ -277,15 +290,70 @@ export default function StudentRegisterPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {step === 1 ? (
                 <>
-                  <Input label="Registry Name" value={formData.fullName} readOnly icon={User} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
-                  <Input label="Masked Mobile" value={formData.mobile} readOnly icon={Phone} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
-                  <Input label="Masked Guardian" value={formData.fatherName} readOnly icon={User} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
-                  <Input label="Masked Email" value={formData.email} readOnly icon={Mail} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
+                  <Input 
+                    label="Registry Name" 
+                    name="fullName"
+                    value={formData.fullName} 
+                    readOnly={!editableFields.includes('fullName')} 
+                    onChange={handleInputChange}
+                    icon={User} 
+                    className={!editableFields.includes('fullName') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
+                  />
+                  <Input 
+                    label="Masked Mobile" 
+                    name="mobile"
+                    value={formData.mobile} 
+                    readOnly 
+                    icon={Phone} 
+                    className="opacity-50 blur-[0.5px] cursor-not-allowed" 
+                  />
+                  <Input 
+                    label="Guardian Name" 
+                    name="fatherName"
+                    value={formData.fatherName} 
+                    readOnly={!editableFields.includes('fatherName')} 
+                    onChange={handleInputChange}
+                    icon={User} 
+                    className={!editableFields.includes('fatherName') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
+                  />
+                  <Input 
+                    label="Registry Email" 
+                    name="email"
+                    value={formData.email} 
+                    readOnly={!editableFields.includes('email')} 
+                    onChange={handleInputChange}
+                    icon={Mail} 
+                    className={!editableFields.includes('email') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
+                  />
                   <div className="md:col-span-2">
-                    <Input label="Registry Address" name="address" value={formData.address} readOnly icon={MapPin} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
+                    <Input 
+                      label="Registry Address" 
+                      name="address" 
+                      value={formData.address} 
+                      readOnly={!editableFields.includes('address')} 
+                      onChange={handleInputChange}
+                      icon={MapPin} 
+                      className={!editableFields.includes('address') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
+                    />
                   </div>
-                  <Input label="Village/Area" name="village" value={formData.village} readOnly icon={MapPin} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
-                  <Input label="City Hub" name="city" value={formData.city} readOnly icon={MapPin} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
+                  <Input 
+                    label="Village/Area" 
+                    name="village" 
+                    value={formData.village} 
+                    readOnly={!editableFields.includes('village')} 
+                    onChange={handleInputChange}
+                    icon={MapPin} 
+                    className={!editableFields.includes('village') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
+                  />
+                  <Input 
+                    label="City Hub" 
+                    name="city" 
+                    value={formData.city} 
+                    readOnly={!editableFields.includes('city')} 
+                    onChange={handleInputChange}
+                    icon={MapPin} 
+                    className={!editableFields.includes('city') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
+                  />
                 </>
               ) : (
                 <>
@@ -296,8 +364,24 @@ export default function StudentRegisterPage() {
                     </div>
                     <Input label="Set Access Cipher" name="password" icon={Lock} placeholder="••••••••" value={formData.password} onChange={handleInputChange} type="password" required />
                   </div>
-                  <Input label="State" name="state" value={formData.state} readOnly icon={MapPin} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
-                  <Input label="Point Code" name="pincode" value={formData.pincode} readOnly icon={MapPin} className="opacity-50 blur-[0.5px] cursor-not-allowed" />
+                   <Input 
+                    label="State" 
+                    name="state" 
+                    value={formData.state} 
+                    readOnly={!editableFields.includes('state')} 
+                    onChange={handleInputChange}
+                    icon={MapPin} 
+                    className={!editableFields.includes('state') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
+                  />
+                  <Input 
+                    label="Point Code" 
+                    name="pincode" 
+                    value={formData.pincode} 
+                    readOnly={!editableFields.includes('pincode')} 
+                    onChange={handleInputChange}
+                    icon={MapPin} 
+                    className={!editableFields.includes('pincode') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
+                  />
                 </>
               )}
             </div>
