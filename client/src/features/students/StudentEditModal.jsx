@@ -80,20 +80,11 @@ export default function StudentEditModal() {
 
   const validate = () => {
     let newErrors = {};
-    if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
-    if (!formData.fatherName.trim()) newErrors.fatherName = "Guardian name is required";
-    if (!formData.mobile.trim()) newErrors.mobile = "Mobile number is required";
-    if (!formData.address.trim()) newErrors.address = "Full physical address is mandatory";
-
-    // Mandatory address components
-    if (!formData.village.trim()) newErrors.village = "Village/Locality is mandatory";
-    if (!formData.post.trim()) newErrors.post = "Post Office is mandatory";
-    if (!formData.district.trim()) newErrors.district = "District is required";
+    if (!formData.mobile.trim()) newErrors.mobile = "Primary contact node required";
+    if (!formData.email.trim()) newErrors.email = "Access dispatch email mandatory";
 
     setErrors(newErrors);
-
-    if (newErrors.fullName || newErrors.fatherName || newErrors.mobile) setActiveSection("personal");
-    else if (newErrors.village || newErrors.post || newErrors.district || newErrors.address) setActiveSection("residence");
+    if (newErrors.mobile || newErrors.email) setActiveSection("personal");
 
     return Object.keys(newErrors).length === 0;
   };
@@ -254,16 +245,16 @@ export default function StudentEditModal() {
 
                       <div className="grid grid-cols-2 gap-8">
                         <div className="col-span-2">
-                          <Field label="Identification Full Name *" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Alex Thompson" error={errors.fullName} isLarge />
+                          <Field label="Identification Full Name" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Alex Thompson" error={errors.fullName} isLarge />
                         </div>
                         <div className="col-span-2">
-                          <Field label="Guardian Name / Relationship *" name="fatherName" value={formData.fatherName} onChange={handleChange} placeholder="David Smith" error={errors.fatherName} isLarge />
+                          <Field label="Guardian Name / Relationship" name="fatherName" value={formData.fatherName} onChange={handleChange} placeholder="David Smith" error={errors.fatherName} isLarge />
                         </div>
                         <div className="col-span-2">
                           <Field label="Primary Contact Number *" name="mobile" value={formData.mobile} onChange={handleChange} placeholder="+1 (555) 000-0000" error={errors.mobile} isLarge />
                         </div>
                         <div className="col-span-2">
-                          <Field label="Official Email" name="email" value={formData.email} onChange={handleChange} placeholder="alex@institute.edu" isLarge />
+                          <Field label="Official Email *" name="email" value={formData.email} onChange={handleChange} placeholder="alex@institute.edu" error={errors.email} isLarge />
                         </div>
                       </div>
                     </motion.div>
@@ -277,13 +268,13 @@ export default function StudentEditModal() {
                       </div>
                       <div className="grid grid-cols-2 gap-8">
                         <div className="col-span-2">
-                          <Field label="Village/Locality *" name="village" value={formData.village} onChange={handleChange} placeholder="North Block / Village Name" error={errors.village} isLarge />
+                          <Field label="Village/Locality" name="village" value={formData.village} onChange={handleChange} placeholder="North Block / Village Name" error={errors.village} isLarge />
                         </div>
                         <div className="col-span-2">
-                          <Field label="Post Office *" name="post" value={formData.post} onChange={handleChange} placeholder="Main P.O." error={errors.post} isLarge />
+                          <Field label="Post Office" name="post" value={formData.post} onChange={handleChange} placeholder="Main P.O." error={errors.post} isLarge />
                         </div>
                         <div className="col-span-2">
-                          <Field label="District Registry *" name="district" value={formData.district} onChange={handleChange} placeholder="New York District" error={errors.district} isLarge />
+                          <Field label="District Registry" name="district" value={formData.district} onChange={handleChange} placeholder="New York District" error={errors.district} isLarge />
                         </div>
                         <div className="col-span-2">
                           <Field label="City Node" name="city" value={formData.city} onChange={handleChange} placeholder="Metropolis City" isLarge />
@@ -295,7 +286,7 @@ export default function StudentEditModal() {
                           <Field label="Postal Index Code" name="pincode" value={formData.pincode} onChange={handleChange} placeholder="10001" isLarge />
                         </div>
                         <div className="col-span-2">
-                          <Field label="Full Physical Address *" name="address" value={formData.address} onChange={handleChange} placeholder="Floor, Street, Landmark..." isTextArea error={errors.address} />
+                          <Field label="Full Physical Address" name="address" value={formData.address} onChange={handleChange} placeholder="Floor, Street, Landmark..." isTextArea error={errors.address} />
                         </div>
                       </div>
                     </motion.div>

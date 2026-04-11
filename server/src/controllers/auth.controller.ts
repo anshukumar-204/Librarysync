@@ -376,17 +376,42 @@ export const register = async (req: Request, res: Response) => {
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
 
     // TRANSACTIONAL UPDATE: Sync security nodes AND profile data
+    // MANDATORY VALIDATION: All nodes must be complete at this stage
+    if (!fullName || !fatherName || !address || !village || !post || !district || !city || !state || !pincode) {
+      // Check if we already have them in DB or if they are being provided now
+      const isMissing = (val: string | null | undefined, provided: string | null | undefined) => (!val || val === "New Student") && !provided;
+      
+      if (
+        isMissing(existingUser.student?.fullName, fullName) ||
+        isMissing(existingUser.student?.fatherName, fatherName) ||
+        isMissing(existingUser.student?.address, address) ||
+        isMissing(existingUser.student?.village, village) ||
+        isMissing(existingUser.student?.post, post) ||
+        isMissing(existingUser.student?.district, district) ||
+        isMissing(existingUser.student?.city, city) ||
+        isMissing(existingUser.student?.state, state) ||
+        isMissing(existingUser.student?.pincode, pincode)
+      ) {
+        return res.status(400).json({ success: false, message: "Portal activation requires a complete profile. Please fill all missing nodes." });
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: existingUser.id },
       data: {
         passwordHash,
         verifyOtp: otp,
         verifyOtpExpiresAt: expiresAt,
+        // Update name if student provided a real one
+        ...(fullName && fullName !== "New Student" && { name: fullName }),
         // Update email only if student provided a new one
         ...(email && { email }),
         student: {
           update: {
-            // Update address nodes if provided and previously missing
+            // Update profile image if provided
+            ...(profileImage && { profileImage }),
+            // Update address nodes if provided
+            ...(fullName && fullName !== "New Student" && { fullName }),
             ...(fatherName && { fatherName }),
             ...(address && { address }),
             ...(village && { village }),

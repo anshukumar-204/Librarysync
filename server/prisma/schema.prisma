@@ -40,10 +40,10 @@ model User {
 model Student {
   id           Int      @id @default(autoincrement())
   userId       Int      @unique
-  fullName     String
-  fatherName   String
+  fullName     String?
+  fatherName   String?
   profileImage String?
-  address      String
+  address      String?
   village      String?
   post         String?
   district     String?

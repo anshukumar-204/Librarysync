@@ -20,6 +20,8 @@ export default function StudentRegisterPage() {
   const [showOtpStage, setShowOtpStage] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [editableFields, setEditableFields] = useState([]);
+  const [profileImageBase64, setProfileImageBase64] = useState("");
+  const [imagePreview, setImagePreview] = useState(null);
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -63,9 +65,9 @@ export default function StudentRegisterPage() {
           pincode: student?.pincode || '',
         }));
         setIsVerified(true);
-        // Only names in this array will be editable
+        // Only names in this array will be editable (and thus mandatory)
         const editable = [];
-        if (!fullName) editable.push('fullName');
+        if (!fullName || fullName === "New Student") editable.push('fullName');
         if (!email) editable.push('email');
         if (!student?.fatherName) editable.push('fatherName');
         if (!student?.address) editable.push('address');
@@ -75,7 +77,7 @@ export default function StudentRegisterPage() {
         if (!student?.pincode) editable.push('pincode');
         
         setEditableFields(editable);
-        toast.success("Identity discovered. Missing data nodes unlocked for entry.");
+        toast.success("Identity discovered. Missing mandatory nodes unlocked.");
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Identity not found in institute registry.");
@@ -101,6 +103,7 @@ export default function StudentRegisterPage() {
       // Step 2 submit triggers OTP send
       const response = await authApi.register({
         ...formData,
+        profileImage: profileImageBase64, // Include the base64 image
         credential: credential // Use original identifier
       });
       if (response.pendingVerification) {
@@ -290,13 +293,39 @@ export default function StudentRegisterPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {step === 1 ? (
                 <>
+                  <div className="md:col-span-2 flex flex-col items-center mb-6">
+                    <div className="relative group self-center">
+                      <div className="w-24 h-24 rounded-[32px] bg-white/5 border border-dashed border-white/10 flex items-center justify-center text-gray-500 overflow-hidden transition-all group-hover:border-blue-500/50">
+                        {imagePreview ? (
+                          <img src={imagePreview} className="w-full h-full object-cover" alt="profile" />
+                        ) : (
+                          <Camera size={24} />
+                        )}
+                      </div>
+                      <label className="absolute -bottom-2 -right-2 w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center text-white border-4 border-[#0B0D17] cursor-pointer hover:scale-110 transition-transform">
+                        <span className="text-xl font-bold">+</span>
+                        <input type="file" accept="image/*" hidden onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            setImagePreview(URL.createObjectURL(file));
+                            const reader = new FileReader();
+                            reader.onloadend = () => setProfileImageBase64(reader.result);
+                            reader.readAsDataURL(file);
+                          }
+                        }} />
+                      </label>
+                    </div>
+                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-3">Upload Profile Image (Optional)</span>
+                  </div>
+
                   <Input 
-                    label="Registry Name" 
+                    label={`Registry Name ${editableFields.includes('fullName') ? '*' : ''}`}
                     name="fullName"
                     value={formData.fullName} 
                     readOnly={!editableFields.includes('fullName')} 
                     onChange={handleInputChange}
                     icon={User} 
+                    required={editableFields.includes('fullName')}
                     className={!editableFields.includes('fullName') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
@@ -308,50 +337,55 @@ export default function StudentRegisterPage() {
                     className="opacity-50 blur-[0.5px] cursor-not-allowed" 
                   />
                   <Input 
-                    label="Guardian Name" 
+                    label={`Guardian Name ${editableFields.includes('fatherName') ? '*' : ''}`}
                     name="fatherName"
                     value={formData.fatherName} 
                     readOnly={!editableFields.includes('fatherName')} 
                     onChange={handleInputChange}
                     icon={User} 
+                    required={editableFields.includes('fatherName')}
                     className={!editableFields.includes('fatherName') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
-                    label="Registry Email" 
+                    label={`Registry Email ${editableFields.includes('email') ? '*' : ''}`}
                     name="email"
                     value={formData.email} 
                     readOnly={!editableFields.includes('email')} 
                     onChange={handleInputChange}
                     icon={Mail} 
+                    required={editableFields.includes('email')}
                     className={!editableFields.includes('email') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <div className="md:col-span-2">
                     <Input 
-                      label="Registry Address" 
+                      label={`Registry Address ${editableFields.includes('address') ? '*' : ''}`}
                       name="address" 
                       value={formData.address} 
                       readOnly={!editableFields.includes('address')} 
                       onChange={handleInputChange}
                       icon={MapPin} 
+                      required={editableFields.includes('address')}
                       className={!editableFields.includes('address') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                     />
                   </div>
                   <Input 
-                    label="Village/Area" 
+                    label={`Village/Area ${editableFields.includes('village') ? '*' : ''}`}
                     name="village" 
                     value={formData.village} 
                     readOnly={!editableFields.includes('village')} 
                     onChange={handleInputChange}
                     icon={MapPin} 
+                    required={editableFields.includes('village')}
                     className={!editableFields.includes('village') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
-                    label="City Hub" 
+                    label={`City Hub ${editableFields.includes('city') ? '*' : ''}`}
                     name="city" 
                     value={formData.city} 
                     readOnly={!editableFields.includes('city')} 
                     onChange={handleInputChange}
                     icon={MapPin} 
+                    required={editableFields.includes('city')}
                     className={!editableFields.includes('city') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                 </>
@@ -365,21 +399,23 @@ export default function StudentRegisterPage() {
                     <Input label="Set Access Cipher" name="password" icon={Lock} placeholder="••••••••" value={formData.password} onChange={handleInputChange} type="password" required />
                   </div>
                    <Input 
-                    label="State" 
+                    label={`State ${editableFields.includes('state') ? '*' : ''}`}
                     name="state" 
                     value={formData.state} 
                     readOnly={!editableFields.includes('state')} 
                     onChange={handleInputChange}
                     icon={MapPin} 
+                    required={editableFields.includes('state')}
                     className={!editableFields.includes('state') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
-                    label="Point Code" 
+                    label={`Point Code ${editableFields.includes('pincode') ? '*' : ''}`}
                     name="pincode" 
                     value={formData.pincode} 
                     readOnly={!editableFields.includes('pincode')} 
                     onChange={handleInputChange}
                     icon={MapPin} 
+                    required={editableFields.includes('pincode')}
                     className={!editableFields.includes('pincode') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                 </>

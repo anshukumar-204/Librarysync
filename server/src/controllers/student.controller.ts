@@ -15,8 +15,9 @@ export const createStudent = async (req: Request, res: Response) => {
       address, village, post, district, city, state, pincode 
     } = req.body;
 
-    if (!fullName || !fatherName || !mobile || !address) {
-      return res.status(400).json({ success: false, message: "Full Name, Guardian Name, Mobile, and Address are required" });
+    // MANDATORY CHANGE: Only Mobile and Email are strictly required for Admin
+    if (!mobile || !email) {
+      return res.status(400).json({ success: false, message: "Registry creation requires both Mobile and Email nodes." });
     }
 
     // Default password as mobile number
@@ -25,23 +26,23 @@ export const createStudent = async (req: Request, res: Response) => {
     // Create the User profile AND attached Student profile transactionally
     const newStudent = await prisma.user.create({
       data: {
-        name: fullName,
+        name: fullName || "New Student",
         mobile,
         email: email || null,
         passwordHash: defaultPassword,
         role: "student",
         student: {
           create: {
-            fullName,
-            fatherName,
-            profileImage,
-            address,
-            village,
-            post,
-            district,
-            city,
-            state,
-            pincode
+            fullName: fullName || "New Student",
+            fatherName: fatherName || null,
+            profileImage: profileImage || null,
+            address: address || null,
+            village: village || null,
+            post: post || null,
+            district: district || null,
+            city: city || null,
+            state: state || null,
+            pincode: pincode || null
           }
         }
       },
@@ -116,8 +117,9 @@ export const updateStudent = async (req: Request, res: Response) => {
       address, village, post, district, city, state, pincode, status 
     } = req.body;
 
-    if (!fullName || !fatherName || !mobile || !address) {
-      return res.status(400).json({ success: false, message: "Update aborted: Mandatory fields (Name, Guardian, Mobile, Address) missing" });
+    // MANDATORY CHANGE: Only Mobile and Email are strictly required for Admin
+    if (!mobile || !email) {
+      return res.status(400).json({ success: false, message: "Update aborted: Mobile and Email nodes are mandatory." });
     }
 
     // Check if student exists
