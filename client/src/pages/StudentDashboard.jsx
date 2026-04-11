@@ -347,7 +347,9 @@ export default function StudentDashboard() {
             <ShieldCheck size={18} />
             Scan via Camera
           </button>
-        </motion.div        {/* QR Code Modal Overlay */}
+        </motion.div>
+
+        {/* QR Code Modal Overlay */}
         <AnimatePresence>
           {showQR && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
