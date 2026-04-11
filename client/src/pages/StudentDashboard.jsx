@@ -259,12 +259,76 @@ export default function StudentDashboard() {
             </motion.div>
           </div>
 
-          {/* LEFT COLUMN: REAL-TIME STATS & ACTIONS (Stats focus) */}
-          <div className="lg:col-span-5 xl:col-span-4 space-y-8">
-            {/* Progress Circle Widget */}
+          {/* LEFT COLUMN: PRIMARY DYNAMIC ACTIONS (Scanner prioritized) */}
+          <div className="lg:col-span-12 xl:col-span-4 space-y-8 order-2 xl:order-1">
+            
+            {/* VIRTUAL CHECKPOINT SCANNER (The Master Action) */}
+            <motion.div 
+               initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
+               className="relative"
+            >
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-blue-600 text-white text-[9px] font-black uppercase tracking-[0.3em] z-20 shadow-xl border border-blue-400/30">
+                Hub Entry Terminal
+              </div>
+
+              <button 
+                onClick={handleShowQR}
+                disabled={todayStatus?.status === 'Completed' || actionLoading}
+                className={`group relative w-full rounded-[3rem] overflow-hidden transition-all duration-700 active:scale-[0.96] border-4 ${
+                  todayStatus?.status === 'Completed' 
+                    ? 'border-white/5 opacity-50 grayscale cursor-not-allowed' 
+                    : todayStatus?.status === 'In Library'
+                      ? 'border-orange-500/20 shadow-2xl shadow-orange-500/10'
+                      : 'border-blue-500/20 shadow-2xl shadow-blue-500/10'
+                }`}
+              >
+                <div className={`absolute inset-0 transition-all duration-700 ${
+                  todayStatus?.status === 'Completed' 
+                    ? 'bg-zinc-900' 
+                    : todayStatus?.status === 'In Library'
+                      ? 'bg-gradient-to-br from-orange-600 to-rose-700 group-hover:opacity-90'
+                      : 'bg-gradient-to-br from-blue-600 to-indigo-700 group-hover:opacity-90'
+                }`} />
+                
+                <div className="relative p-12 flex flex-col items-center justify-center gap-4 text-center">
+                  {actionLoading ? (
+                    <Loader2 size={64} className="animate-spin text-white/50" />
+                  ) : todayStatus?.status === 'Completed' ? (
+                    <>
+                      <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-2">
+                        <CheckCircle2 size={48} className="text-gray-500" />
+                      </div>
+                      <div>
+                        <span className="text-2xl font-black text-white tracking-tighter block uppercase">Quota Reached</span>
+                        <span className="text-[10px] text-gray-400 font-black tracking-widest uppercase mt-2">Next Sync: 00:00 UTC</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-2 relative ${
+                        todayStatus?.status === 'In Library' ? 'bg-white/20' : 'bg-white/20'
+                      }`}>
+                         <Camera size={56} className="text-white group-hover:scale-110 transition-transform duration-500" />
+                         <div className="absolute inset-0 rounded-full border-4 border-white/30 animate-ping opacity-20" />
+                      </div>
+                      <div>
+                        <span className="text-3xl font-black text-white tracking-tighter block uppercase">
+                          {todayStatus?.status === 'In Library' ? 'LOG CHECK-OUT' : 'ACTIVATE SHIFT'}
+                        </span>
+                        <p className="text-[10px] text-white/70 font-bold uppercase tracking-[0.2em] mt-3">
+                           {todayStatus?.status === 'In Library' ? 'Egress Terminal Ready' : 'Ingress Authentication Required'}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </button>
+            </motion.div>
+
+            {/* Productivity Circle Widget */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-              className="glass-card p-8 rounded-[3rem] bg-gradient-to-br from-blue-600/10 to-transparent border border-white/5 relative overflow-hidden group shadow-2xl"
+              className="glass-card p-8 rounded-[3rem] bg-gradient-to-br from-blue-600/5 to-transparent border border-white/5 relative overflow-hidden group shadow-2xl"
             >
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                 <Target size={120} />
@@ -320,49 +384,8 @@ export default function StudentDashboard() {
               </div>
             </motion.div>
 
-            {/* Attendance Buttons */}
+            {/* Quick Actions Journal Trigger */}
             <div className="space-y-4">
-              <button 
-                onClick={() => dispatch(autoMarkAttendance())}
-                disabled={actionLoading}
-                className={`group relative w-full rounded-[2.5rem] overflow-hidden transition-all duration-500 active:scale-[0.97] shadow-2xl ${
-                  todayStatus?.status === 'Completed' ? 'grayscale opacity-80' : 'shadow-blue-500/20'
-                }`}
-              >
-                <div className={`absolute inset-0 transition-all duration-500 ${
-                  todayStatus?.status === 'Completed' ? 'bg-zinc-800' : 'bg-gradient-to-br from-blue-600 to-indigo-700 group-hover:opacity-90'
-                }`} />
-                
-                <div className="relative p-10 flex flex-col items-center justify-center gap-4 text-center">
-                  {actionLoading && !showQR ? (
-                    <Loader2 size={48} className="animate-spin text-white/50" />
-                  ) : todayStatus?.status === 'Completed' ? (
-                    <>
-                      <CheckCircle2 size={48} className="text-emerald-500" />
-                      <span className="text-xl font-black text-white uppercase tracking-tight">Shift Concluded</span>
-                    </>
-                  ) : (
-                    <>
-                      <Camera size={48} className="text-white group-hover:scale-110 transition-transform" />
-                      <div>
-                        <span className="text-2xl font-black text-white tracking-tight block uppercase">
-                          {todayStatus?.status === 'In Library' ? 'Log Check-out' : 'Mark Attendance'}
-                        </span>
-                        <span className="text-[10px] text-white/60 font-black tracking-widest uppercase mt-2">Authenticated Entry Node</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </button>
-
-              <button
-                onClick={handleShowQR}
-                className="w-full py-6 rounded-3xl bg-white/5 hover:bg-white/10 border border-white/5 text-gray-400 hover:text-white transition-all flex items-center justify-center gap-3 font-black text-[10px] uppercase tracking-[0.3em]"
-              >
-                <ShieldCheck size={20} className="text-indigo-500" />
-                Hardware Cam Auth
-              </button>
-              
               <button
                 onClick={() => setShowLogModal(true)}
                 className="w-full py-6 rounded-3xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-all flex items-center justify-center gap-3 font-black text-[10px] uppercase tracking-[0.3em]"
@@ -375,20 +398,19 @@ export default function StudentDashboard() {
 
           {/* RIGHT COLUMN: ANALYTICS, JOURNALS & HISTORY */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-10">
-            {/* Performance Analytics */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500">
                     <TrendingUp size={20} />
                   </div>
                   <h2 className="text-xl font-black text-white tracking-tight">Performance Artifacts</h2>
                 </div>
-                <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
+                <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 w-fit">
                   {['week', 'month', 'year'].map((range) => (
                     <button
                       key={range} onClick={() => setChartRange(range)}
-                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${chartRange === range ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                      className={`px-3 sm:px-5 py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all ${chartRange === range ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
                     >
                       {range}
                     </button>
@@ -396,21 +418,22 @@ export default function StudentDashboard() {
                 </div>
               </div>
 
-              <div className="glass-card rounded-[3rem] p-8 border border-white/5 h-[350px] shadow-2xl">
+              <div className="glass-card rounded-[2.5rem] sm:rounded-[3rem] p-4 sm:p-8 border border-white/5 h-[280px] md:h-[350px] shadow-2xl relative">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={getProcessedChartData()}>
+                  <BarChart data={getProcessedChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
                     <XAxis 
                       dataKey={chartRange === 'year' ? 'label' : 'date'} axisLine={false} tickLine={false} 
-                      tick={{ fill: '#4B5563', fontSize: 10, fontWeight: '900' }} tickFormatter={getRangeLabel}
+                      tick={{ fill: '#4B5563', fontSize: 9, fontWeight: '800' }} tickFormatter={getRangeLabel}
+                      dy={10}
                     />
-                    <YAxis hide />
+                    <YAxis hide domain={[0, 'auto']} />
                     <ReTooltip 
                       cursor={{ fill: 'rgba(255,255,255,0.02)' }}
-                      contentStyle={{ backgroundColor: '#0c0c0e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '15px' }}
+                      contentStyle={{ backgroundColor: '#0c0c0e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '12px', fontSize: '10px' }}
                       labelFormatter={(val) => chartRange === 'year' ? val : new Date(val).toLocaleDateString()}
                     />
-                    <Bar dataKey="studyHours" fill="#3B82F6" radius={[6, 6, 0, 0]} barSize={chartRange === 'week' ? 30 : chartRange === 'month' ? 10 : 25} />
+                    <Bar dataKey="studyHours" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={chartRange === 'week' ? 25 : chartRange === 'month' ? 8 : 20} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
