@@ -130,6 +130,20 @@ export default function StudentDashboard() {
     }
   };
 
+  const formatTime = (isoString) => {
+    if (!isoString) return '--:--';
+    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getElapsedTime = (checkIn) => {
+    if (!checkIn) return '0M';
+    const start = new Date(checkIn);
+    const now = new Date();
+    const diff = Math.floor((now - start) / (1000 * 60)); // in minutes
+    if (diff < 60) return `${diff}M`;
+    return `${Math.floor(diff / 60)}H ${diff % 60}M`;
+  };
+
   const handleLogout = async () => {
     try {
       await dispatch(logoutAdmin()).unwrap();
@@ -220,10 +234,38 @@ export default function StudentDashboard() {
           <h1 className="text-3xl md:text-5xl font-black text-white leading-tight tracking-tighter uppercase">
             Hub<span className="text-blue-500">_</span>Center
           </h1>
-          <div className="flex items-center gap-2 mt-1 opacity-60">
-            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">{todayStatus?.status || 'IDLE'}</span>
-            <span className="text-[10px] font-black uppercase tracking-widest ml-2 border-l border-white/20 pl-2">Session: {user?.name}</span>
+          <div className="flex items-center gap-2 mt-1 opacity-80">
+            <span className={`w-2 h-2 rounded-full animate-pulse ${todayStatus?.status === 'In Library' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
+            <span className={`text-[12px] font-black uppercase tracking-[0.2em] ${todayStatus?.status === 'In Library' ? 'text-emerald-400' : 'text-orange-400'}`}>
+              {todayStatus?.status || 'Awaiting Sync'}
+            </span>
+          </div>
+        </div>
+
+        {/* Live Status Card */}
+        <div className={`p-1 rounded-3xl transition-all duration-700 ${todayStatus?.status === 'In Library' ? 'bg-gradient-to-r from-emerald-500/20 to-blue-500/20' : 'bg-white/5'}`}>
+          <div className="bg-[#0B0D17] rounded-[1.4rem] px-6 py-4 flex items-center gap-6">
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block mb-1">Live Terminal Status</span>
+              <div className="flex items-center gap-3">
+                <span className={`text-xl font-black ${todayStatus?.status === 'In Library' ? 'text-emerald-400' : 'text-white'}`}>
+                  {todayStatus?.status === 'In Library' ? 'ACTIVE_SESSION' : todayStatus?.status === 'Completed' ? 'SHIFT_ARCHIVED' : 'STANDBY_MODE'}
+                </span>
+              </div>
+            </div>
+            
+            {todayStatus?.status === 'In Library' && (
+              <div className="flex gap-6 border-l border-white/10 pl-6">
+                <div>
+                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block mb-1">Check-in</span>
+                  <span className="text-sm font-black text-white">{formatTime(todayStatus.checkIn)}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block mb-1">Elapsed</span>
+                  <span className="text-sm font-black text-blue-500">{getElapsedTime(todayStatus.checkIn)}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -494,7 +536,7 @@ export default function StudentDashboard() {
           </button>
 
           <div className="relative">
-            <button onClick={() => setActiveModal('qr')} className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-2xl transition-all active:scale-90 -mt-10 border-4 border-[#0B0D17] ${activeModal === 'qr' ? 'bg-blue-500 scale-110' : 'bg-blue-600'}`}>
+            <button onClick={() => setActiveModal('qr')} className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-2xl transition-all active:scale-90 -mt-10 border-4 border-[#0B0D17] ${activeModal === 'qr' ? 'bg-indigo-600 scale-110' : todayStatus?.status === 'In Library' ? 'bg-emerald-600 shadow-emerald-500/20' : 'bg-blue-600 shadow-blue-500/20'}`}>
               <Camera size={30} />
             </button>
           </div>
