@@ -342,6 +342,7 @@ const studentDashboardSlice = createSlice({
         state.studyLogs = action.payload;
       })
       .addCase(createStudyLog.fulfilled, (state, action) => {
+        state.actionLoading = false;
         state.studyLogs.unshift(action.payload);
       })
       .addCase(deleteStudyLog.fulfilled, (state, action) => {
@@ -353,6 +354,7 @@ const studentDashboardSlice = createSlice({
         state.tasks = action.payload;
       })
       .addCase(createTask.fulfilled, (state, action) => {
+        state.actionLoading = false;
         state.tasks.unshift(action.payload);
       })
       .addCase(toggleTaskStatus.fulfilled, (state, action) => {
@@ -363,6 +365,7 @@ const studentDashboardSlice = createSlice({
         state.tasks = state.tasks.filter(t => t.id !== action.payload);
       })
       .addCase(updateTask.fulfilled, (state, action) => {
+        state.actionLoading = false;
         const index = state.tasks.findIndex(t => t.id === action.payload.id);
         if (index !== -1) state.tasks[index] = action.payload;
       })
@@ -372,11 +375,8 @@ const studentDashboardSlice = createSlice({
         state.weeklyRoutine = action.payload;
       })
       .addCase(createRoutineNode.fulfilled, (state, action) => {
+        state.actionLoading = false;
         state.weeklyRoutine.push(action.payload);
-      })
-      // Weekly Routine
-      .addCase(fetchRoutine.fulfilled, (state, action) => {
-        state.weeklyRoutine = action.payload;
       })
       .addCase(deleteRoutineNode.fulfilled, (state, action) => {
         state.weeklyRoutine = state.weeklyRoutine.filter(r => r.id !== action.payload);
@@ -424,19 +424,15 @@ const studentDashboardSlice = createSlice({
       
       // Generic Action Loading Protections
       .addCase(createTask.pending, (state) => { state.actionLoading = true; })
-      .addCase(createTask.fulfilled, (state) => { state.actionLoading = false; })
       .addCase(createTask.rejected, (state) => { state.actionLoading = false; })
       
       .addCase(updateTask.pending, (state) => { state.actionLoading = true; })
-      .addCase(updateTask.fulfilled, (state) => { state.actionLoading = false; })
       .addCase(updateTask.rejected, (state) => { state.actionLoading = false; })
       
       .addCase(createStudyLog.pending, (state) => { state.actionLoading = true; })
-      .addCase(createStudyLog.fulfilled, (state) => { state.actionLoading = false; })
       .addCase(createStudyLog.rejected, (state) => { state.actionLoading = false; })
       
       .addCase(createRoutineNode.pending, (state) => { state.actionLoading = true; })
-      .addCase(createRoutineNode.fulfilled, (state) => { state.actionLoading = false; })
       .addCase(createRoutineNode.rejected, (state) => { state.actionLoading = false; })
       
       .addCase(syncRoutine.pending, (state) => { state.actionLoading = true; })
