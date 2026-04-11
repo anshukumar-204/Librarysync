@@ -957,57 +957,65 @@ export default function StudentDashboard() {
       </div>
     </motion.div>
   );
-
-          {studyLogs.map((log) => (
-            <div key={log.id} className="p-6 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all group relative">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest px-3 py-1 bg-blue-500/10 rounded-full">{log.subject}</span>
-                <span className="text-[10px] text-gray-600 font-bold uppercase">{formatDate(log.date)}</span>
-              </div>
-              <p className="text-sm text-gray-400 leading-relaxed mb-4">{log.topicsCovered}</p>
-              <div className="flex items-center gap-4 text-[10px] font-black uppercase text-gray-500">
-                <span className="flex items-center gap-1.5"><Clock size={12} /> {log.hoursSpent}H Focus</span>
-                <span className="flex items-center gap-1.5"><TrendingUp size={12} /> {log.productivityRating}/5 Tier</span>
-              </div>
-              <button onClick={() => handleDeleteLog(log.id)} className="absolute top-6 right-6 p-2 rounded-xl bg-red-500/5 text-red-500/20 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100">
-                <Trash2 size={16} />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    </motion.div>
-  );
-
   const renderHistory = () => (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-8 pb-32 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic">Session <span className="text-blue-500">Registry</span></h2>
-          <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mt-1">Full Attendance Historical Nodes</p>
-        </div>
-        <div className="text-right">
-          <span className="text-3xl font-black text-white">{metrics?.totalDaysAttended}</span>
-          <p className="text-[10px] text-gray-600 font-black uppercase tracking-tighter">Verified Days</p>
-        </div>
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-8 pb-32 max-w-4xl mx-auto">
+      <div className="text-center">
+        <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase">Focus <span className="text-emerald-500">Vault</span></h2>
+        <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em] mt-2">Historical Session Registry</p>
       </div>
 
-      <div className="space-y-3">
-        {history.map((record) => (
-          <div key={record.id} className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 flex items-center justify-between hover:bg-white/[0.04] transition-all group">
-            <div className="flex items-center gap-4">
-              <div className={`w-3 h-3 rounded-full ${record.status === 'Present' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
-              <span className="text-lg font-bold text-gray-300 group-hover:text-white transition-colors">{formatDate(record.date)}</span>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="text-right">
-                <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">Focus Time</p>
-                <span className="text-lg font-black text-blue-500">{record.studyHours?.toFixed(1)}H</span>
-              </div>
-              <ChevronRight size={20} className="text-gray-800" />
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-1 space-y-4">
+          <div className="flex items-center gap-3 mb-2 px-2">
+            <Calendar size={18} className="text-emerald-500" />
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Recent Sessions</span>
           </div>
-        ))}
+          <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+            {history.map((record) => (
+              <button key={record.id} onClick={() => setSelectedHistoryDate(record.date)} className={`w-full p-5 rounded-[2rem] border transition-all text-left flex flex-col gap-1 ${selectedHistoryDate === record.date ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : 'bg-white/5 border-white/5 text-gray-400 hover:border-emerald-500/30'}`}>
+                <span className="text-xs font-black italic">{new Date(record.date).toLocaleDateString()}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{record.studyHours?.toFixed(1) || 0}H Total Focus</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="md:col-span-2">
+          {selectedHistoryDate ? (
+            <div className="glass-card p-8 rounded-[3rem] border border-white/5 bg-white/[0.02] min-h-[400px]">
+               <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h3 className="text-2xl font-black text-white italic truncate">{new Date(selectedHistoryDate).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
+                    <p className="text-[10px] text-emerald-500 font-black uppercase tracking-widest mt-1">Deep Focus Detail</p>
+                  </div>
+               </div>
+
+               <div className="space-y-4">
+                  <div className="flex items-center gap-3 opacity-40 mb-6">
+                    <div className="h-[1px] flex-1 bg-white" />
+                    <span className="text-[8px] font-black uppercase tracking-[0.3em]">Session Summary</span>
+                    <div className="h-[1px] flex-1 bg-white" />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="p-6 rounded-[2.5rem] bg-emerald-500/10 border border-emerald-500/20">
+                       <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest block mb-2">Total Time Invested</span>
+                       <span className="text-4xl font-black text-white italic tracking-tighter">
+                          {history.find(h => h.date === selectedHistoryDate)?.studyHours?.toFixed(1) || 0} <span className="text-lg">HOURS</span>
+                       </span>
+                    </div>
+
+                    <p className="text-[10px] text-gray-500 font-bold text-center mt-10 italic">"Registry records are verified and finalized."</p>
+                  </div>
+               </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center p-20 glass-card rounded-[3rem] border border-dashed border-white/10 opacity-30 h-full">
+              <History size={48} className="mb-4" />
+              <p className="text-xs font-black uppercase tracking-widest text-center">Select a date to unlock registry detail</p>
+            </div>
+          )}
+        </div>
       </div>
     </motion.div>
   );
