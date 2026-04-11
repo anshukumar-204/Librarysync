@@ -241,26 +241,36 @@ export default function StudentDashboard() {
                     Productivity Sync Active
                   </p>
                 </div>
-                
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-400">
-                    <Flame size={16} className="animate-bounce" />
-                    <span className="text-sm font-black tracking-tighter">{metrics?.currentStreak || 0} DAY STREAK</span>
-                  </div>
-                  <button 
-                    onClick={() => setShowLeaderboard(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all shadow-xl"
-                  >
-                    <Trophy size={16} />
-                    <span className="text-sm font-black tracking-tighter uppercase">Ranks</span>
-                  </button>
-                </div>
               </div>
             </motion.div>
           </div>
 
           {/* LEFT COLUMN: PRIMARY DYNAMIC ACTIONS (Scanner prioritized) */}
           <div className="lg:col-span-12 xl:col-span-4 space-y-8 order-2 xl:order-1">
+            
+            {/* EXCELLENCE HUB (Ranks & Streak) - POSITION #1 */}
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+              className="glass-card p-6 rounded-[2.5rem] bg-white/[0.02] border border-white/5 flex items-center justify-between shadow-xl"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500 border border-orange-500/20 shadow-lg shadow-orange-500/5">
+                  <Flame size={24} className="animate-pulse" />
+                </div>
+                <div>
+                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest block">Current Velocity</span>
+                  <span className="text-xl font-black text-white tracking-tighter">{metrics?.currentStreak || 0} DAY STREAK</span>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => setShowLeaderboard(true)}
+                className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all hover:scale-105 active:scale-95 shadow-lg group"
+              >
+                <Trophy size={18} className="group-hover:rotate-12 transition-transform" />
+                <span className="text-xs font-black tracking-tighter uppercase">Global Ranks</span>
+              </button>
+            </motion.div>
             
             {/* VIRTUAL CHECKPOINT SCANNER (The Master Action) */}
             <motion.div 
