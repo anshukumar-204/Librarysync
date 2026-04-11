@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  LogOut, 
-  Camera, 
-  Flame, 
-  Clock, 
-  Calendar, 
+import {
+  LogOut,
+  Camera,
+  Flame,
+  Clock,
+  Calendar,
   History,
   CheckCircle2,
   XCircle,
@@ -24,10 +24,10 @@ import {
 } from 'lucide-react';
 import { logoutAdmin } from '../store/slices/authSlice';
 import { Scanner } from '@yudiel/react-qr-scanner';
-import { 
-  fetchTodayStatus, 
-  fetchMetrics, 
-  fetchHistory, 
+import {
+  fetchTodayStatus,
+  fetchMetrics,
+  fetchHistory,
   autoMarkAttendance,
   generateQR,
   updateDailyGoal,
@@ -35,15 +35,15 @@ import {
   fetchStudyLogs,
   createStudyLog
 } from '../store/slices/studentDashboardSlice';
-import { 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
   Tooltip as ReTooltip,
   CartesianGrid
 } from 'recharts';
@@ -52,17 +52,17 @@ import toast from 'react-hot-toast';
 
 export default function StudentDashboard() {
   const { user } = useSelector((state) => state.adminAuth);
-  const { 
-    todayStatus, 
-    metrics, 
-    history, 
+  const {
+    todayStatus,
+    metrics,
+    history,
     leaderboard,
     studyLogs,
     qrToken,
-    loading, 
-    actionLoading 
+    loading,
+    actionLoading
   } = useSelector((state) => state.studentDashboard);
-  
+
   const [showQR, setShowQR] = React.useState(false);
   const [showLeaderboard, setShowLeaderboard] = React.useState(false);
   const [showLogModal, setShowLogModal] = React.useState(false);
@@ -126,7 +126,7 @@ export default function StudentDashboard() {
   const handleScanSuccess = async (result) => {
     if (!result || !result[0]) return;
     const qrValue = result[0].rawValue;
-    
+
     setShowQR(false);
     try {
       // In a real app, you would pass `qrToken: qrValue` to the API.
@@ -145,27 +145,27 @@ export default function StudentDashboard() {
 
   const getProcessedChartData = () => {
     if (!history) return [];
-    
+
     if (chartRange === 'week') {
       return [...history].slice(0, 7).reverse();
     }
-    
+
     if (chartRange === 'month') {
       return [...history].slice(0, 30).reverse();
     }
-    
+
     if (chartRange === 'year') {
       // Aggregate by month for the last 12 months
       const monthlyData = {};
       const now = new Date();
-      
+
       // Initialize last 12 months
       for (let i = 11; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const key = d.toLocaleString('default', { month: 'short' });
         monthlyData[key] = { label: key, studyHours: 0 };
       }
-      
+
       history.forEach(record => {
         const d = new Date(record.date);
         const key = d.toLocaleString('default', { month: 'short' });
@@ -173,10 +173,10 @@ export default function StudentDashboard() {
           monthlyData[key].studyHours += (record.studyHours || 0);
         }
       });
-      
+
       return Object.values(monthlyData);
     }
-    
+
     return [];
   };
 
@@ -214,8 +214,8 @@ export default function StudentDashboard() {
             </div>
             <span className="text-lg font-bold text-white tracking-tight">Student<span className="text-blue-500">Panel</span></span>
           </div>
-          
-          <button 
+
+          <button
             onClick={handleLogout}
             className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-colors"
           >
@@ -226,14 +226,14 @@ export default function StudentDashboard() {
 
       <main className="relative z-10 max-w-7xl mx-auto px-4 pt-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-          
+
           {/* HEADER SECTION (Full Width) */}
           <div className="lg:col-span-12 mb-4">
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                   <h1 className="text-4xl md:text-5xl font-black text-white leading-tight tracking-tighter">
-                    Hub Node:<br/>
+                    Hub Node:<br />
                     <span className="text-blue-500">{user?.name?.split(' ')[0] || 'Member'}</span>
                   </h1>
                   <p className="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-[0.3em] mt-3 flex items-center gap-2">
@@ -247,9 +247,9 @@ export default function StudentDashboard() {
 
           {/* LEFT COLUMN: PRIMARY DYNAMIC ACTIONS (Scanner prioritized) */}
           <div className="lg:col-span-12 xl:col-span-4 space-y-8 order-2 xl:order-1">
-            
+
             {/* EXCELLENCE HUB (Ranks & Streak) - POSITION #1 */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
               className="glass-card p-6 rounded-[2.5rem] bg-white/[0.02] border border-white/5 flex items-center justify-between shadow-xl"
             >
@@ -262,8 +262,8 @@ export default function StudentDashboard() {
                   <span className="text-xl font-black text-white tracking-tighter">{metrics?.currentStreak || 0} DAY STREAK</span>
                 </div>
               </div>
-              
-              <button 
+
+              <button
                 onClick={() => setShowLeaderboard(true)}
                 className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all hover:scale-105 active:scale-95 shadow-lg group"
               >
@@ -271,35 +271,33 @@ export default function StudentDashboard() {
                 <span className="text-xs font-black tracking-tighter uppercase">Global Ranks</span>
               </button>
             </motion.div>
-            
+
             {/* VIRTUAL CHECKPOINT SCANNER (The Master Action) */}
-            <motion.div 
-               initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
-               className="relative"
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
+              className="relative"
             >
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-blue-600 text-white text-[9px] font-black uppercase tracking-[0.3em] z-20 shadow-xl border border-blue-400/30">
                 Hub Entry Terminal
               </div>
 
-              <button 
+              <button
                 onClick={handleShowQR}
                 disabled={todayStatus?.status === 'Completed' || actionLoading}
-                className={`group relative w-full rounded-[3rem] overflow-hidden transition-all duration-700 active:scale-[0.96] border-4 ${
-                  todayStatus?.status === 'Completed' 
-                    ? 'border-white/5 opacity-50 grayscale cursor-not-allowed' 
+                className={`group relative w-full rounded-[3rem] overflow-hidden transition-all duration-700 active:scale-[0.96] border-4 ${todayStatus?.status === 'Completed'
+                    ? 'border-white/5 opacity-50 grayscale cursor-not-allowed'
                     : todayStatus?.status === 'In Library'
                       ? 'border-orange-500/20 shadow-2xl shadow-orange-500/10'
                       : 'border-blue-500/20 shadow-2xl shadow-blue-500/10'
-                }`}
+                  }`}
               >
-                <div className={`absolute inset-0 transition-all duration-700 ${
-                  todayStatus?.status === 'Completed' 
-                    ? 'bg-zinc-900' 
+                <div className={`absolute inset-0 transition-all duration-700 ${todayStatus?.status === 'Completed'
+                    ? 'bg-zinc-900'
                     : todayStatus?.status === 'In Library'
                       ? 'bg-gradient-to-br from-orange-600 to-rose-700 group-hover:opacity-90'
                       : 'bg-gradient-to-br from-blue-600 to-indigo-700 group-hover:opacity-90'
-                }`} />
-                
+                  }`} />
+
                 <div className="relative p-12 flex flex-col items-center justify-center gap-4 text-center">
                   {actionLoading ? (
                     <Loader2 size={64} className="animate-spin text-white/50" />
@@ -315,18 +313,17 @@ export default function StudentDashboard() {
                     </>
                   ) : (
                     <>
-                      <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-2 relative ${
-                        todayStatus?.status === 'In Library' ? 'bg-white/20' : 'bg-white/20'
-                      }`}>
-                         <Camera size={56} className="text-white group-hover:scale-110 transition-transform duration-500" />
-                         <div className="absolute inset-0 rounded-full border-4 border-white/30 animate-ping opacity-20" />
+                      <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-2 relative ${todayStatus?.status === 'In Library' ? 'bg-white/20' : 'bg-white/20'
+                        }`}>
+                        <Camera size={56} className="text-white group-hover:scale-110 transition-transform duration-500" />
+                        <div className="absolute inset-0 rounded-full border-4 border-white/30 animate-ping opacity-20" />
                       </div>
                       <div>
                         <span className="text-3xl font-black text-white tracking-tighter block uppercase">
                           {todayStatus?.status === 'In Library' ? 'LOG CHECK-OUT' : 'ACTIVATE SHIFT'}
                         </span>
                         <p className="text-[10px] text-white/70 font-bold uppercase tracking-[0.2em] mt-3">
-                           {todayStatus?.status === 'In Library' ? 'Egress Terminal Ready' : 'Ingress Authentication Required'}
+                          {todayStatus?.status === 'In Library' ? 'Egress Terminal Ready' : 'Ingress Authentication Required'}
                         </p>
                       </div>
                     </>
@@ -336,14 +333,14 @@ export default function StudentDashboard() {
             </motion.div>
 
             {/* Productivity Circle Widget */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
               className="glass-card p-8 rounded-[3rem] bg-gradient-to-br from-blue-600/5 to-transparent border border-white/5 relative overflow-hidden group shadow-2xl"
             >
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                 <Target size={120} />
               </div>
-              
+
               <div className="flex flex-col items-center">
                 <div className="w-48 h-48 relative mb-8">
                   <ResponsiveContainer width="100%" height="100%">
@@ -374,7 +371,7 @@ export default function StudentDashboard() {
                       <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Target Hours</span>
                       <span className="text-2xl font-black text-white tracking-tighter">{metrics?.dailyGoalHours || 8}H</span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => { setTempGoal(metrics?.dailyGoalHours || 8); setShowGoalModal(true); }}
                       className="p-4 bg-blue-600/10 text-blue-500 rounded-2xl hover:bg-blue-600/20 transition-all active:scale-90"
                     >
@@ -432,13 +429,13 @@ export default function StudentDashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={getProcessedChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                    <XAxis 
-                      dataKey={chartRange === 'year' ? 'label' : 'date'} axisLine={false} tickLine={false} 
+                    <XAxis
+                      dataKey={chartRange === 'year' ? 'label' : 'date'} axisLine={false} tickLine={false}
                       tick={{ fill: '#4B5563', fontSize: 9, fontWeight: '800' }} tickFormatter={getRangeLabel}
                       dy={10}
                     />
                     <YAxis hide domain={[0, 'auto']} />
-                    <ReTooltip 
+                    <ReTooltip
                       cursor={{ fill: 'rgba(255,255,255,0.02)' }}
                       contentStyle={{ backgroundColor: '#0c0c0e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '12px', fontSize: '10px' }}
                       labelFormatter={(val) => chartRange === 'year' ? val : new Date(val).toLocaleDateString()}
@@ -469,8 +466,8 @@ export default function StudentDashboard() {
                       </div>
                       <p className="text-gray-300 text-sm font-medium leading-relaxed italic mb-4">"{log.topicsCovered}"</p>
                       <div className="flex items-center gap-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                        <span className="flex items-center gap-1.5"><Clock size={12}/> {log.hoursSpent}H Focus</span>
-                        <span className="flex items-center gap-1.5"><Award size={12}/> {log.productivityRating}/5 Rating</span>
+                        <span className="flex items-center gap-1.5"><Clock size={12} /> {log.hoursSpent}H Focus</span>
+                        <span className="flex items-center gap-1.5"><Award size={12} /> {log.productivityRating}/5 Rating</span>
                       </div>
                     </div>
                   ))}
@@ -480,32 +477,32 @@ export default function StudentDashboard() {
 
             {/* Archive / History */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-               <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-zinc-500/10 flex items-center justify-center text-gray-500">
-                      <Calendar size={20} />
-                    </div>
-                    <h2 className="text-xl font-black text-white tracking-tight">Full Registry</h2>
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-zinc-500/10 flex items-center justify-center text-gray-500">
+                    <Calendar size={20} />
                   </div>
-                  <span className="text-[10px] text-gray-600 font-black uppercase tracking-widest">{metrics?.totalDaysAttended} Logs</span>
-               </div>
-               <div className="space-y-3">
-                  {history.slice(0, 5).map((record) => (
-                    <div key={record.id} className="p-5 rounded-3xl bg-white/[0.02] border border-white/5 flex items-center justify-between hover:bg-white/[0.04] transition-all group">
-                       <span className="text-sm font-bold text-gray-400 group-hover:text-white transition-colors">{formatDate(record.date)}</span>
-                       <div className="flex items-center gap-3">
-                          <span className="text-sm font-black text-blue-500">{record.studyHours?.toFixed(1)}H</span>
-                          <ChevronRight size={16} className="text-gray-700" />
-                       </div>
+                  <h2 className="text-xl font-black text-white tracking-tight">Full Registry</h2>
+                </div>
+                <span className="text-[10px] text-gray-600 font-black uppercase tracking-widest">{metrics?.totalDaysAttended} Logs</span>
+              </div>
+              <div className="space-y-3">
+                {history.slice(0, 5).map((record) => (
+                  <div key={record.id} className="p-5 rounded-3xl bg-white/[0.02] border border-white/5 flex items-center justify-between hover:bg-white/[0.04] transition-all group">
+                    <span className="text-sm font-bold text-gray-400 group-hover:text-white transition-colors">{formatDate(record.date)}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-black text-blue-500">{record.studyHours?.toFixed(1)}H</span>
+                      <ChevronRight size={16} className="text-gray-700" />
                     </div>
-                  ))}
-               </div>
+                  </div>
+                ))}
+              </div>
             </motion.div>
           </div>
         </div>
 
         {/* --- MODALS SECTION --- */}
-        
+
         {/* QR Scanner Modal */}
         <AnimatePresence>
           {showQR && (
@@ -516,7 +513,7 @@ export default function StudentDashboard() {
               >
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-black text-white">Registry Auth</h3>
-                  <button onClick={() => setShowQR(false)} className="p-2 rounded-xl bg-white/5 text-gray-500 hover:text-white"><XCircle size={20}/></button>
+                  <button onClick={() => setShowQR(false)} className="p-2 rounded-xl bg-white/5 text-gray-500 hover:text-white"><XCircle size={20} /></button>
                 </div>
                 <div className="bg-black/50 rounded-[2rem] mb-6 overflow-hidden border border-white/5 h-[300px] relative">
                   <Scanner onScan={handleScanSuccess} components={{ audio: false, finder: true }} styles={{ container: { width: '100%', height: '100%' } }} />
@@ -546,8 +543,8 @@ export default function StudentDashboard() {
                       <div className="flex-1">
                         <div className="text-lg font-black text-white tracking-tight leading-none">{item.fullName}</div>
                         <div className="flex items-center gap-2 mt-2">
-                           <Flame size={14} className="text-orange-500" />
-                           <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{item.currentStreak} Day Streak</span>
+                          <Flame size={14} className="text-orange-500" />
+                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{item.currentStreak} Day Streak</span>
                         </div>
                       </div>
                       {index < 3 && <Award size={28} className={index === 0 ? 'text-orange-400' : index === 1 ? 'text-slate-300' : 'text-amber-500'} />}
@@ -569,7 +566,7 @@ export default function StudentDashboard() {
               >
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="text-2xl font-black text-white">Target</h3>
-                  <button onClick={() => setShowGoalModal(false)} className="p-2 rounded-xl bg-white/5 text-gray-500"><XCircle size={20}/></button>
+                  <button onClick={() => setShowGoalModal(false)} className="p-2 rounded-xl bg-white/5 text-gray-500"><XCircle size={20} /></button>
                 </div>
                 <div className="space-y-8">
                   <div className="grid grid-cols-4 gap-2">
@@ -607,27 +604,27 @@ export default function StudentDashboard() {
                 <form onSubmit={handleCreateLog} className="space-y-8 overflow-y-auto pr-2 custom-scrollbar pb-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Primary Node</label>
-                    <input type="text" placeholder="e.g., UPSC GS-II Synthesis" value={logFormData.subject} onChange={(e) => setLogFormData({...logFormData, subject: e.target.value})}
+                    <input type="text" placeholder="e.g., UPSC GS-II Synthesis" value={logFormData.subject} onChange={(e) => setLogFormData({ ...logFormData, subject: e.target.value })}
                       className="w-full bg-white/5 border border-white/5 rounded-3xl p-5 text-sm font-bold text-white focus:border-blue-500 outline-none transition-all placeholder:text-gray-700" required />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Core Synthesis</label>
-                    <textarea placeholder="List major breakthroughs..." value={logFormData.topicsCovered} onChange={(e) => setLogFormData({...logFormData, topicsCovered: e.target.value})}
+                    <textarea placeholder="List major breakthroughs..." value={logFormData.topicsCovered} onChange={(e) => setLogFormData({ ...logFormData, topicsCovered: e.target.value })}
                       className="w-full bg-white/5 border border-white/5 rounded-3xl p-6 text-sm font-medium text-white focus:border-blue-500 outline-none transition-all h-40 resize-none placeholder:text-gray-700" required />
                   </div>
                   <div className="flex gap-4">
-                     <div className="flex-1 space-y-2">
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Focus Time (H)</label>
-                        <input type="number" step="0.1" value={logFormData.hoursSpent} onChange={(e) => setLogFormData({...logFormData, hoursSpent: e.target.value})}
-                          className="w-full bg-white/5 border border-white/5 rounded-3xl p-5 text-sm font-black text-white focus:border-blue-500 outline-none" required />
-                     </div>
-                     <div className="flex-1 space-y-2">
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Sync Tier</label>
-                        <select value={logFormData.productivityRating} onChange={(e) => setLogFormData({...logFormData, productivityRating: e.target.value})}
-                          className="w-full bg-white/5 border border-white/5 rounded-3xl p-5 text-sm font-black text-white focus:border-blue-500 outline-none appearance-none">
-                            {[5, 4, 3, 2, 1].map(r => <option key={r} value={r} className="bg-zinc-900">{r}/5 Performance</option>)}
-                        </select>
-                     </div>
+                    <div className="flex-1 space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Focus Time (H)</label>
+                      <input type="number" step="0.1" value={logFormData.hoursSpent} onChange={(e) => setLogFormData({ ...logFormData, hoursSpent: e.target.value })}
+                        className="w-full bg-white/5 border border-white/5 rounded-3xl p-5 text-sm font-black text-white focus:border-blue-500 outline-none" required />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Sync Tier</label>
+                      <select value={logFormData.productivityRating} onChange={(e) => setLogFormData({ ...logFormData, productivityRating: e.target.value })}
+                        className="w-full bg-white/5 border border-white/5 rounded-3xl p-5 text-sm font-black text-white focus:border-blue-500 outline-none appearance-none">
+                        {[5, 4, 3, 2, 1].map(r => <option key={r} value={r} className="bg-zinc-900">{r}/5 Performance</option>)}
+                      </select>
+                    </div>
                   </div>
                   <button type="submit" className="w-full py-6 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[30px] shadow-2xl shadow-blue-500/30 active:scale-[0.98] transition-all mt-4"> Secure Node in History </button>
                 </form>
