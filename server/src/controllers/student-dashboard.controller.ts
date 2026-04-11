@@ -38,13 +38,14 @@ export const getTodayStatus = async (req: Request, res: Response) => {
 
 export const getHistory = async (req: Request, res: Response) => {
   try {
+    const limit = Number(req.query.limit) || 30;
     const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
     if (!student) return res.status(404).json({ success: false, message: "Not a student" });
 
     const history = await prisma.attendance.findMany({
       where: { studentId: student.id },
       orderBy: { date: 'desc' },
-      take: 30 // Get last 30 entries
+      take: Math.min(limit, 365) // Get up to 365 entries
     });
 
     // Map the output to calculate study hours per individual record

@@ -6,8 +6,8 @@ const dashboardApi = {
     return response.data;
   },
   
-  getStudentHistory: async () => {
-    const response = await API.get('/dashboard/student/history');
+  getStudentHistory: async (limit = 30) => {
+    const response = await API.get(`/dashboard/student/history?limit=${limit}`);
     return response.data;
   },
 

@@ -43,7 +43,7 @@ export const fetchHistory = createAsyncThunk(
   'studentDashboard/fetchHistory',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await dashboardApi.getStudentHistory();
+      const response = await dashboardApi.getStudentHistory(365);
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Failed to fetch history');
