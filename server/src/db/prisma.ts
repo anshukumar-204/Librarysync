@@ -7,10 +7,15 @@ import pg from "pg";
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
   keepAlive: true,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  max: 15
+  idleTimeoutMillis: 60000,      // Increased to 60s for cloud stability
+  connectionTimeoutMillis: 20000, // Increased to 20s for slow cloud cold starts
+  max: 10,                       // Reduced max connections for Supabase Free/Starter tiers
 });
+
+pool.on('error', (err) => {
+  console.error('[DATABASE] Unexpected error on idle client', err);
+});
+
 const adapter = new PrismaPg(pool);
 
 export const prisma = new PrismaClient({ adapter });

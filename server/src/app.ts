@@ -16,15 +16,32 @@ app.set("trust proxy", 1);
 
 // Security Middlewares
 app.use(helmet());
+// Enhanced CORS Configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:4173",
+      "https://librync-attendance.netlify.app",
+      "https://librync-attendance.vercel.app",
+      "https://cheerful-sfogliatella-8ee1fa.netlify.app"
+    ];
+
+console.log("[SECURITY] Allowed CORS Origins:", allowedOrigins);
+
 app.use(
   cors({
-    origin: process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(",")
-      : [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "https://cheerful-sfogliatella-8ee1fa.netlify.app"
-      ],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.some(o => origin.startsWith(o))) {
+        callback(null, true);
+      } else {
+        console.warn(`[SECURITY] Blocked CORS request from origin: ${origin}`);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );

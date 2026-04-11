@@ -16,14 +16,18 @@ const getTransporter = () => {
   const pass = process.env.SMTP_PASS;
 
   if (!user || !pass) {
-    console.error("[MAILER] Critical Error: SMTP credentials missing from environment.");
+    console.warn("[MAILER] Warning: SMTP credentials missing from environment. Mails will fail fast.");
+    return null;
   }
 
   transporter = nodemailer.createTransport({
     host,
     port,
-    secure: false,
+    secure: false, // TLS
     auth: { user, pass },
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 
   return transporter;
@@ -32,6 +36,10 @@ const getTransporter = () => {
 const sendMail = async (email: string, subject: string, html: string) => {
   try {
     const mailer = getTransporter();
+    if (!mailer) {
+        throw new Error("SMTP_NOT_CONFIGURED: Missing user or password in environment nodes");
+    }
+
     const fromAddress = process.env.SENDER_EMAIL || "no-reply@librync.io";
     
     await mailer.sendMail({
