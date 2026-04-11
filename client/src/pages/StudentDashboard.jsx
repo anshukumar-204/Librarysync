@@ -28,7 +28,8 @@ import {
   CheckSquare,
   PlusCircle,
   Timer,
-  Activity
+  Activity,
+  RefreshCcw
 } from 'lucide-react';
 import { logoutAdmin } from '../store/slices/authSlice';
 import { Scanner } from '@yudiel/react-qr-scanner';
@@ -50,6 +51,7 @@ import {
   fetchRoutine,
   createRoutineNode,
   deleteRoutineNode,
+  syncRoutine,
   fetchSubjectAnalytics,
   updatePomodoro,
   tickPomodoro,
@@ -250,6 +252,15 @@ export default function StudentDashboard() {
       toast.success("Preparation node added.");
     } catch (err) {
       toast.error("Failed to add task");
+    }
+  };
+
+  const handleSyncRoutine = async () => {
+    try {
+      await dispatch(syncRoutine()).unwrap();
+      toast.success("Rhythm pattern synchronized.");
+    } catch (err) {
+      toast.error(err || "Rhythm sync failed");
     }
   };
 
@@ -570,9 +581,21 @@ export default function StudentDashboard() {
             </div>
           </div>
         </div>
-        <span className="text-[10px] font-black text-gray-600 uppercase">
-          {tasks.filter(t => t.isCompleted).length}/{tasks.length} SYNCED
-        </span>
+        <div className="flex items-center gap-4">
+          {taskView === 'today' && (
+            <button 
+              onClick={handleSyncRoutine} 
+              disabled={actionLoading}
+              className={`p-2 rounded-xl bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600/20 transition-all ${actionLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              title="Sync Today's Rhythm"
+            >
+              <RefreshCcw size={16} className={actionLoading ? 'animate-spin' : ''} />
+            </button>
+          )}
+          <span className="text-[10px] font-black text-gray-600 uppercase">
+            {tasks.filter(t => t.isCompleted).length}/{tasks.length} SYNCED
+          </span>
+        </div>
       </div>
 
       <div className="space-y-3 mb-6 flex-1 overflow-y-auto max-h-[350px] pr-2 custom-scrollbar">
@@ -599,8 +622,10 @@ export default function StudentDashboard() {
                             <div className="w-[1px] bg-white/20 h-3 self-center" />
                             <input type="number" value={editingTask.editMin} onChange={(e) => setEditingTask({...editingTask, editMin: e.target.value})} className="w-12 bg-transparent text-[10px] font-bold text-white outline-none px-1 text-center" placeholder="M" title="Minutes" />
                           </div>
-                          <button onClick={handleUpdateTask} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest">SAVE</button>
-                          <button onClick={() => setEditingTask(null)} className="bg-white/10 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest">CANCEL</button>
+                          <button onClick={handleUpdateTask} disabled={actionLoading} className={`bg-blue-600 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest ${actionLoading ? 'opacity-50' : ''}`}>
+                            {actionLoading ? 'SAVE...' : 'SAVE'}
+                          </button>
+                          <button onClick={() => setEditingTask(null)} disabled={actionLoading} className="bg-white/10 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest">CANCEL</button>
                        </div>
                     </div>
                   ) : (
@@ -665,8 +690,8 @@ export default function StudentDashboard() {
               <option value="medium">Medium Priority</option>
               <option value="high">High Priority</option>
             </select>
-            <button type="submit" className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-500/10 transition-all active:scale-90">
-              <PlusCircle size={20} />
+            <button type="submit" disabled={actionLoading} className={`p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-500/10 transition-all active:scale-90 ${actionLoading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              {actionLoading ? <Loader2 size={20} className="animate-spin" /> : <PlusCircle size={20} />}
             </button>
           </div>
         </form>
@@ -928,8 +953,8 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            <button type="submit" className="w-full py-5 bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[2rem] shadow-xl hover:bg-indigo-500 transition-all active:scale-95 flex items-center justify-center gap-3">
-              <PlusCircle size={18} />
+            <button type="submit" disabled={actionLoading} className={`w-full py-5 bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[2rem] shadow-xl hover:bg-indigo-500 transition-all active:scale-95 flex items-center justify-center gap-3 ${actionLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+              {actionLoading ? <Loader2 size={18} className="animate-spin" /> : <PlusCircle size={18} />}
               Inject Rhythm Node
             </button>
           </form>
@@ -1154,7 +1179,9 @@ export default function StudentDashboard() {
                 <input type="number" value={tempGoal} onChange={(e) => setTempGoal(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 text-4xl font-black text-center text-white focus:border-blue-500 outline-none" />
                 <div className="flex gap-3">
                   <button onClick={() => setActiveModal(null)} className="flex-1 py-5 bg-white/5 text-gray-500 font-bold rounded-2xl">Abort</button>
-                  <button onClick={handleUpdateGoal} className="flex-2 px-8 py-5 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20">Sync Goal</button>
+                  <button onClick={handleUpdateGoal} disabled={actionLoading} className={`flex-2 px-8 py-5 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20 ${actionLoading ? 'opacity-50' : ''}`}>
+                    {actionLoading ? 'SYNCING...' : 'Sync Goal'}
+                  </button>
                 </div>
               </div>
             </motion.div>

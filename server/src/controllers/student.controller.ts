@@ -456,6 +456,66 @@ export const getWeeklyRoutine = async (req: Request, res: Response) => {
   }
 };
 
+export const syncRoutineTasks = async (req: Request, res: Response) => {
+  try {
+    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const todayDay = new Date().getDay(); // 0 (Sun) to 6 (Sat)
+    
+    // Get routine nodes for today
+    const routines = await prisma.weeklyRoutine.findMany({
+      where: { studentId: student.id, dayOfWeek: todayDay }
+    });
+
+    if (routines.length === 0) {
+      return res.json({ success: true, data: [], message: "No routine nodes found for today." });
+    }
+
+    // Get today's tasks to avoid duplicates
+    const today = new Date();
+    const startOfToday = new Date(today.setHours(0, 0, 0, 0));
+    const existingTasks = await prisma.task.findMany({
+      where: { 
+        studentId: student.id, 
+        createdAt: { gte: startOfToday }
+      }
+    });
+
+    // Filter routines that haven't been added yet (by title)
+    const newRoutines = routines.filter(r => 
+      !existingTasks.some(t => t.title === r.subject)
+    );
+
+    if (newRoutines.length === 0) {
+      return res.json({ success: true, data: [], message: "Registry already in sync with rhythm pattern." });
+    }
+
+    // Bulk create new tasks
+    const createdTasks = await Promise.all(newRoutines.map(r => 
+      prisma.task.create({
+        data: {
+          studentId: student.id,
+          title: r.subject,
+          estimatedMinutes: r.estimatedMinutes,
+          priority: r.priority
+        }
+      })
+    ));
+
+    return res.json({ 
+      success: true, 
+      data: createdTasks, 
+      message: `${createdTasks.length} nodes synchronized for today.` 
+    });
+
+  } catch (error) {
+    console.error("SYNC ROUTINE ERROR:", error);
+    return res.status(500).json({ success: false, message: "Rhythm sync failure" });
+  }
+};
+
+
 export const createRoutineNode = async (req: Request, res: Response) => {
   try {
     const { dayOfWeek, subject, estimatedMinutes, priority } = req.body;

@@ -67,6 +67,11 @@ export const deleteRoutineNode = async (id) => {
   return response.data;
 };
 
+export const syncRoutine = async () => {
+  const response = await API.post('/students/routine/sync');
+  return response.data;
+};
+
 // Preparation Tasks
 export const fetchTasks = async (date) => {
   const url = date ? `/students/tasks?date=${date}` : '/students/tasks';

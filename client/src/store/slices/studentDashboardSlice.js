@@ -196,6 +196,18 @@ export const createRoutineNode = createAsyncThunk(
   }
 );
 
+export const syncRoutine = createAsyncThunk(
+  'studentDashboard/syncRoutine',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.syncRoutine();
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Sync failed');
+    }
+  }
+);
+
 export const deleteRoutineNode = createAsyncThunk(
   'studentDashboard/deleteRoutineNode',
   async (id, { rejectWithValue }) => {
@@ -362,8 +374,18 @@ const studentDashboardSlice = createSlice({
       .addCase(createRoutineNode.fulfilled, (state, action) => {
         state.weeklyRoutine.push(action.payload);
       })
+      // Weekly Routine
+      .addCase(fetchRoutine.fulfilled, (state, action) => {
+        state.weeklyRoutine = action.payload;
+      })
       .addCase(deleteRoutineNode.fulfilled, (state, action) => {
         state.weeklyRoutine = state.weeklyRoutine.filter(r => r.id !== action.payload);
+      })
+      .addCase(syncRoutine.fulfilled, (state, action) => {
+        state.actionLoading = false;
+        if (action.payload.length > 0) {
+          state.tasks = [...action.payload, ...state.tasks];
+        }
       })
 
       // Analytics
@@ -395,18 +417,30 @@ const studentDashboardSlice = createSlice({
         state.actionLoading = false;
         state.error = action.payload;
       })
-      // Generate QR
-      .addCase(generateQR.pending, (state) => {
-        state.actionLoading = true;
-      })
-      .addCase(generateQR.fulfilled, (state, action) => {
-        state.actionLoading = false;
-        state.qrToken = action.payload;
-      })
       .addCase(generateQR.rejected, (state, action) => {
         state.actionLoading = false;
         state.error = action.payload;
-      });
+      })
+      
+      // Generic Action Loading Protections
+      .addCase(createTask.pending, (state) => { state.actionLoading = true; })
+      .addCase(createTask.fulfilled, (state) => { state.actionLoading = false; })
+      .addCase(createTask.rejected, (state) => { state.actionLoading = false; })
+      
+      .addCase(updateTask.pending, (state) => { state.actionLoading = true; })
+      .addCase(updateTask.fulfilled, (state) => { state.actionLoading = false; })
+      .addCase(updateTask.rejected, (state) => { state.actionLoading = false; })
+      
+      .addCase(createStudyLog.pending, (state) => { state.actionLoading = true; })
+      .addCase(createStudyLog.fulfilled, (state) => { state.actionLoading = false; })
+      .addCase(createStudyLog.rejected, (state) => { state.actionLoading = false; })
+      
+      .addCase(createRoutineNode.pending, (state) => { state.actionLoading = true; })
+      .addCase(createRoutineNode.fulfilled, (state) => { state.actionLoading = false; })
+      .addCase(createRoutineNode.rejected, (state) => { state.actionLoading = false; })
+      
+      .addCase(syncRoutine.pending, (state) => { state.actionLoading = true; })
+      .addCase(syncRoutine.rejected, (state) => { state.actionLoading = false; });
   }
 });
 

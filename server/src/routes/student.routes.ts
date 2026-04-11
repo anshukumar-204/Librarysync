@@ -16,6 +16,7 @@ import {
   getWeeklyRoutine,
   createRoutineNode,
   deleteRoutineNode,
+  syncRoutineTasks,
   getSubjectAnalytics
 } from "../controllers/student.controller.js";
 import { authenticate, requireVerified } from "../middlewares/auth.middleware.js";
@@ -37,6 +38,7 @@ router.delete("/logs/:id", deleteStudyLog);
 router.get("/routine", getWeeklyRoutine);
 router.post("/routine", createRoutineNode);
 router.delete("/routine/:id", deleteRoutineNode);
+router.post("/routine/sync", syncRoutineTasks);
 
 // Preparation Tasks
 router.get("/tasks", getTasks);
