@@ -27,7 +27,8 @@ import {
   RotateCcw,
   CheckSquare,
   PlusCircle,
-  Timer
+  Timer,
+  Activity
 } from 'lucide-react';
 import { logoutAdmin } from '../store/slices/authSlice';
 import { Scanner } from '@yudiel/react-qr-scanner';
@@ -45,8 +46,14 @@ import {
   createTask,
   toggleTaskStatus,
   deleteTask,
+  updateTask,
+  fetchRoutine,
+  createRoutineNode,
+  deleteRoutineNode,
+  fetchSubjectAnalytics,
   updatePomodoro,
-  tickPomodoro
+  tickPomodoro,
+  savePomodoroSettings
 } from '../store/slices/studentDashboardSlice';
 import {
   ResponsiveContainer,
