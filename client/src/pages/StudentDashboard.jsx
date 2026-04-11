@@ -19,7 +19,8 @@ import {
   PenLine,
   ChevronRight,
   TrendingUp,
-  Award
+  Award,
+  Settings
 } from 'lucide-react';
 import { logoutAdmin } from '../store/slices/authSlice';
 import { Scanner } from '@yudiel/react-qr-scanner';
