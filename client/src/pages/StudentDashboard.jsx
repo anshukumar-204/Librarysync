@@ -554,9 +554,10 @@ export default function StudentDashboard() {
               </div>
             </motion.div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* --- MODALS SECTION --- */}
+      {/* --- MODALS SECTION --- */}
 
         {/* QR Scanner Modal */}
         <AnimatePresence>
