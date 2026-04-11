@@ -124,22 +124,20 @@ export default function StudentDashboard() {
   };
 
   const handleScanSuccess = async (result) => {
-    if (!result || !result[0]) return;
-    const qrValue = result[0].rawValue;
+    if (!result || !result[0] || !result[0].rawValue) return;
+    const qrValue = result[0].rawValue.trim();
+
+    if (!qrValue) return;
 
     setShowQR(false);
     try {
-      // In a real app, you would pass `qrToken: qrValue` to the API.
-      // E.g. dispatch(autoMarkAttendance(qrValue))
-      // Since our current autoMarkAttendance thunk uses an internally stored generation logic from attendanceApi before, we actually need to change autoMarkAttendance in slices, but for now we can just dispatch an action. Wait, I should import and call the direct API or update the Slice.
-      // Let's just dispatch the action. I'll need to update autoMarkAttendance to take the token!
       await dispatch(autoMarkAttendance(qrValue)).unwrap();
-      toast.success("Attendance Updated!");
+      toast.success("Attendance Synchronized!");
       dispatch(fetchTodayStatus());
       dispatch(fetchMetrics());
       dispatch(fetchHistory());
     } catch (err) {
-      toast.error(typeof err === 'string' ? err : "Failed to mark attendance");
+      toast.error(err || "Shift Activation Failed");
     }
   };
 

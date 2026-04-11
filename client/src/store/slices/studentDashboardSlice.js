@@ -103,7 +103,8 @@ export const autoMarkAttendance = createAsyncThunk(
   'studentDashboard/markAttendance',
   async (scannedToken, { rejectWithValue }) => {
     try {
-      const response = await attendanceApi.markAttendance(scannedToken || 'LIBRARY_NODE_QR_MOCK');
+      if (!scannedToken) return rejectWithValue('Scan Token is required');
+      const response = await attendanceApi.markAttendance(scannedToken);
       return response;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Failed to mark attendance');
