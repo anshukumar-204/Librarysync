@@ -11,7 +11,8 @@ import {
   getTasks,
   createTask,
   toggleTaskStatus,
-  deleteTask
+  deleteTask,
+  updateTask
 } from "../controllers/student.controller.js";
 import { authenticate, requireVerified } from "../middlewares/auth.middleware.js";
 
@@ -31,6 +32,7 @@ router.delete("/logs/:id", deleteStudyLog);
 router.get("/tasks", getTasks);
 router.post("/tasks", createTask);
 router.put("/tasks/:id", toggleTaskStatus);
+router.patch("/tasks/:id", updateTask);
 router.delete("/tasks/:id", deleteTask);
 
 // Registry Management (Admin usually)

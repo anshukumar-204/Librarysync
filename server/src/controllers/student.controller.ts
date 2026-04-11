@@ -386,3 +386,31 @@ export const deleteTask = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: "Task deletion failure" });
   }
 };
+
+export const updateTask = async (req: Request, res: Response) => {
+  try {
+    const taskId = Number(req.params.id);
+    const { title, estimatedMinutes, priority } = req.body;
+    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+    
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!task || task.studentId !== student.id) {
+      return res.status(403).json({ success: false, message: "Unauthorized task access" });
+    }
+
+    const updatedTask = await prisma.task.update({
+      where: { id: taskId },
+      data: {
+        ...(title && { title }),
+        ...(estimatedMinutes !== undefined && { estimatedMinutes: estimatedMinutes ? parseInt(estimatedMinutes) : null }),
+        ...(priority && { priority })
+      }
+    });
+
+    return res.json({ success: true, data: updatedTask });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Task update failure" });
+  }
+};

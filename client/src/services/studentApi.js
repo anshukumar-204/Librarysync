@@ -63,6 +63,11 @@ export const toggleTaskStatus = async (id, isCompleted) => {
   return response.data;
 };
 
+export const updateTask = async (id, taskData) => {
+  const response = await API.patch(`/students/tasks/${id}`, taskData);
+  return response.data;
+};
+
 export const deleteTask = async (id) => {
   const response = await API.delete(`/students/tasks/${id}`);
   return response.data;

@@ -160,6 +160,18 @@ export const deleteTask = createAsyncThunk(
   }
 );
 
+export const updateTask = createAsyncThunk(
+  'studentDashboard/updateTask',
+  async ({ id, title, estimatedMinutes, priority }, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.updateTask(id, { title, estimatedMinutes, priority });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to update task');
+    }
+  }
+);
+
 export const autoMarkAttendance = createAsyncThunk(
   'studentDashboard/markAttendance',
   async (scannedToken, { rejectWithValue }) => {
@@ -187,14 +199,26 @@ const studentDashboardSlice = createSlice({
     error: null,
     actionLoading: false, 
     // Pomodoro State (Persistent across navigation)
-    pomodoro: {
-      mode: 'focus', // 'focus' | 'break'
-      focusDuration: 25,
-      breakDuration: 5,
-      timeLeft: 25 * 60,
-      isRunning: false,
-      sessionsCompleted: 0
-    }
+    pomodoro: (() => {
+      const saved = localStorage.getItem('pomodoro_settings');
+      const defaultSettings = {
+        mode: 'focus', // 'focus' | 'break'
+        focusDuration: 25,
+        breakDuration: 5,
+        timeLeft: 25 * 60,
+        isRunning: false,
+        sessionsCompleted: 0
+      };
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return { ...defaultSettings, ...parsed, isRunning: false, timeLeft: parsed.focusDuration * 60 };
+        } catch (e) {
+          return defaultSettings;
+        }
+      }
+      return defaultSettings;
+    })()
   },
   reducers: {
     clearError: (state) => {
@@ -207,6 +231,13 @@ const studentDashboardSlice = createSlice({
       if (state.pomodoro.isRunning && state.pomodoro.timeLeft > 0) {
         state.pomodoro.timeLeft -= 1;
       }
+    },
+    savePomodoroSettings: (state) => {
+      localStorage.setItem('pomodoro_settings', JSON.stringify({
+        focusDuration: state.pomodoro.focusDuration,
+        breakDuration: state.pomodoro.breakDuration,
+        mode: state.pomodoro.mode
+      }));
     }
   },
   extraReducers: (builder) => {
@@ -269,6 +300,10 @@ const studentDashboardSlice = createSlice({
       .addCase(deleteTask.fulfilled, (state, action) => {
         state.tasks = state.tasks.filter(t => t.id !== action.payload);
       })
+      .addCase(updateTask.fulfilled, (state, action) => {
+        const index = state.tasks.findIndex(t => t.id === action.payload.id);
+        if (index !== -1) state.tasks[index] = action.payload;
+      })
 
       // Mark Attendance
       .addCase(autoMarkAttendance.pending, (state) => {
@@ -309,5 +344,5 @@ const studentDashboardSlice = createSlice({
   }
 });
 
-export const { clearError, updatePomodoro, tickPomodoro } = studentDashboardSlice.actions;
+export const { clearError, updatePomodoro, tickPomodoro, savePomodoroSettings } = studentDashboardSlice.actions;
 export default studentDashboardSlice.reducer;

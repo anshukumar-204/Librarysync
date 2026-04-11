@@ -92,6 +92,10 @@ export default function StudentDashboard() {
   const [newTaskPriority, setNewTaskPriority] = React.useState('medium');
   const [taskView, setTaskView] = React.useState('today'); // 'today' | 'archived'
   const [showPomodoroSettings, setShowPomodoroSettings] = React.useState(false);
+  const [editingTask, setEditingTask] = React.useState(null);
+  const [activeTaskTimer, setActiveTaskTimer] = React.useState(null); // { id, timeLeft, isRunning }
+  const [isAlarmActive, setIsAlarmActive] = React.useState(false);
+  const vibrationInterval = React.useRef(null);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -112,11 +116,58 @@ export default function StudentDashboard() {
       interval = setInterval(() => {
         dispatch(tickPomodoro());
       }, 1000);
-    } else if (pomodoro.timeLeft === 0) {
-      handlePomodoroComplete();
+    } else if (pomodoro.timeLeft === 0 && pomodoro.isRunning) {
+      handleTimerComplete('Focus Terminal');
     }
     return () => clearInterval(interval);
   }, [pomodoro.isRunning, pomodoro.timeLeft, dispatch]);
+
+  // Task Timer Ticker
+  useEffect(() => {
+    let interval;
+    if (activeTaskTimer?.isRunning && activeTaskTimer.timeLeft > 0) {
+      interval = setInterval(() => {
+        setActiveTaskTimer(prev => ({ ...prev, timeLeft: prev.timeLeft - 1 }));
+      }, 1000);
+    } else if (activeTaskTimer?.timeLeft === 0 && activeTaskTimer.isRunning) {
+      handleTimerComplete(`Task: ${tasks.find(t => t.id === activeTaskTimer.id)?.title || 'Task'}`);
+    }
+    return () => clearInterval(interval);
+  }, [activeTaskTimer?.isRunning, activeTaskTimer?.timeLeft]);
+
+  const handleTimerComplete = (source) => {
+    if (pomodoro.isRunning) {
+      handlePomodoroComplete();
+    }
+    triggerAlarm(source);
+  };
+
+  const triggerAlarm = (source) => {
+    setIsAlarmActive(true);
+    toast.error(`TERMINAL ALERT: ${source} Completed!`, { duration: 6000 });
+    
+    // Recursive vibration for persistence
+    const startVibration = () => {
+      if (navigator.vibrate) {
+        navigator.vibrate([500, 200, 500, 200, 500]);
+      }
+    };
+
+    startVibration();
+    vibrationInterval.current = setInterval(startVibration, 2000);
+  };
+
+  const stopAlarm = () => {
+    setIsAlarmActive(false);
+    if (vibrationInterval.current) {
+      clearInterval(vibrationInterval.current);
+      vibrationInterval.current = null;
+    }
+    if (navigator.vibrate) {
+      navigator.vibrate(0); // Stop vibration
+    }
+    toast.success("Rhythms stabilized.");
+  };
 
   const handlePomodoroComplete = () => {
     const isFocus = pomodoro.mode === 'focus';
@@ -150,6 +201,7 @@ export default function StudentDashboard() {
       timeLeft: pomodoro.mode === 'focus' ? focus * 60 : breakTime * 60,
       isRunning: false
     }));
+    dispatch(savePomodoroSettings());
     setShowPomodoroSettings(false);
     toast.success("Terminal rhythms updated.");
   };
@@ -203,9 +255,38 @@ export default function StudentDashboard() {
     if (!window.confirm("Purge this task node?")) return;
     try {
       await dispatch(deleteTask(id)).unwrap();
+      if (activeTaskTimer?.id === id) setActiveTaskTimer(null);
       toast.success("Node purged.");
     } catch (err) {
       toast.error("Purge failed");
+    }
+  };
+
+  const handleEditTask = (task) => {
+    setEditingTask({ ...task });
+  };
+
+  const handleUpdateTask = async (e) => {
+    e.preventDefault();
+    if (!editingTask.title.trim()) return;
+    try {
+      await dispatch(updateTask(editingTask)).unwrap();
+      setEditingTask(null);
+      toast.success("Node updated.");
+    } catch (err) {
+      toast.error("Update failed");
+    }
+  };
+
+  const handleStartTaskTimer = (task) => {
+    if (activeTaskTimer?.id === task.id) {
+      setActiveTaskTimer(prev => ({ ...prev, isRunning: !prev.isRunning }));
+    } else {
+      setActiveTaskTimer({
+        id: task.id,
+        timeLeft: (task.estimatedMinutes || 25) * 60,
+        isRunning: true
+      });
     }
   };
 
@@ -350,9 +431,22 @@ export default function StudentDashboard() {
   };
 
   const formatTimer = (seconds) => {
-    const mins = Math.floor(seconds / 60);
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
+    
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatDuration = (minutes) => {
+    if (!minutes) return '0m';
+    const hrs = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m`;
+    return `${mins}m`;
   };
 
   // --- VIEW RENDERING FUNCTIONS ---
@@ -425,7 +519,7 @@ export default function StudentDashboard() {
         </span>
       </div>
 
-      <div className="space-y-3 mb-6 flex-1 overflow-y-auto max-h-[250px] pr-2 custom-scrollbar">
+      <div className="space-y-3 mb-6 flex-1 overflow-y-auto max-h-[350px] pr-2 custom-scrollbar">
         {tasks.length === 0 && (
           <div className="text-center py-8 opacity-20">
             <CheckSquare size={40} className="mx-auto mb-2" />
@@ -434,17 +528,64 @@ export default function StudentDashboard() {
         )}
         <AnimatePresence>
           {tasks.map((task) => (
-            <motion.div key={task.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className={`flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border group transition-all ${task.priority === 'high' ? 'border-orange-500/20' : 'border-white/5'}`}>
-              <button onClick={() => handleToggleTask(task.id, task.isCompleted)} className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.isCompleted ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-white/10 hover:border-indigo-500/50'}`}>
-                {task.isCompleted && <CheckSquare size={14} />}
-              </button>
-              <div className="flex-1">
-                <span className={`text-sm font-bold block transition-all ${task.isCompleted ? 'text-gray-600 line-through' : 'text-gray-300'}`}>{task.title}</span>
-                {task.estimatedMinutes && <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{task.estimatedMinutes}m node</span>}
+            <motion.div key={task.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className={`flex flex-col gap-3 p-4 rounded-2xl bg-white/[0.02] border group transition-all ${task.priority === 'high' ? 'border-orange-500/20' : 'border-white/5'}`}>
+              <div className="flex items-center gap-4">
+                <button onClick={() => handleToggleTask(task.id, task.isCompleted)} className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.isCompleted ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-white/10 hover:border-indigo-500/50'}`}>
+                  {task.isCompleted && <CheckSquare size={14} />}
+                </button>
+                <div className="flex-1">
+                  {editingTask?.id === task.id ? (
+                    <div className="space-y-2">
+                       <input type="text" value={editingTask.title} onChange={(e) => setEditingTask({...editingTask, title: e.target.value})} className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-xs text-white" />
+                       <div className="flex gap-2">
+                          <input type="number" value={editingTask.estimatedMinutes} onChange={(e) => setEditingTask({...editingTask, estimatedMinutes: e.target.value})} className="w-20 bg-white/10 border border-white/20 rounded-lg p-2 text-xs text-white" />
+                          <button onClick={handleUpdateTask} className="bg-blue-600 text-white px-3 py-1 rounded-lg text-[10px] font-bold">SAVE</button>
+                          <button onClick={() => setEditingTask(null)} className="bg-white/10 text-white px-3 py-1 rounded-lg text-[10px] font-bold">CANCEL</button>
+                       </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span className={`text-sm font-bold block transition-all ${task.isCompleted ? 'text-gray-600 line-through' : 'text-gray-300'}`}>{task.title}</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{formatDuration(task.estimatedMinutes)} node</span>
+                        <div className={`w-1 h-1 rounded-full ${task.priority === 'high' ? 'bg-orange-500' : task.priority === 'medium' ? 'bg-blue-500' : 'bg-gray-600'}`} />
+                      </div>
+                    </>
+                  )}
+                </div>
+                {!editingTask && (
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => handleEditTask(task)} className="p-2 text-gray-500 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all">
+                      <PenLine size={14} />
+                    </button>
+                    <button onClick={() => handleDeleteTask(task.id)} className="p-2 text-red-500/20 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
-              <button onClick={() => handleDeleteTask(task.id)} className="p-2 text-red-500/20 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                <Trash2 size={16} />
-              </button>
+              
+              {/* Task Timer Integration */}
+              {!task.isCompleted && taskView === 'today' && !editingTask && (
+                <div className={`mt-2 p-3 rounded-xl flex items-center justify-between transition-all ${activeTaskTimer?.id === task.id ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-black/20'}`}>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => handleStartTaskTimer(task)} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${activeTaskTimer?.id === task.id && activeTaskTimer.isRunning ? 'bg-orange-500 text-white' : 'bg-indigo-600 text-white'}`}>
+                      {activeTaskTimer?.id === task.id && activeTaskTimer.isRunning ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
+                    </button>
+                    <div className="flex flex-col">
+                      <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Active Timer</span>
+                      <span className={`text-xs font-mono font-bold ${activeTaskTimer?.id === task.id && activeTaskTimer.isRunning ? 'text-orange-500' : 'text-gray-400'}`}>
+                        {activeTaskTimer?.id === task.id ? formatTimer(activeTaskTimer.timeLeft) : formatTimer((task.estimatedMinutes || 0) * 60)}
+                      </span>
+                    </div>
+                  </div>
+                  {activeTaskTimer?.id === task.id && (
+                    <button onClick={() => setActiveTaskTimer(null)} className="p-2 text-gray-600 hover:text-white">
+                      <RotateCcw size={12} />
+                    </button>
+                  )}
+                </div>
+              )}
             </motion.div>
           ))}
         </AnimatePresence>
@@ -789,6 +930,26 @@ export default function StudentDashboard() {
           {activeView === 'history' && renderHistory()}
         </AnimatePresence>
       </main>
+
+      {/* Alarm Notification Overlay */}
+      <AnimatePresence>
+        {isAlarmActive && (
+          <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[300] w-[90%] max-w-sm">
+            <div className="bg-red-600 rounded-[2rem] p-6 shadow-[0_0_50px_rgba(239,68,68,0.4)] flex flex-col items-center gap-4 border border-red-500/50 animate-bounce">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-white">
+                <Timer size={32} className="animate-spin" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-xl font-black text-white italic tracking-tighter uppercase">Goal Reached!</h3>
+                <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Terminal Rhythms Completed</p>
+              </div>
+              <button onClick={stopAlarm} className="w-full py-4 bg-white text-red-600 font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl active:scale-95 transition-all">
+                Deactivate Alert
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* --- HOTSTAR STYLE NAVIGATION BAR --- */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[200] w-full max-w-md px-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-4">
