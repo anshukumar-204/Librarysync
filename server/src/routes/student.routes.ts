@@ -11,9 +11,14 @@ import {
   getTasks,
   createTask,
   toggleTaskStatus,
+  updateTask,
   deleteTask,
   updateStudentProfileSelf,
-  updateDailyGoal,
+  requestProfileUpdateOtp,
+  getSubjectAnalytics,
+  getWeeklyRoutine,
+  createRoutineNode,
+  deleteRoutineNode,
   syncRoutineTasks
 } from "../controllers/student.controller.js";
 import { checkAvailability } from "../controllers/student-validation.controller.js";
