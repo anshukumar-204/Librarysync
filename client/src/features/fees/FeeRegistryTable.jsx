@@ -106,6 +106,11 @@ export default function FeeRegistryTable({ registry, onSelectStudent, searchQuer
                 </div>
 
                 <div className="flex flex-col items-end gap-2">
+                   <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1 italic">
+                     {item.lastPaymentDetails 
+                       ? `Last: ₹${item.lastPaymentDetails.amount} for ${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][item.lastPaymentDetails.month-1]} on ${new Date(item.lastPaymentDetails.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`
+                       : 'No payments recorded'}
+                   </div>
                    {item.isDefaulter ? (
                      <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-lg animate-pulse">
                         <AlertCircle size={10} className="text-rose-500" />

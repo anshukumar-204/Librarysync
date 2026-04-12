@@ -1170,26 +1170,26 @@ export default function StudentDashboard() {
     const currentCycle = history?.[0]; // Latest cycle
 
     return (
-      <div className="glass-card p-6 rounded-[2.5rem] bg-indigo-500/5 border border-indigo-500/10 relative overflow-hidden group shadow-2xl">
+      <div className="glass-card p-8 sm:p-10 rounded-[3rem] bg-indigo-500/5 border border-indigo-500/10 relative overflow-hidden group shadow-2xl">
         <div className="flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5">
             <div className={cn(
-              "w-12 h-12 rounded-2xl flex items-center justify-center border shadow-lg transition-transform group-hover:scale-110",
-              currentCycle?.isOverdue ? "bg-rose-500/10 border-rose-500/20 text-rose-500" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+              "w-16 h-16 rounded-[2rem] flex items-center justify-center border shadow-xl transition-transform group-hover:scale-110",
+              currentCycle?.isOverdue ? "bg-rose-500/20 border-rose-500/30 text-rose-500" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
             )}>
-              <CreditCard size={24} />
+              <CreditCard size={32} />
             </div>
             <div>
-              <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Financial Health</p>
-              <h3 className="text-xl font-black text-white italic tracking-tighter uppercase leading-none">
-                {currentCycle?.isOverdue ? 'Action Required' : 'Subscription Active'}
+              <p className="text-[11px] font-black text-gray-500 uppercase tracking-[0.4em] mb-2 leading-none">Subscription Status</p>
+              <h3 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">
+                {currentCycle?.isOverdue ? 'Action Required' : 'Elite Access Active'}
               </h3>
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-right flex flex-col items-end gap-2">
             <span className={cn(
-              "px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border",
-              currentCycle?.isOverdue ? "bg-rose-500/20 text-rose-400 border-rose-500/30 animate-pulse" : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+              "px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] border",
+              currentCycle?.isOverdue ? "bg-rose-500 text-white border-rose-500/30 animate-pulse" : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
             )}>
               {currentCycle?.status}
             </span>
@@ -1197,16 +1197,26 @@ export default function StudentDashboard() {
         </div>
 
         {currentCycle?.isOverdue && (
-          <div className="mt-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-4">
-            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-[10px] font-bold text-white uppercase tracking-tight">Fee Balance Pending</p>
-              <p className="text-[9px] text-rose-400 font-medium leading-relaxed mt-1 tracking-wide">
-                Your monthly cycle completed on <span className="font-black">{new Date(currentCycle.cycleDate).toLocaleDateString()}</span>. 
-                Remaining balance: <span className="font-black">₹{currentCycle.balance}</span>.
-              </p>
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-8 p-6 rounded-[2.5rem] bg-rose-500/10 border border-rose-500/20 flex flex-col sm:flex-row items-center sm:items-start gap-5"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/20 flex items-center justify-center shrink-0">
+               <AlertCircle className="w-7 h-7 text-rose-500" />
             </div>
-          </div>
+            <div className="text-center sm:text-left">
+              <p className="text-sm font-black text-white uppercase tracking-widest">Fee Balance Pending</p>
+              <p className="text-xs text-rose-300 font-bold leading-relaxed mt-1.5 tracking-wide">
+                Your monthly billing cycle completed on <span className="text-white font-black underline decoration-rose-500/50 underline-offset-4">{new Date(currentCycle.cycleDate).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span>. 
+                Remaining ledger balance: <span className="text-white font-black text-lg ml-1">₹{currentCycle.balance}</span>.
+              </p>
+              <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-rose-500/70 uppercase tracking-widest">
+                <Shield size={12} />
+                Visit admin office to clear dues
+              </div>
+            </div>
+          </motion.div>
         )}
 
         <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">

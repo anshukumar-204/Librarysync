@@ -129,9 +129,11 @@ export default function FeeManagementPage() {
                        <span className="text-sm font-black text-white italic">₹{selectedStudent.monthlyFee}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                       <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Last Activity</span>
-                       <span className="text-[10px] font-black text-zinc-400 capitalize">
-                         {selectedStudent.lastPayment ? new Date(selectedStudent.lastPayment).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No History'}
+                       <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Last Transaction</span>
+                       <span className="text-[10px] font-black text-blue-400 italic text-right max-w-[150px]">
+                         {selectedStudent.lastPaymentDetails 
+                           ? `₹${selectedStudent.lastPaymentDetails.amount} for ${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][selectedStudent.lastPaymentDetails.month-1]} on ${new Date(selectedStudent.lastPaymentDetails.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`
+                           : 'None'}
                        </span>
                     </div>
                  </div>

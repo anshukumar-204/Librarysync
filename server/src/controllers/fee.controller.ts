@@ -79,6 +79,8 @@ export const getStudentFeeSummary = async (req: Request, res: Response) => {
     }
 
     const historicalCycles = calculateDetailedSummary(student, student.feePayments, student.monthlyFee, new Date());
+    const sortedPayments = [...student.feePayments].sort((a,b) => b.paymentDate.getTime() - a.paymentDate.getTime());
+    const lastP = sortedPayments[0];
 
     return res.json({
       success: true,
@@ -93,7 +95,13 @@ export const getStudentFeeSummary = async (req: Request, res: Response) => {
           totalCycles: historicalCycles.length,
           totalPaid: student.feePayments.reduce((sum, p) => sum + p.amount, 0),
           totalPending: historicalCycles.reduce((sum, c) => sum + c.balance, 0),
-          isDefaulter: historicalCycles.some(c => c.isOverdue)
+          isDefaulter: historicalCycles.some(c => c.isOverdue),
+          lastPaymentDetails: lastP ? {
+            amount: lastP.amount,
+            date: lastP.paymentDate,
+            month: lastP.month,
+            year: lastP.year
+          } : null
         },
         history: historicalCycles.reverse() 
       }
@@ -126,6 +134,9 @@ export const getFeesRegistry = async (req: Request, res: Response) => {
       const totalPaid = student.feePayments.reduce((sum, p) => sum + p.amount, 0);
       const totalPending = cycles.reduce((sum, c) => sum + c.balance, 0);
       
+      const sortedPayments = [...student.feePayments].sort((a,b) => b.paymentDate.getTime() - a.paymentDate.getTime());
+      const lastP = sortedPayments[0];
+
       return {
         id: student.id,
         fullName: student.fullName,
@@ -135,7 +146,12 @@ export const getFeesRegistry = async (req: Request, res: Response) => {
         totalPaid,
         totalPending,
         isDefaulter: cycles.some(c => c.isOverdue),
-        lastPayment: student.feePayments.length > 0 ? student.feePayments.sort((a,b) => b.paymentDate.getTime() - a.paymentDate.getTime())[0].paymentDate : null
+        lastPaymentDetails: lastP ? {
+          amount: lastP.amount,
+          date: lastP.paymentDate,
+          month: lastP.month,
+          year: lastP.year
+        } : null
       };
     });
 
