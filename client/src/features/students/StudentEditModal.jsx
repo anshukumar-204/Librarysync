@@ -437,18 +437,49 @@ const Field = ({ label, error, isTextArea, isLarge, ...props }) => (
           className={`w-full bg-zinc-900 border ${error ? 'border-rose-500' : 'border-white/5 focus:border-emerald-500/30'} ${isLarge ? 'p-4 text-base tracking-tight' : 'p-4.5 text-sm'} rounded-2xl font-bold text-white outline-none transition-all placeholder:text-zinc-800 shadow-inner`}
         />
       )}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-        {props.status?.loading && <Loader2 size={16} className="text-blue-500 animate-spin" />}
-        {!props.status?.loading && props.status?.available === false && <AlertCircle size={16} className="text-rose-500" />}
-        {!props.status?.loading && props.status?.available === true && props.value && props.value.length > 5 && <Check size={16} className="text-emerald-500" />}
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+        {props.status?.loading && (
+          <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+            <Loader2 size={12} className="text-blue-500 animate-spin" />
+            <span className="text-[8px] font-black text-blue-400 uppercase tracking-tighter">Verifying</span>
+          </div>
+        )}
+        
+        {!props.status?.loading && props.status?.available === false && (
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-lg">
+            <AlertCircle size={12} className="text-rose-500" />
+            <span className="text-[8px] font-black text-rose-400 uppercase tracking-tighter">Failed</span>
+          </div>
+        )}
+
+        {!props.status?.loading && props.status?.available === true && props.value && props.value.length > 5 && (
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg animate-in zoom-in-50 duration-300">
+            <Check size={12} className="text-emerald-500" strokeWidth={3} />
+            <span className="text-[8px] font-black text-emerald-400 uppercase tracking-tighter">Verified</span>
+          </div>
+        )}
+
+        {/* Manual Verify Action if not checked */}
+        {props.status && !props.status.loading && !props.status.message && props.value && props.value.length > 5 && (
+          <button 
+            type="button"
+            className="text-[8px] font-black uppercase tracking-tighter px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all text-zinc-400"
+          >
+            Check Now
+          </button>
+        )}
+
         {error && !props.status && <AlertCircle className="text-rose-500" size={16} />}
       </div>
     </div>
     {error && <p className="text-[9px] text-rose-500 font-bold ml-1 uppercase">{error}</p>}
     {!error && props.status?.available && props.status?.message && (
-      <p className="text-[9px] text-emerald-500 font-black ml-1 uppercase tracking-wider animate-in fade-in slide-in-from-left-2 duration-500">
-        {props.status.message}
-      </p>
+      <div className="mt-2 ml-1 flex items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-700">
+        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+        <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+          {props.status.message}
+        </p>
+      </div>
     )}
   </div>
 );
