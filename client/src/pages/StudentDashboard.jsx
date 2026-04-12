@@ -29,7 +29,8 @@ import {
   PlusCircle,
   Timer,
   Activity,
-  RefreshCcw
+  RefreshCcw,
+  Zap
 } from 'lucide-react';
 import { logoutAdmin } from '../store/slices/authSlice';
 import { Scanner } from '@yudiel/react-qr-scanner';
@@ -330,10 +331,9 @@ export default function StudentDashboard() {
     if (!window.confirm("Delete this task?")) return;
     try {
       if (activeTaskTimer) {
-      handleTimerComplete('Study Session');
-      dispatch(markTaskStatus(activeTaskTimer)).unwrap();
-      setActiveTaskTimer(null);
-    }
+        handleTimerComplete('Study Session');
+        setActiveTaskTimer(null);
+      }
       await dispatch(deleteTask(id)).unwrap();
       toast.success("Task removed.");
     } catch (err) {
@@ -738,6 +738,7 @@ export default function StudentDashboard() {
           </div>
         </form>
       )}
+      </div>
     </div>
   );
 
@@ -1121,11 +1122,13 @@ export default function StudentDashboard() {
                     <p className="text-[10px] text-gray-500 font-bold text-center mt-4 italic">"Study records are verified and finalized."</p>
                   </div>
                 </div>
+                </div>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center p-20 glass-card rounded-[3rem] border border-dashed border-white/10 opacity-30 h-full">
                 <History size={48} className="mb-4" />
-                <p className="text-xs font-black uppercase tracking-widest text-center">Select a date to unlock registry detail</p>
+                <p className="text-xs font-black uppercase tracking-widest text-center">Select a date to view session details</p>
               </div>
             )}
           </div>
@@ -1196,31 +1199,31 @@ export default function StudentDashboard() {
 
       {/* --- HOTSTAR STYLE NAVIGATION BAR --- */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[200] w-full max-w-md px-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-4">
-        <div className="bg-[#0B0D17]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex items-center justify-around shadow-[0_25px_50px_-12px_rgba(59,130,246,0.3)]">
-          <button onClick={() => setActiveView('hub')} className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'hub' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
+        <div className="bg-[#0B0D17]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex items-center justify-between shadow-[0_25px_50px_-12px_rgba(59,130,246,0.3)]">
+          <button onClick={() => setActiveView('hub')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'hub' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
             <LayoutGrid size={24} />
-            <span className="text-[9px] font-black uppercase tracking-[0.2em]">Hub</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Hub</span>
           </button>
 
-          <button onClick={() => setActiveView('rank')} className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'rank' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
+          <button onClick={() => setActiveView('rank')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'rank' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
             <Trophy size={24} />
-            <span className="text-[9px] font-black uppercase tracking-[0.2em]">Rank</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Rank</span>
           </button>
 
-          <div className="relative">
-            <button onClick={() => setActiveModal('qr')} className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-2xl transition-all active:scale-90 -mt-10 border-4 border-[#0B0D17] ${activeModal === 'qr' ? 'bg-indigo-600 scale-110' : todayStatus?.status === 'In Library' ? 'bg-emerald-600 shadow-emerald-500/20' : 'bg-blue-600 shadow-blue-500/20'}`}>
-              <Camera size={30} />
+          <div className="flex-1 flex justify-center h-10 items-end">
+            <button onClick={() => setActiveModal('qr')} className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-2xl transition-all active:scale-90 -mb-2 border-4 border-[#0B0D17] flex-shrink-0 ${activeModal === 'qr' ? 'bg-indigo-600 scale-110' : todayStatus?.status === 'In Library' ? 'bg-emerald-600 shadow-emerald-500/20' : 'bg-blue-600 shadow-blue-500/20'}`}>
+              <Camera size={28} />
             </button>
           </div>
 
-          <button onClick={() => setActiveView('routine')} className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'routine' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
+          <button onClick={() => setActiveView('routine')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'routine' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
             <Calendar size={24} />
-            <span className="text-[9px] font-black uppercase tracking-[0.2em]">Routine</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Routine</span>
           </button>
 
-          <button onClick={() => setActiveView('history')} className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'history' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
+          <button onClick={() => setActiveView('history')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'history' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
             <History size={24} />
-            <span className="text-[9px] font-black uppercase tracking-[0.2em]">Vault</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Vault</span>
           </button>
         </div>
       </div>
