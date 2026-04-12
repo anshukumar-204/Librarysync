@@ -1260,12 +1260,21 @@ export default function StudentDashboard() {
           {/* Sidebar: Calendar & Recent Sessions */}
           <div className="md:col-span-1 space-y-8">
             <div className="space-y-4 mb-6 px-2">
-              <div className="relative">
+              <div className="relative group">
                 <input 
                   type="date" 
+                  value={selectedHistoryDate ? selectedHistoryDate.split('T')[0] : ''}
                   onChange={(e) => handleSelectHistoryDate(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-[10px] font-black uppercase text-gray-400 focus:border-emerald-500 outline-none transition-all"
+                  className="w-full h-full absolute inset-0 opacity-0 z-20 cursor-pointer"
                 />
+                <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between text-[10px] font-black uppercase text-white group-hover:border-emerald-500/50 transition-all">
+                   <span className={selectedHistoryDate ? 'text-white' : 'text-gray-500'}>
+                     {selectedHistoryDate 
+                       ? new Date(selectedHistoryDate).toLocaleDateString('en-GB').replace(/\//g, '-') 
+                       : 'DD-MM-YYYY'}
+                   </span>
+                   <Calendar size={14} className="text-emerald-500" />
+                </div>
               </div>
             </div>
 
