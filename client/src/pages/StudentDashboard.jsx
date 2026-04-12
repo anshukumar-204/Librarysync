@@ -445,6 +445,40 @@ export default function StudentDashboard() {
     }
   };
 
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleRequestOtp = async () => {
+    setOtpRequestPending(true);
+    try {
+      await dispatch(requestProfileOtp()).unwrap();
+      toast.success('A verification code has been sent to your email.');
+      setActiveModal('profile_otp');
+    } catch (err) {
+      const errorMsg = typeof err === 'string' ? err : (err?.message || 'Failed to send verification code');
+      toast.error(errorMsg);
+    } finally {
+      setOtpRequestPending(false);
+    }
+  };
+
+  const handleVerifyAndUpdate = async () => {
+    if (!otpValue) return toast.error('Please enter the verification code');
+    try {
+      await dispatch(updateProfileSelf({ ...profileFormData, otp: otpValue })).unwrap();
+      toast.success('Your profile has been updated successfully');
+      setActiveModal(null);
+      setOtpValue('');
+      dispatch(fetchMetrics()); // Refresh data
+      setIsProfileSynced(false); // Reforce sync on next metrics load
+    } catch (err) {
+      const errorMsg = typeof err === 'string' ? err : (err?.message || 'Failed to update profile');
+      toast.error(errorMsg);
+    }
+  };
+
   const handleManualJournalSubmit = async (e) => {
     e.preventDefault();
     if (actionLoading) return;
@@ -705,40 +739,6 @@ export default function StudentDashboard() {
 
   const renderProfileSettings = () => {
     const student = metrics?.student || {};
-
-    const handleProfileChange = (e) => {
-      const { name, value } = e.target;
-      setProfileFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleRequestOtp = async () => {
-      setOtpRequestPending(true);
-      try {
-        await dispatch(requestProfileOtp()).unwrap();
-        toast.success('A verification code has been sent to your email.');
-        setActiveModal('profile_otp');
-      } catch (err) {
-        const errorMsg = typeof err === 'string' ? err : (err?.message || 'Failed to send verification code');
-        toast.error(errorMsg);
-      } finally {
-        setOtpRequestPending(false);
-      }
-    };
-
-    const handleVerifyAndUpdate = async () => {
-      if (!otpValue) return toast.error('Please enter the verification code');
-      try {
-        await dispatch(updateProfileSelf({ ...profileFormData, otp: otpValue })).unwrap();
-        toast.success('Your profile has been updated successfully');
-        setActiveModal(null);
-        setOtpValue('');
-        dispatch(fetchMetrics()); // Refresh data
-        setIsProfileSynced(false); // Reforce sync on next metrics load
-      } catch (err) {
-        const errorMsg = typeof err === 'string' ? err : (err?.message || 'Failed to update profile');
-        toast.error(errorMsg);
-      }
-    };
 
     return (
       <div className="space-y-10 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-2xl mx-auto">
@@ -1660,9 +1660,9 @@ export default function StudentDashboard() {
               <div className="flex gap-4">
                 <button onClick={() => setActiveModal(null)} className="flex-1 py-5 bg-white/5 text-zinc-500 font-bold rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancel</button>
                 <button
-                  onClick={typeof handleVerifyAndUpdate === 'undefined' ? () => { } : handleVerifyAndUpdate}
+                  onClick={handleVerifyAndUpdate}
                   disabled={actionLoading}
-                  className="flex-2 px-10 py-5 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/20 text-[10px] uppercase tracking-[0.2em] transition-all disabled:opacity-50"
+                  className="flex-2 px-10 py-5 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/20 text-[10px] uppercase tracking-[0.2em] transition-all disabled:opacity-50 hover:bg-emerald-500 active:scale-95"
                 >
                   {actionLoading ? 'SYNCING...' : 'Verify & Update'}
                 </button>
