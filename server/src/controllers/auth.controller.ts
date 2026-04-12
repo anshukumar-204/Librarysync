@@ -2,60 +2,11 @@ import type { Request, Response } from "express";
 import { prisma } from "../db/prisma.js";
 import { generateSecureOTP, hashPassword, verifyPassword } from "../utils/security.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
-import nodemailer from "nodemailer";
-
-// Brevo API Logic (Bypasses SMTP blocks on Render via HTTP/443)
-const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
-
-const sendMail = async (email: string, subject: string, html: string) => {
-  const apiKey = process.env.SMTP_PASS;
-  const fromAddress = process.env.SENDER_EMAIL || "no-reply@librync.io";
-
-  if (!apiKey) {
-    console.error("[MAILER] Critical Error: SMTP_PASS (API Key) missing.");
-    return { success: false, error: { message: "API Key missing", code: "MISSING_KEY" } };
-  }
-
-  try {
-    const response = await fetch(BREVO_API_URL, {
-      method: "POST",
-      headers: {
-        "accept": "application/json",
-        "api-key": apiKey,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        sender: { name: "Librync Hub", email: fromAddress },
-        to: [{ email }],
-        subject,
-        htmlContent: html
-      })
-    });
-
-    const data: any = await response.json();
-
-    if (!response.ok) {
-      console.error(`[MAILER] Brevo API Error: ${data.message || response.statusText}`);
-      return { 
-        success: false, 
-        error: { 
-          message: data.message || "Brevo API Dispatch Failed", 
-          code: data.code || `HTTP_${response.status}` 
-        } 
-      };
-    }
-
-    console.log(`[MAILER] Brevo API dispatched successfully to: ${email}`);
-    return { success: true };
-  } catch (error: any) {
-    console.error(`[MAILER] Network Failure during API dispatch to: ${email}`);
-    return { success: false, error: { message: error.message, code: error.code || "FETCH_ERR" } };
-  }
-};
+import { sendMail } from "../utils/mailer.js";
 
 export const login = async (req: Request, res: Response) => {
   const { credential, password } = req.body; // credential can be email or mobile
-  if (!credential || !password) return res.status(400).json({ success: false, message: "Missing credentials" });
+  if (!credential || !password) return res.status(400).json({ success: false, message: "Please provide both your identification and password." });
 
   try {
     const user = await prisma.user.findFirst({
@@ -67,7 +18,7 @@ export const login = async (req: Request, res: Response) => {
       }
     });
 
-    if (!user) return res.status(401).json({ success: false, message: "Invalid credentials" });
+    if (!user) return res.status(401).json({ success: false, message: "Incorrect identification or password. Please try again." });
 
     // Check brute force
     if (user.lockedUntil && user.lockedUntil > new Date()) {
@@ -86,8 +37,8 @@ export const login = async (req: Request, res: Response) => {
       });
 
       const message = attempts >= 5 
-        ? "Account temporarily locked for 15 minutes due to too many failed attempts."
-        : `Invalid credentials. Attempts left: ${attemptsLeft}`;
+        ? "Account temporarily locked for 15 minutes due to multiple failed attempts."
+        : `Incorrect credentials. Attempts remaining: ${attemptsLeft}`;
 
       return res.status(401).json({ 
         success: false, 
@@ -136,20 +87,20 @@ export const login = async (req: Request, res: Response) => {
         if (!mailSent.success) {
           return res.status(500).json({ 
             success: false, 
-            message: "Failed to dispatch security code. Please check mailer nodes.",
-            details: (mailSent.error as any)?.message || "Unknown SMTP Error",
-            code: (mailSent.error as any)?.code || "SMTP_ERR"
+            message: "Internal Security Error: Unable to send verification email. Please contact the administrator.",
+            details: (mailSent.error as any)?.message || "SMTP Dispatch Failure",
+            code: (mailSent.error as any)?.code || "MAIL_ERR"
           });
         }
 
         return res.json({
           success: true,
           requiresOtp: true,
-          message: "Security code dispatched to registered admin email.",
+          message: "A secure verification code has been sent to your registered admin email.",
           loginId: user.id
         });
       } else {
-         return res.status(400).json({ success: false, message: "Admin account has no verified email node. Contact system architect." });
+         return res.status(400).json({ success: false, message: "This admin account does not have a registered email. Please contact technical support." });
       }
     }
 
@@ -166,26 +117,26 @@ export const login = async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      message: "Access granted",
+      message: "Authentication successful. Access granted.",
       accessToken,
       user: { id: user.id, name: user.name, role: user.role, email: user.email, status: user.status }
     });
 
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ success: false, message: "Authentication failure" });
+    return res.status(500).json({ success: false, message: "An error occurred during authentication. Please try again." });
   }
 };
 
 export const verifyLoginOtp = async (req: Request, res: Response) => {
   const { loginId, otp } = req.body;
-  if (!loginId || !otp) return res.status(400).json({ success: false, message: "Identification and Security Code required" });
+  if (!loginId || !otp) return res.status(400).json({ success: false, message: "Identification and verification code are required." });
 
   try {
     const user = await prisma.user.findUnique({ where: { id: Number(loginId) } });
     
     if (!user || user.verifyOtp !== otp || !user.verifyOtpExpiresAt || user.verifyOtpExpiresAt < new Date()) {
-      return res.status(401).json({ success: false, message: "Invalid or expired security code" });
+      return res.status(401).json({ success: false, message: "The verification code provided is invalid or has expired." });
     }
 
     // OTP Verified! Reset security nodes and issue tokens
@@ -210,14 +161,14 @@ export const verifyLoginOtp = async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      message: "Identity verified. Node access authorized.",
+      message: "Welcome back! Your identity has been verified.",
       accessToken,
       user: { id: user.id, name: user.name, role: user.role, email: user.email, status: user.status }
     });
 
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ success: false, message: "Registry Authorization Failure" });
+    return res.status(500).json({ success: false, message: "Secure authorization failed. Please try logging in again." });
   }
 };
 
@@ -229,7 +180,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       // Return success even if user doesn't exist to prevent enumeration
-      return res.json({ success: true, message: "If an account exists, an OTP has been sent." });
+      return res.json({ success: true, message: "If a matching account exists, a reset code has been sent to your email." });
     }
 
     const otp = generateSecureOTP();
@@ -262,18 +213,18 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ success: false, message: "Communication failure" });
+    return res.status(500).json({ success: false, message: "Internal communication failure while sending email." });
   }
 };
 
 export const resetPassword = async (req: Request, res: Response) => {
   const { email, otp, newPassword } = req.body;
-  if (!email || !otp || !newPassword) return res.status(400).json({ success: false, message: "Missing reset nodes" });
+  if (!email || !otp || !newPassword) return res.status(400).json({ success: false, message: "Required reset info is missing." });
 
   try {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || user.resetOtp !== otp || !user.resetOtpExpiresAt || user.resetOtpExpiresAt < new Date()) {
-      return res.status(401).json({ success: false, message: "Invalid or expired OTP" });
+      return res.status(401).json({ success: false, message: "Invalid or expired reset code." });
     }
 
     const passwordHash = await hashPassword(newPassword);
@@ -291,7 +242,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ success: false, message: "Registry Update Failure" });
+    return res.status(500).json({ success: false, message: "Unable to update account information. Please try again." });
   }
 };
 
@@ -312,7 +263,7 @@ const maskMobile = (mobile: string) => {
 
 export const verifyRegistration = async (req: Request, res: Response) => {
   const { credential } = req.body; // mobile or email
-  if (!credential) return res.status(400).json({ success: false, message: "Identification node required" });
+  if (!credential) return res.status(400).json({ success: false, message: "Identification is required to proceed." });
 
   try {
     const user = await prisma.user.findFirst({
@@ -328,7 +279,7 @@ export const verifyRegistration = async (req: Request, res: Response) => {
     if (!user) {
       return res.status(404).json({ 
         success: false, 
-        message: "Identity not found in institute registry. Please contact administration." 
+        message: "No student record found for this credential. Please contact the administration office." 
       });
     }
 
@@ -359,7 +310,7 @@ export const verifyRegistration = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ success: false, message: "Registry Inquiry Failure" });
+    return res.status(500).json({ success: false, message: "Unable to find record in the institutional registry." });
   }
 };
 
@@ -372,7 +323,7 @@ export const register = async (req: Request, res: Response) => {
     } = req.body;
 
     if (!credential || !password) {
-      return res.status(400).json({ success: false, message: "Credential and Password node required" });
+      return res.status(400).json({ success: false, message: "Identification and password are required for activation." });
     }
 
     // Search for existing registry entry using the original credential
@@ -388,13 +339,13 @@ export const register = async (req: Request, res: Response) => {
 
     if (!existingUser) {
       console.warn("[REGISTRY] Identity node not found.");
-      return res.status(404).json({ success: false, message: "Institute Registry node missing. Contact Admin." });
+      return res.status(404).json({ success: false, message: "Student record not found in the institute registry. Please register at the admin office." });
     }
 
     // Determine target email for activation
     const targetEmail = email || existingUser.email;
     if (!targetEmail) {
-      return res.status(400).json({ success: false, message: "Activation requires an email node. Please provide one." });
+      return res.status(400).json({ success: false, message: "Account activation requires a valid email address." });
     }
 
     console.log("[REGISTRY] Synchronizing profile components...");
@@ -419,7 +370,7 @@ export const register = async (req: Request, res: Response) => {
         isMissing(existingUser.student?.state, state) ||
         isMissing(existingUser.student?.pincode, pincode)
       ) {
-        return res.status(400).json({ success: false, message: "Portal activation requires a complete profile. Please fill all missing nodes." });
+        return res.status(400).json({ success: false, message: "Activation Failed: Please ensure all required profile information is filled." });
       }
     }
 
@@ -482,9 +433,9 @@ export const register = async (req: Request, res: Response) => {
       });
       return res.status(500).json({ 
         success: false, 
-        message: "Failed to dispatch activation cipher. Please check mailer settings.",
-        details: (mailSent.error as any)?.message || "Unknown SMTP Error",
-        code: (mailSent.error as any)?.code || "SMTP_ERR"
+        message: "Unable to send activation email. Please check your email address or contact support.",
+        details: (mailSent.error as any)?.message || "Email Dispatch Failure",
+        code: (mailSent.error as any)?.code || "MAIL_ERR"
       });
     }
 
@@ -492,18 +443,18 @@ export const register = async (req: Request, res: Response) => {
     return res.status(200).json({
       success: true,
       pendingVerification: true,
-      message: "Activation cipher sent to registered email."
+      message: "A secure activation code has been sent to your email address."
     });
 
   } catch (error) {
     console.error("[REGISTRY CRITICAL] Activation Failure:", error);
-    return res.status(500).json({ success: false, message: "Failed to initiate portal activation" });
+    return res.status(500).json({ success: false, message: "An error occurred during portal activation initiation." });
   }
 };
 
 export const completeRegistration = async (req: Request, res: Response) => {
   const { credential, otp } = req.body;
-  if (!credential || !otp) return res.status(400).json({ success: false, message: "Identification and Cipher required" });
+  if (!credential || !otp) return res.status(400).json({ success: false, message: "Identification and verification code are required." });
 
   try {
     const user = await prisma.user.findFirst({
@@ -516,7 +467,7 @@ export const completeRegistration = async (req: Request, res: Response) => {
     });
 
     if (!user || user.verifyOtp !== otp || !user.verifyOtpExpiresAt || user.verifyOtpExpiresAt < new Date()) {
-      return res.status(401).json({ success: false, message: "Invalid or expired activation cipher" });
+      return res.status(401).json({ success: false, message: "The activation code provided is invalid or has expired." });
     }
 
     // Finalize Activation
@@ -542,14 +493,14 @@ export const completeRegistration = async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      message: "Portal account successfully activated",
+      message: "Your student portal account has been successfully activated. Welcome!",
       accessToken,
       user: { id: updatedUser.id, name: updatedUser.name, role: updatedUser.role, email: updatedUser.email, status: updatedUser.status }
     });
 
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ success: false, message: "Failed to finalize activation" });
+    return res.status(500).json({ success: false, message: "An error occurred while finalizing your account activation." });
   }
 };
 

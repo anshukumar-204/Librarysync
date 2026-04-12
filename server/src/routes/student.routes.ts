@@ -16,8 +16,10 @@ import {
   getWeeklyRoutine,
   createRoutineNode,
   deleteRoutineNode,
-  syncRoutineTasks,
-  getSubjectAnalytics
+  getSubjectAnalytics,
+  requestProfileUpdateOtp,
+  updateStudentProfileSelf,
+  syncRoutineTasks
 } from "../controllers/student.controller.js";
 import { authenticate, requireVerified } from "../middlewares/auth.middleware.js";
 
@@ -27,6 +29,8 @@ const router = Router();
 router.use(authenticate, requireVerified);
 
 // Productivity & Profile Management (Students)
+router.post("/profile/otp", requestProfileUpdateOtp);
+router.patch("/profile", updateStudentProfileSelf);
 router.put("/goal", updateDailyGoal);
 router.get("/leaderboard", getLeaderboard);
 router.get("/analytics/subjects", getSubjectAnalytics);

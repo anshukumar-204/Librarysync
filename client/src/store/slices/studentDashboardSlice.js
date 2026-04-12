@@ -3,6 +3,30 @@ import dashboardApi from '../../services/dashboardApi';
 import attendanceApi from '../../services/attendanceApi';
 import * as studentApi from '../../services/studentApi';
 
+export const requestProfileOtp = createAsyncThunk(
+  'studentDashboard/requestProfileOtp',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.requestProfileUpdateOtp();
+      return response;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to request update cipher');
+    }
+  }
+);
+
+export const updateProfileSelf = createAsyncThunk(
+  'studentDashboard/updateProfileSelf',
+  async (profileData, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.updateProfileSelf(profileData);
+      return response;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to synchronize profile');
+    }
+  }
+);
+
 export const generateQR = createAsyncThunk(
   'studentDashboard/generateQR',
   async (_, { rejectWithValue }) => {

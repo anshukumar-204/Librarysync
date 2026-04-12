@@ -98,3 +98,14 @@ export const deleteTask = async (id) => {
   const response = await API.delete(`/students/tasks/${id}`);
   return response.data;
 };
+
+// Profile Management (Self)
+export const requestProfileUpdateOtp = async () => {
+  const response = await API.post('/students/profile/otp');
+  return response.data;
+};
+
+export const updateProfileSelf = async (profileData) => {
+  const response = await API.patch('/students/profile', profileData);
+  return response.data;
+};

@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { prisma } from "../db/prisma.js";
-import { hashPassword } from "../utils/security.js";
+import { generateSecureOTP, hashPassword } from "../utils/security.js";
+import { sendMail } from "../utils/mailer.js";
 
 // Basic Student creation handler (Admin feature)
 export const createStudent = async (req: Request, res: Response) => {
@@ -17,7 +18,7 @@ export const createStudent = async (req: Request, res: Response) => {
 
     // MANDATORY CHANGE: Only Mobile and Email are strictly required for Admin
     if (!mobile || !email) {
-      return res.status(400).json({ success: false, message: "Registry creation requires both Mobile and Email nodes." });
+      return res.status(400).json({ success: false, message: "Registration requires both a mobile number and a valid email address." });
     }
 
     // Default password as mobile number
@@ -72,7 +73,7 @@ export const createStudent = async (req: Request, res: Response) => {
     // Return the specific error message in development for faster debugging
     return res.status(500).json({ 
       success: false, 
-      message: "Registry Node Failure", 
+      message: "Internal registry error. Please contact technical support.", 
       error: error.message,
       code: error.code,
       meta: error.meta 
@@ -119,7 +120,7 @@ export const updateStudent = async (req: Request, res: Response) => {
 
     // MANDATORY CHANGE: Only Mobile and Email are strictly required for Admin
     if (!mobile || !email) {
-      return res.status(400).json({ success: false, message: "Update aborted: Mobile and Email nodes are mandatory." });
+      return res.status(400).json({ success: false, message: "Update aborted: Mobile and email addresses are mandatory for all students." });
     }
 
     // Check if student exists
@@ -174,7 +175,7 @@ export const updateStudent = async (req: Request, res: Response) => {
     if (error.code === 'P2002') {
       return res.status(400).json({ success: false, message: "Mobile number or Email already in use by another account" });
     }
-    return res.status(500).json({ success: false, message: "Server error occurred" });
+    return res.status(500).json({ success: false, message: "An error occurred while updating the student records." });
   }
 };
 
@@ -220,7 +221,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     return res.json({ success: true, data: topStudents });
   } catch (error) {
     console.error("LEADERBOARD ERROR:", error);
-    return res.status(500).json({ success: false, message: "Leaderboard sync failed" });
+    return res.status(500).json({ success: false, message: "Unable to retrieve leaderboard data at this time." });
   }
 };
 
@@ -280,7 +281,7 @@ export const deleteStudyLog = async (req: Request, res: Response) => {
 
     await prisma.studyLog.delete({ where: { id: logId } });
 
-    return res.json({ success: true, message: "Log node purged from history" });
+    return res.json({ success: true, message: "The selected log entry has been successfully removed." });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Log deletion failure" });
   }
@@ -332,7 +333,7 @@ export const getTasks = async (req: Request, res: Response) => {
             }
           })
         ));
-        return res.json({ success: true, data: createdTasks, message: "Routine rhythms synchronized for today." });
+        return res.json({ success: true, data: createdTasks, message: "Your daily study routine has been synchronized for today." });
       }
     }
 
@@ -404,7 +405,7 @@ export const deleteTask = async (req: Request, res: Response) => {
 
     await prisma.task.delete({ where: { id: taskId } });
 
-    return res.json({ success: true, message: "Task node removed" });
+    return res.json({ success: true, message: "Task has been successfully removed." });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Task deletion failure" });
   }
@@ -488,7 +489,7 @@ export const syncRoutineTasks = async (req: Request, res: Response) => {
     );
 
     if (newRoutines.length === 0) {
-      return res.json({ success: true, data: [], message: "Registry already in sync with rhythm pattern." });
+      return res.json({ success: true, data: [], message: "Your dashboard is already synchronized with today's routine." });
     }
 
     // Bulk create new tasks
@@ -506,7 +507,7 @@ export const syncRoutineTasks = async (req: Request, res: Response) => {
     return res.json({ 
       success: true, 
       data: createdTasks, 
-      message: `${createdTasks.length} nodes synchronized for today.` 
+      message: `Successfully synchronized ${createdTasks.length} routine items for today.` 
     });
 
   } catch (error) {
@@ -550,7 +551,7 @@ export const deleteRoutineNode = async (req: Request, res: Response) => {
     }
 
     await prisma.weeklyRoutine.delete({ where: { id: routineId } });
-    return res.json({ success: true, message: "Routine node purged" });
+    return res.json({ success: true, message: "The routine entry has been successfully removed." });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Purge failure" });
   }
@@ -595,5 +596,97 @@ export const getSubjectAnalytics = async (req: Request, res: Response) => {
     return res.json({ success: true, data: formattedData });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Analytics sync error" });
+  }
+};
+
+export const requestProfileUpdateOtp = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user || !user.email) {
+      return res.status(400).json({ success: false, message: "Account email unknown. Please visit the administration office to update your records." });
+    }
+
+    const otp = generateSecureOTP();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        verifyOtp: otp,
+        verifyOtpExpiresAt: expiresAt
+      }
+    });
+
+    const mailSent = await sendMail(
+      user.email,
+      "Profile Security Update Cipher",
+      `
+      <div style="font-family: sans-serif; padding: 20px; color: #333; background: #fafafa;">
+        <div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 16px; padding: 40px; border: 1px solid #e5e7eb;">
+          <h2 style="color: #059669; margin-bottom: 24px;">Security Verification</h2>
+          <p>You requested an update to your institutional profile. Use the following cipher to authorize this request.</p>
+          <div style="background: #ecfdf5; padding: 24px; border-radius: 12px; text-align: center; margin: 32px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 12px; color: #065f46;">${otp}</span>
+          </div>
+          <p style="font-size: 14px; color: #6b7280; pt: 20px; border-top: 1px solid #f3f4f6;">This cipher expires in 15 minutes. If you did not initiate this, please secure your account.</p>
+        </div>
+      </div>
+      `
+    );
+
+    if (!mailSent.success) {
+      return res.status(500).json({ success: false, message: "Email dispatch failed. Please contact support or try again later." });
+    }
+
+    return res.json({ success: true, message: "A secure verification code has been sent to your registered email address." });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "A security error occurred while processing your request." });
+  }
+};
+
+export const updateStudentProfileSelf = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { otp, fullName, fatherName, address, village, post, district, city, state, pincode, bio } = req.body;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { student: true }
+    });
+
+    if (!user || user.verifyOtp !== otp || !user.verifyOtpExpiresAt || user.verifyOtpExpiresAt < new Date()) {
+      return res.status(401).json({ success: false, message: "The verification code provided is invalid or has already expired." });
+    }
+
+    // Update Transactional Registry
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        ...(fullName && { name: fullName }),
+        verifyOtp: null,
+        verifyOtpExpiresAt: null,
+        student: {
+          update: {
+            fullName: fullName || undefined,
+            fatherName: fatherName || undefined,
+            address: address || undefined,
+            village: village || undefined,
+            post: post || undefined,
+            district: district || undefined,
+            city: city || undefined,
+            state: state || undefined,
+            pincode: pincode || undefined,
+            bio: bio || undefined
+          }
+        }
+      }
+    });
+
+    return res.json({ success: true, message: "Your institutional profile has been successfully synchronized." });
+  } catch (error) {
+    console.error("PROFILE SYNC ERROR:", error);
+    return res.status(500).json({ success: false, message: "Profile update failed. Please contact the administration office if this persists." });
   }
 };

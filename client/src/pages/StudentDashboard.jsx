@@ -31,7 +31,8 @@ import {
   Activity,
   RefreshCcw,
   Zap,
-  AlertCircle
+  AlertCircle,
+  ShieldCheck
 } from 'lucide-react';
 import { logoutAdmin } from '../store/slices/authSlice';
 import { Scanner } from '@yudiel/react-qr-scanner';
@@ -92,12 +93,21 @@ export default function StudentDashboard() {
     actionLoading
   } = useSelector((state) => state.studentDashboard);
 
-  const isInLibrary = todayStatus?.status === 'In Library';
+  const isRestricted = user?.status?.toLowerCase() === 'inactive' || user?.status?.toLowerCase() === 'hold';
 
-  const [activeView, setActiveView] = React.useState('hub'); // 'hub' | 'rank' | 'journal' | 'history' | 'routine'
-  const [activeModal, setActiveModal] = React.useState(null); // 'qr' | 'goal'
+  useEffect(() => {
+    if (isRestricted) {
+      setActiveModal(null);
+    }
+  }, [isRestricted]);
+
+  const [activeView, setActiveView] = React.useState('hub'); // 'hub' | 'rank' | 'journal' | 'history' | 'routine' | 'profile'
+  const [activeModal, setActiveModal] = React.useState(null); // 'qr' | 'goal' | 'profile_otp'
   const [chartRange, setChartRange] = React.useState('week'); // 'week' | 'month' | 'year'
   const [tempGoal, setTempGoal] = React.useState(metrics?.dailyGoalHours || 8);
+  const [profileFormData, setProfileFormData] = React.useState({});
+  const [otpValue, setOtpValue] = React.useState('');
+  const [otpRequestPending, setOtpRequestPending] = React.useState(false);
   const [logFormData, setLogFormData] = React.useState({
     subject: '',
     topicsCovered: '',
@@ -625,11 +635,11 @@ export default function StudentDashboard() {
         <AlertCircle size={48} className="text-rose-500" />
       </div>
       <h2 className="text-4xl font-black text-rose-500 tracking-tighter uppercase italic leading-tight mb-6">
-        Registry<br />
-        <span className="text-white">Access Locked</span>
+        Access<br />
+        <span className="text-white">Temporarily Held</span>
       </h2>
       <p className="max-w-md text-zinc-400 font-bold uppercase tracking-[0.1em] text-[11px] leading-loose mb-12">
-        Your institutional profile is currently on <span className="text-rose-400 font-black tracking-widest">Registry Hold</span>. Access to library rhythms and study nodes has been suspended. Please synchronize with the administration office to restore portal connectivity.
+        Your access to the student portal has been temporarily suspended by the administration. To resolve this and restore your library benefits, please visit the <span className="text-rose-400 font-black tracking-widest">Library Admin Office</span> for a quick account update.
       </p>
       <div className="flex flex-col sm:flex-row gap-4">
         <a href="mailto:admin@institute.edu" className="px-10 py-5 bg-white text-black rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all">
@@ -641,6 +651,111 @@ export default function StudentDashboard() {
       </div>
     </div>
   );
+
+  const renderProfileSettings = () => {
+    const student = metrics?.student || {};
+    
+    // Initialize form data if empty
+    if ((!profileFormData || Object.keys(profileFormData).length === 0) && user) {
+      setProfileFormData({
+        fullName: student.fullName || user.name || '',
+        fatherName: student.fatherName || '',
+        address: student.address || '',
+        village: student.village || '',
+        post: student.post || '',
+        district: student.district || '',
+        city: student.city || '',
+        state: student.state || '',
+        pincode: student.pincode || '',
+        bio: student.bio || ''
+      });
+    }
+
+    const handleProfileChange = (e) => {
+      const { name, value } = e.target;
+      setProfileFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleRequestOtp = async () => {
+      setOtpRequestPending(true);
+      try {
+        await dispatch(requestProfileOtp()).unwrap();
+        toast.success('Verification cipher sent to your email.');
+        setActiveModal('profile_otp');
+      } catch (err) {
+        toast.error(err || 'Failed to dispatch cipher');
+      } finally {
+        setOtpRequestPending(false);
+      }
+    };
+
+    const handleVerifyAndUpdate = async () => {
+      if (!otpValue) return toast.error('Enter verification cipher');
+      try {
+        await dispatch(updateProfileSelf({ ...profileFormData, otp: otpValue })).unwrap();
+        toast.success('Profile synchronized successfully');
+        setActiveModal(null);
+        setOtpValue('');
+        dispatch(fetchMetrics()); // Refresh data
+      } catch (err) {
+        toast.error(err || 'Profile synchronization failed');
+      }
+    };
+
+    return (
+      <div className="space-y-10 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-2xl mx-auto">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Profile Registry</h2>
+          <p className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.3em]">Institutional Identity Management</p>
+        </div>
+
+        <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[3rem] border border-white/5 p-8 sm:p-12 space-y-10 shadow-2xl">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+             <div className="space-y-3">
+               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Full Legal Name</label>
+               <input name="fullName" value={profileFormData.fullName || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+             </div>
+             <div className="space-y-3">
+               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Guardian Name</label>
+               <input name="fatherName" value={profileFormData.fatherName || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+             </div>
+             <div className="space-y-3">
+               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Village / Locality</label>
+               <input name="village" value={profileFormData.village || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+             </div>
+             <div className="space-y-3">
+               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Post Office</label>
+               <input name="post" value={profileFormData.post || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+             </div>
+             <div className="space-y-3">
+               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">District Node</label>
+               <input name="district" value={profileFormData.district || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+             </div>
+             <div className="space-y-3">
+               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">PIN Index</label>
+               <input name="pincode" value={profileFormData.pincode || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+             </div>
+             <div className="col-span-1 sm:col-span-2 space-y-3">
+               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Full Physical Address</label>
+               <textarea name="address" value={profileFormData.address || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none" />
+             </div>
+             <div className="col-span-1 sm:col-span-2 space-y-3">
+               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Internal Log / Bio</label>
+               <textarea name="bio" value={profileFormData.bio || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none" />
+             </div>
+          </div>
+
+          <button 
+            onClick={handleRequestOtp} 
+            disabled={otpRequestPending || actionLoading} 
+            className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50"
+          >
+            {otpRequestPending ? 'Requesting Cipher...' : 'Dispatch Update Cipher'}
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   // --- VIEW RENDERING FUNCTIONS ---
 
@@ -1258,15 +1373,25 @@ export default function StudentDashboard() {
             <span className="text-xl font-black text-white tracking-tighter uppercase italic">Study<span className="text-blue-500">Vault</span></span>
           </div>
 
-          <button onClick={handleLogout} className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-all active:scale-90">
-            <LogOut size={18} />
-          </button>
+          <div className="flex items-center gap-3">
+            {!isRestricted && (
+              <button 
+                onClick={() => setActiveView('profile')}
+                className={`p-3 rounded-2xl transition-all ${activeView === 'profile' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-white/5 text-gray-500 hover:text-white'}`}
+              >
+                <Settings size={18} />
+              </button>
+            )}
+            <button onClick={handleLogout} className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-all active:scale-90">
+              <LogOut size={18} />
+            </button>
+          </div>
         </div>
       </nav>
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 pt-8 pb-20">
         <AnimatePresence mode="wait">
-          {user?.status?.toLowerCase() === 'inactive' || user?.status?.toLowerCase() === 'hold' || user?.status === 'Inactive' || user?.status === 'Hold' ? (
+          {isRestricted ? (
              <motion.div key="restricted" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
                {renderRestrictedAccess()}
              </motion.div>
@@ -1283,6 +1408,7 @@ export default function StudentDashboard() {
               {activeView === 'rank' && renderRank()}
               {activeView === 'routine' && renderRoutineBuilder()}
               {activeView === 'history' && renderHistory()}
+              {activeView === 'profile' && renderProfileSettings()}
             </>
           )}
         </AnimatePresence>
@@ -1316,35 +1442,37 @@ export default function StudentDashboard() {
       </AnimatePresence>
 
       {/* --- HOTSTAR STYLE NAVIGATION BAR --- */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[200] w-full max-w-md px-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-4">
-        <div className="bg-[#0B0D17]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex items-center justify-between shadow-[0_25px_50px_-12px_rgba(59,130,246,0.3)]">
-          <button onClick={() => setActiveView('hub')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'hub' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
-            <LayoutGrid size={24} />
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Hub</span>
-          </button>
+      {!isRestricted && (
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[200] w-full max-w-md px-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-4">
+          <div className="bg-[#0B0D17]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex items-center justify-between shadow-[0_25px_50px_-12px_rgba(59,130,246,0.3)]">
+            <button onClick={() => setActiveView('hub')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'hub' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
+              <LayoutGrid size={24} />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Hub</span>
+            </button>
 
-          <button onClick={() => setActiveView('rank')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'rank' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
-            <Trophy size={24} />
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Rank</span>
-          </button>
+            <button onClick={() => setActiveView('rank')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'rank' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
+              <Trophy size={24} />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Rank</span>
+            </button>
 
-          <div className="flex-1 flex justify-center h-10 items-end">
-            <button onClick={() => setActiveModal('qr')} className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-2xl transition-all active:scale-90 -mb-2 border-4 border-[#0B0D17] flex-shrink-0 ${activeModal === 'qr' ? 'bg-indigo-600 scale-110' : todayStatus?.status === 'In Library' ? 'bg-emerald-600 shadow-emerald-500/20' : 'bg-blue-600 shadow-blue-500/20'}`}>
-              <Camera size={28} />
+            <div className="flex-1 flex justify-center h-10 items-end">
+              <button onClick={() => setActiveModal('qr')} className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-2xl transition-all active:scale-90 -mb-2 border-4 border-[#0B0D17] flex-shrink-0 ${activeModal === 'qr' ? 'bg-indigo-600 scale-110' : todayStatus?.status === 'In Library' ? 'bg-emerald-600 shadow-emerald-500/20' : 'bg-blue-600 shadow-blue-500/20'}`}>
+                <Camera size={28} />
+              </button>
+            </div>
+
+            <button onClick={() => setActiveView('routine')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'routine' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
+              <Calendar size={24} />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Routine</span>
+            </button>
+
+            <button onClick={() => setActiveView('history')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'history' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
+              <History size={24} />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Vault</span>
             </button>
           </div>
-
-          <button onClick={() => setActiveView('routine')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'routine' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
-            <Calendar size={24} />
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Routine</span>
-          </button>
-
-          <button onClick={() => setActiveView('history')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'history' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
-            <History size={24} />
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Vault</span>
-          </button>
         </div>
-      </div>
+      )}
 
       {/* --- OVERLAYS --- */}
       <AnimatePresence>
@@ -1386,6 +1514,41 @@ export default function StudentDashboard() {
                   </button>
                 </div>
               </div>
+            </motion.div>
+          </div>
+        )}
+
+        {activeModal === 'profile_otp' && (
+          <div className="fixed inset-0 z-[400] flex items-center justify-center p-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="absolute inset-0 bg-black/95 backdrop-blur-xl" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-[#0c0c0e] border border-white/10 p-10 rounded-[3rem] w-full max-w-sm text-center">
+               <div className="w-20 h-20 rounded-[28px] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-8">
+                 <ShieldCheck size={40} className="text-emerald-500" />
+               </div>
+               <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2">Authorize Sync</h3>
+               <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-10 leading-loose">
+                 Institutional security protocol in effect.<br />Enter the 6-digit sync cipher sent to {user?.email}
+               </p>
+               
+               <input 
+                 type="text" 
+                 maxLength={6} 
+                 value={otpValue} 
+                 onChange={(e) => setOtpValue(e.target.value)} 
+                 placeholder="000000"
+                 className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 text-4xl font-black text-center text-white tracking-[0.5em] focus:border-emerald-500 outline-none mb-10"
+               />
+
+               <div className="flex gap-4">
+                 <button onClick={() => setActiveModal(null)} className="flex-1 py-5 bg-white/5 text-zinc-500 font-bold rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancel</button>
+                 <button 
+                  onClick={typeof handleVerifyAndUpdate === 'undefined' ? () => {} : handleVerifyAndUpdate} 
+                  disabled={actionLoading} 
+                  className="flex-2 px-10 py-5 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/20 text-[10px] uppercase tracking-[0.2em] transition-all disabled:opacity-50"
+                 >
+                   {actionLoading ? 'SYNCING...' : 'Verify & Update'}
+                 </button>
+               </div>
             </motion.div>
           </div>
         )}
