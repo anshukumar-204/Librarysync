@@ -778,32 +778,6 @@ export default function StudentDashboard() {
 
   const renderProfileSettings = () => {
     return (
-      <div className="space-y-6 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-2xl mx-auto px-4 sm:px-0">
-        {/* Premium Profile Header */}
-        <div className="relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[3rem] blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
-          <div className="relative bg-[#0c0c0e] rounded-[2.8rem] p-8 border border-white/5 flex flex-col items-center text-center shadow-2xl">
-            <div className="relative mb-6">
-              <input type="file" id="profile-upload" hidden accept="image/*" onChange={handleImageChange} />
-              <label htmlFor="profile-upload" className="cursor-pointer block relative group/avatar">
-                <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-600/20 to-indigo-600/20 flex items-center justify-center border-2 border-white/5 p-1 transition-all group-hover/avatar:border-blue-500/50">
-                  <div className="w-full h-full rounded-full bg-[#111113] flex items-center justify-center text-blue-500 shadow-inner overflow-hidden">
-                    {profileFormData.profileImage ? (
-                      <img src={profileFormData.profileImage} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      <User size={48} strokeWidth={1.5} />
-                    )}
-                  </div>
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-2xl bg-blue-600 hover:bg-blue-500 flex items-center justify-center border-4 border-[#0c0c0e] text-white shadow-lg transition-transform group-hover/avatar:scale-110">
-                  <Camera size={14} />
-                </div>
-              </label>
-            </div>
-            
-            <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none mb-2">
-              {profileFormData.fullName || user?.name || 'SYNC IDENTITY'}
-            </h2>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="max-w-2xl mx-auto space-y-8 sm:space-y-12 pb-32">
         {/* Profile Header */}
         <div className="flex flex-col items-center gap-6">
