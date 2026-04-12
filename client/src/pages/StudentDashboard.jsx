@@ -109,10 +109,11 @@ export default function StudentDashboard() {
   const [profileFormData, setProfileFormData] = React.useState({});
   const [otpValue, setOtpValue] = React.useState('');
   const [otpRequestPending, setOtpRequestPending] = React.useState(false);
+  const [isProfileSynced, setIsProfileSynced] = React.useState(false);
 
   // Sync Profile Form Data when metrics are loaded
   useEffect(() => {
-    if (metrics?.student && Object.keys(profileFormData).length === 0) {
+    if (metrics?.student && !isProfileSynced) {
       const s = metrics.student;
       setProfileFormData({
         fullName: s.fullName || user?.name || '',
@@ -126,8 +127,9 @@ export default function StudentDashboard() {
         pincode: s.pincode || '',
         bio: s.bio || ''
       });
+      setIsProfileSynced(true);
     }
-  }, [metrics, user, profileFormData]);
+  }, [metrics, user, isProfileSynced]);
   const [logFormData, setLogFormData] = React.useState({
     subject: '',
     topicsCovered: '',
@@ -684,25 +686,26 @@ export default function StudentDashboard() {
       setOtpRequestPending(true);
       try {
         await dispatch(requestProfileOtp()).unwrap();
-        toast.success('Verification cipher sent to your email.');
+        toast.success('A verification code has been sent to your email.');
         setActiveModal('profile_otp');
       } catch (err) {
-        toast.error(err || 'Failed to dispatch cipher');
+        toast.error(err || 'Failed to send verification code');
       } finally {
         setOtpRequestPending(false);
       }
     };
 
     const handleVerifyAndUpdate = async () => {
-      if (!otpValue) return toast.error('Enter verification cipher');
+      if (!otpValue) return toast.error('Please enter the verification code');
       try {
         await dispatch(updateProfileSelf({ ...profileFormData, otp: otpValue })).unwrap();
-        toast.success('Profile synchronized successfully');
+        toast.success('Your profile has been updated successfully');
         setActiveModal(null);
         setOtpValue('');
         dispatch(fetchMetrics()); // Refresh data
+        setIsProfileSynced(false); // Reforce sync on next metrics load
       } catch (err) {
-        toast.error(err || 'Profile synchronization failed');
+        toast.error(err || 'Failed to update profile');
       }
     };
 
@@ -754,7 +757,7 @@ export default function StudentDashboard() {
             disabled={otpRequestPending || actionLoading} 
             className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50"
           >
-            {otpRequestPending ? 'Requesting Cipher...' : 'Dispatch Update Cipher'}
+            {otpRequestPending ? 'Sending Code...' : 'Update Profile Details'}
           </button>
         </div>
       </div>
