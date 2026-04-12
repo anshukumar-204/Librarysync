@@ -6,7 +6,7 @@ import {
   User, Mail, Lock, Phone, MapPin, 
   ArrowRight, ArrowLeft, Loader2, AlertCircle, 
   CheckCircle2, Sparkles, GraduationCap, Search,
-  ShieldCheck, KeyRound, RefreshCw, Eye, EyeOff
+  ShieldCheck, KeyRound, RefreshCw, Eye, EyeOff, Camera
 } from 'lucide-react';
 import { registerStudent, clearError } from '../../store/slices/authSlice';
 import authApi from '../../services/authApi';
@@ -43,6 +43,7 @@ export default function StudentRegisterPage() {
   });
 
   const [step, setStep] = useState(1);
+  const [errors, setErrors] = useState({});
   const dispatch = useDispatch();
 
   const navigate = useNavigate();
@@ -153,6 +154,32 @@ export default function StudentRegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Reset errors
+    setErrors({});
+    const newErrors = {};
+
+    // Validate current step
+    if (step === 1) {
+      const requiredStep1 = ['fullName', 'fatherName', 'email', 'mobile', 'address', 'village', 'city'];
+      requiredStep1.forEach(field => {
+        // Only validate if field was supposed to be editable/provided
+        if (editableFields.includes(field) && !formData[field]) {
+          newErrors[field] = true;
+        }
+      });
+    } else {
+      if (!formData.password) newErrors.password = true;
+      if (editableFields.includes('state') && !formData.state) newErrors.state = true;
+      if (editableFields.includes('pincode') && !formData.pincode) newErrors.pincode = true;
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error("Please fill all mandatory fields.");
+      return;
+    }
+
     if (step === 1) {
       setStep(2);
       return;
@@ -379,35 +406,39 @@ export default function StudentRegisterPage() {
                   </div>
 
                   <Input 
-                    label={`Full Name ${editableFields.includes('fullName') ? '*' : ''}`}
+                    label="Full Name"
                     name="fullName"
                     value={formData.fullName} 
                     readOnly={!editableFields.includes('fullName')} 
                     onChange={handleInputChange}
                     icon={User} 
                     required={editableFields.includes('fullName')}
+                    error={errors.fullName}
                     className={!editableFields.includes('fullName') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
+                    label="Mobile Number"
                     value={formData.mobile} 
                     readOnly 
                     icon={Phone} 
                     status={availability.mobile}
+                    error={errors.mobile}
                     onCheckNow={() => forceCheck('mobile')}
                     className={availability.mobile.available === false ? "border-rose-500/50" : "opacity-50 blur-[0.5px] cursor-not-allowed"} 
                   />
                   <Input 
-                    label={`Father's Name ${editableFields.includes('fatherName') ? '*' : ''}`}
+                    label="Father's Name"
                     name="fatherName"
                     value={formData.fatherName} 
                     readOnly={!editableFields.includes('fatherName')} 
                     onChange={handleInputChange}
                     icon={User} 
                     required={editableFields.includes('fatherName')}
+                    error={errors.fatherName}
                     className={!editableFields.includes('fatherName') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
-                    label={`Email Address ${editableFields.includes('email') ? '*' : ''}`}
+                    label="Email Address"
                     name="email"
                     value={formData.email} 
                     readOnly={!editableFields.includes('email')} 
@@ -415,39 +446,43 @@ export default function StudentRegisterPage() {
                     icon={Mail} 
                     required={editableFields.includes('email')}
                     status={availability.email}
+                    error={errors.email}
                     onCheckNow={() => forceCheck('email')}
                     className={availability.email.available === false ? "border-rose-500/50" : !editableFields.includes('email') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <div className="md:col-span-2">
                     <Input 
-                      label={`Full Address ${editableFields.includes('address') ? '*' : ''}`}
+                      label="Full Address"
                       name="address" 
                       value={formData.address} 
                       readOnly={!editableFields.includes('address')} 
                       onChange={handleInputChange}
                       icon={MapPin} 
                       required={editableFields.includes('address')}
+                      error={errors.address}
                       className={!editableFields.includes('address') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                     />
                   </div>
                   <Input 
-                    label={`Village/Town ${editableFields.includes('village') ? '*' : ''}`}
+                    label="Village/Town"
                     name="village" 
                     value={formData.village} 
                     readOnly={!editableFields.includes('village')} 
                     onChange={handleInputChange}
                     icon={MapPin} 
                     required={editableFields.includes('village')}
+                    error={errors.village}
                     className={!editableFields.includes('village') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
-                    label={`City/District ${editableFields.includes('city') ? '*' : ''}`}
+                    label="City/District"
                     name="city" 
                     value={formData.city} 
                     readOnly={!editableFields.includes('city')} 
                     onChange={handleInputChange}
                     icon={MapPin} 
                     required={editableFields.includes('city')}
+                    error={errors.city}
                     className={!editableFields.includes('city') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                 </>
@@ -458,26 +493,28 @@ export default function StudentRegisterPage() {
                       <ShieldCheck size={18} className="flex-shrink-0" />
                       <p>Details verified. Standard profile data is locked. Create a strong password (8+ chars) to activate your account.</p>
                     </div>
-                    <Input label="Create Your Password" name="password" icon={Lock} placeholder="••••••••" value={formData.password} onChange={handleInputChange} type="password" required />
+                    <Input label="Create Your Password" name="password" icon={Lock} placeholder="••••••••" value={formData.password} onChange={handleInputChange} type="password" required error={errors.password} />
                   </div>
                    <Input 
-                    label={`State ${editableFields.includes('state') ? '*' : ''}`}
+                    label="State"
                     name="state" 
                     value={formData.state} 
                     readOnly={!editableFields.includes('state')} 
                     onChange={handleInputChange}
                     icon={MapPin} 
                     required={editableFields.includes('state')}
+                    error={errors.state}
                     className={!editableFields.includes('state') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
-                    label={`Pincode ${editableFields.includes('pincode') ? '*' : ''}`}
+                    label="Pincode"
                     name="pincode" 
                     value={formData.pincode} 
                     readOnly={!editableFields.includes('pincode')} 
                     onChange={handleInputChange}
                     icon={MapPin} 
                     required={editableFields.includes('pincode')}
+                    error={errors.pincode}
                     className={!editableFields.includes('pincode') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                 </>
@@ -510,24 +547,27 @@ export default function StudentRegisterPage() {
   );
 }
 
-function Input({ label, icon: Icon, className, type, status, ...props }) {
+function Input({ label, icon: Icon, className, type, status, required, error, onCheckNow, ...props }) {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === 'password';
   const effectiveType = isPassword ? (showPassword ? 'text' : 'password') : type;
 
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">{label}</label>
+      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1 flex items-center gap-1">
+        {label}
+        {required && <span className="text-rose-500 text-lg leading-none">*</span>}
+      </label>
       <div className="relative group/input">
         {Icon && (
-          <div className="absolute inset-y-0 left-4 flex items-center text-gray-400 group-focus-within/input:text-blue-400 transition-colors">
+          <div className={`absolute inset-y-0 left-4 flex items-center transition-colors ${error ? 'text-rose-400' : 'text-gray-400 group-focus-within/input:text-blue-400'}`}>
             <Icon size={16} />
           </div>
         )}
         <input 
           {...props}
           type={effectiveType}
-          className={`w-full bg-[#161B22]/50 border ${status?.available === false ? 'border-rose-500/50' : 'border-white/5'} rounded-xl py-3.5 ${Icon ? 'pl-11' : 'px-4'} ${isPassword ? 'pr-12' : 'pr-4'} text-white text-sm focus:outline-none focus:border-blue-500/50 focus:bg-[#161B22] transition-all ${className}`}
+          className={`w-full bg-[#161B22]/50 border ${error ? 'border-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.1)]' : status?.available === false ? 'border-rose-500/50' : 'border-white/5'} rounded-xl py-3.5 ${Icon ? 'pl-11' : 'px-4'} ${isPassword ? 'pr-12' : 'pr-4'} text-white text-sm focus:outline-none ${error ? 'focus:border-rose-500' : 'focus:border-blue-500/50'} focus:bg-[#161B22] transition-all ${className}`}
         />
         
         {/* Status Badges inside input */}
@@ -539,12 +579,12 @@ function Input({ label, icon: Icon, className, type, status, ...props }) {
           {!status?.loading && status?.available === true && props.value && props.value.length > 5 && (
             <CheckCircle2 size={14} className="text-emerald-500" />
           )}
-
+ 
           {/* Manual Verify Action - Persistent so users can re-trigger check if needed */}
           {status && !status.loading && props.value && props.value.length > 5 && (
             <button 
               type="button"
-              onClick={status.onCheckNow || props.onCheckNow}
+              onClick={status.onCheckNow || onCheckNow}
               className="text-[8px] font-black uppercase tracking-tighter px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all text-zinc-400"
             >
               Check Now
