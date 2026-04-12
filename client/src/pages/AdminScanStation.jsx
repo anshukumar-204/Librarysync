@@ -28,7 +28,7 @@ export default function AdminScanStation() {
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
               <GraduationCap size={24} />
             </div>
-            <span className="text-xl font-bold text-white tracking-tight">Admin<span className="text-blue-500">Node</span></span>
+            <span className="text-xl font-bold text-white tracking-tight">Admin<span className="text-blue-500">Portal</span></span>
           </div>
           <div className="text-[10px] uppercase font-bold tracking-[0.2em] text-gray-500 px-4 py-2 border border-white/5 rounded-full">
             Live Scan Station Active
@@ -44,10 +44,10 @@ export default function AdminScanStation() {
                 className="flex items-center justify-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-[0.2em] mb-4"
             >
                 <ShieldCheck size={16} />
-                Secure Attendance Terminal
+                Secure Attendance Scanner
             </motion.div>
             <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-4">
-                Library Check-in Node
+                Library Check-in Station
             </h1>
             <p className="text-gray-400 max-w-lg mx-auto leading-relaxed">
                 Display this QR code at the library entrance. Students scan this code via their portal to automatically mark arrival and departure.
@@ -77,7 +77,7 @@ export default function AdminScanStation() {
             <div className="mt-8 flex flex-col items-center gap-2">
                 <div className="flex items-center gap-2 text-gray-500 font-mono text-xs uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full border border-white/5">
                     <MapPin size={12} className="text-blue-500" />
-                    Station Identity: MAIN_HUB_01
+                    Station ID: MAIN_HUB_01
                 </div>
             </div>
         </motion.div>
@@ -94,7 +94,7 @@ export default function AdminScanStation() {
                 className="group flex items-center gap-3 px-8 py-4 rounded-2xl bg-white/5 border border-white/5 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all duration-300 font-bold text-emerald-400 group shadow-xl"
             >
                 <RefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-700" />
-                Rotate Node
+                Refresh Station
             </button>
         </div>
 

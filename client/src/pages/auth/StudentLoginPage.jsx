@@ -54,7 +54,7 @@ export default function StudentLoginPage() {
                   <GraduationCap size={32} />
                 </div>
                 <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Student Portal</h1>
-                <p className="text-gray-400 text-sm">Access your attendance records & library identity.</p>
+                <p className="text-gray-400 text-sm">Access your attendance records & library profile.</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -77,10 +77,10 @@ export default function StudentLoginPage() {
                       <Mail size={18} />
                     </div>
                     <input 
-                      type="text" 
+                      type="email" 
                       value={credential}
                       onChange={(e) => setCredential(e.target.value)}
-                      placeholder="Email or Mobile"
+                      placeholder="Email Address"
                       className="w-full bg-[#161B22]/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-blue-500/50 focus:bg-[#161B22] transition-all"
                       required
                     />
@@ -112,9 +112,9 @@ export default function StudentLoginPage() {
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-2 cursor-pointer group">
                       <input type="checkbox" className="w-4 h-4 rounded border-white/10 bg-white/5 text-blue-500 focus:ring-blue-500/50 focus:ring-offset-0 transition-all" />
-                      <span className="text-xs text-gray-500 group-hover:text-gray-300 transition-colors">Remember Node</span>
+                      <span className="text-xs text-gray-500 group-hover:text-gray-300 transition-colors">Remember Me</span>
                     </label>
-                    <Link to="/forgot-password" size="sm" className="text-xs text-blue-400 hover:text-blue-300 transition-colors underline-offset-4 hover:underline">Issue Recovery?</Link>
+                    <Link to="/forgot-password" size="sm" className="text-xs text-blue-400 hover:text-blue-300 transition-colors underline-offset-4 hover:underline">Forgot Password?</Link>
                   </div>
                 </div>
 
@@ -137,12 +137,8 @@ export default function StudentLoginPage() {
 
               <div className="mt-8 pt-6 border-t border-white/5 text-center space-y-4">
                 <p className="text-sm text-gray-500">
-                  New to Librync? <Link to="/register" className="text-blue-400 hover:text-blue-300 transition-colors font-semibold underline-offset-4 hover:underline">Register Identity</Link>
+                  New to Librync? <Link to="/register" className="text-blue-400 hover:text-blue-300 transition-colors font-semibold underline-offset-4 hover:underline">Create Account</Link>
                 </p>
-                <Link to="/admin/login" className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-gray-600 hover:text-emerald-400 transition-all font-bold">
-                  <LayoutGrid size={14} />
-                  Access Admin Node
-                </Link>
               </div>
             </div>
 
@@ -154,7 +150,7 @@ export default function StudentLoginPage() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-white tracking-tight">99.9%</div>
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-gray-500 mt-1">Uptime Node</div>
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-gray-500 mt-1">System Uptime</div>
                 </div>
               </div>
             </div>

@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
           setShowOtp(true);
           toast.success("Security code sent to your email");
         } else {
-          toast.success("Identity Verified. Entering Hub...");
+          toast.success("Login Successful. Opening Dashboard...");
           navigate('/admin/dashboard');
         }
       }
@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
     try {
       const resultAction = await dispatch(verifyLoginOtpAdmin({ loginId, otp }));
       if (verifyLoginOtpAdmin.fulfilled.match(resultAction)) {
-        toast.success("Identity Verified. Entering Hub...");
+        toast.success("Login Successful. Opening Dashboard...");
         navigate('/admin/dashboard');
       }
     } catch (err) {
@@ -79,8 +79,8 @@ export default function AdminLoginPage() {
             >
               <ShieldCheck size={42} strokeWidth={1.5} />
             </motion.div>
-            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Admin Node</h1>
-            <p className="text-gray-400 text-sm">Superior Command Protocol Access</p>
+            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Admin Portal</h1>
+            <p className="text-gray-400 text-sm">Secure Administrator Access</p>
           </div>
 
           {!showOtp ? (
@@ -100,7 +100,7 @@ export default function AdminLoginPage() {
               </AnimatePresence>
 
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest pl-1">Admin Identity</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest pl-1">Admin Email</label>
                 <div className="relative group/input">
                   <div className="absolute inset-y-0 left-4 flex items-center text-gray-400 group-focus-within/input:text-emerald-400 transition-colors">
                     <Mail size={18} />
@@ -109,7 +109,7 @@ export default function AdminLoginPage() {
                     type="text" 
                     value={credential}
                     onChange={(e) => setCredential(e.target.value)}
-                    placeholder="Email or Hub ID"
+                    placeholder="Email Address"
                     className="w-full bg-[#161B22]/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-[#161B22] transition-all duration-300"
                     required
                   />
@@ -118,8 +118,8 @@ export default function AdminLoginPage() {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Access Cipher</label>
-                  <Link to="/forgot-password" size="sm" className="text-xs text-gray-400 hover:text-emerald-400 transition-colors">Recover Code?</Link>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Account Password</label>
+                  <Link to="/forgot-password" size="sm" className="text-xs text-gray-400 hover:text-emerald-400 transition-colors">Recover Password?</Link>
                 </div>
                 <div className="relative group/input">
                   <div className="absolute inset-y-0 left-4 flex items-center text-gray-400 group-focus-within/input:text-emerald-400 transition-colors">
@@ -154,7 +154,7 @@ export default function AdminLoginPage() {
                 ) : (
                   <>
                     <LogIn size={20} />
-                    <span>Initiate Login</span>
+                    <span>Login Now</span>
                     <ArrowRight size={18} className="translate-x-0 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -205,7 +205,7 @@ export default function AdminLoginPage() {
                 ) : (
                   <>
                     <ShieldCheck size={20} />
-                    <span>Verify Identity</span>
+                    <span>Verify Code</span>
                     <ArrowRight size={18} className="translate-x-0 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -224,7 +224,7 @@ export default function AdminLoginPage() {
           <div className="mt-8 pt-6 border-t border-white/5 text-center space-y-4">
             <div className="flex items-center justify-center gap-2 text-xs text-gray-500 uppercase tracking-[0.2em]">
               <Sparkles size={14} className="text-emerald-500" />
-              <span>Librync Secured Node</span>
+              <span>Librync Secured Portal</span>
             </div>
             <Link to="/login" className="block text-sm text-gray-400 hover:text-emerald-400 transition-colors">
               Looking for the Student Portal?

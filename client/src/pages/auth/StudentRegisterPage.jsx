@@ -77,10 +77,10 @@ export default function StudentRegisterPage() {
         if (!student?.pincode) editable.push('pincode');
         
         setEditableFields(editable);
-        toast.success("Identity discovered. Missing mandatory nodes unlocked.");
+        toast.success("Profile found. Missing fields unlocked.");
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Identity not found in institute registry.");
+      toast.error(err.response?.data?.message || "Student record not found in database.");
     } finally {
       setIsVerifying(false);
     }
@@ -108,10 +108,10 @@ export default function StudentRegisterPage() {
       });
       if (response.pendingVerification) {
         setShowOtpStage(true);
-        toast.success("Activation cipher dispatched to your registry email.");
+        toast.success("Activation code sent to your email.");
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Activation failed to initiate.");
+      toast.error(err.response?.data?.message || "Registration failed to initiate.");
     }
   };
 
@@ -121,7 +121,7 @@ export default function StudentRegisterPage() {
     try {
       const response = await authApi.completeRegistration(credential, otp);
       if (response.success) {
-        toast.success("Portal Node Active. Welcome to Librync.");
+        toast.success("Portal Account Active. Welcome!");
         // We manually update state or just navigate to login
         // Re-using login logic for seamless entry
         localStorage.setItem('token', response.accessToken);
@@ -129,7 +129,7 @@ export default function StudentRegisterPage() {
         navigate('/student/portal');
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Activation cipher declined.");
+      toast.error(err.response?.data?.message || "Activation code incorrect.");
     } finally {
       setIsActivating(false);
     }
@@ -148,8 +148,8 @@ export default function StudentRegisterPage() {
               <div className="w-20 h-20 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-6 mx-auto">
                 <ShieldCheck size={42} strokeWidth={1} />
               </div>
-              <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Access Inquiry</h1>
-              <p className="text-gray-400 text-sm">Verify your institute identity to initialize nodes.</p>
+              <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Find Your Record</h1>
+              <p className="text-gray-400 text-sm">Verify your student details to start registration.</p>
             </div>
 
             <form onSubmit={handleVerify} className="space-y-6 relative">
@@ -163,7 +163,7 @@ export default function StudentRegisterPage() {
                     type="text" 
                     value={credential}
                     onChange={(e) => setCredential(e.target.value)}
-                    placeholder="Search registry..."
+                    placeholder="Email or Mobile Number..."
                     className="w-full bg-[#161B22]/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-blue-500/50 transition-all font-mono"
                     required
                   />
@@ -178,7 +178,7 @@ export default function StudentRegisterPage() {
               >
                 {isVerifying ? <Loader2 className="animate-spin" size={20} /> : (
                   <>
-                    <span>Decrypt Identity</span>
+                    <span>Verify Profile</span>
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -186,8 +186,8 @@ export default function StudentRegisterPage() {
             </form>
 
             <div className="mt-8 pt-6 border-t border-white/5 text-center">
-              <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest">Institute Verification node active</p>
-              <Link to="/login" className="inline-block mt-4 text-sm text-gray-400 hover:text-white transition-colors">Return to entry grid</Link>
+              <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest">Secure Verification Active</p>
+              <Link to="/login" className="inline-block mt-4 text-sm text-gray-400 hover:text-white transition-colors">Back to Login</Link>
             </div>
           </div>
         </motion.div>
@@ -206,7 +206,7 @@ export default function StudentRegisterPage() {
               <KeyRound size={42} strokeWidth={1} />
             </div>
             <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Final Activation</h2>
-            <p className="text-gray-400 text-sm mb-10">Enter the 6-digit registry cipher sent to your email.</p>
+            <p className="text-gray-400 text-sm mb-10">Enter the 6-digit activation code sent to your email.</p>
 
             <form onSubmit={handleFinalActivation} className="space-y-8">
               <input 
@@ -235,7 +235,7 @@ export default function StudentRegisterPage() {
                   className="flex items-center justify-center gap-2 text-xs text-gray-500 hover:text-emerald-400 transition-colors py-2 uppercase tracking-widest font-bold"
                 >
                   <RefreshCw size={14} />
-                  Resend Cipher
+                  Resend Code
                 </button>
               </div>
             </form>
@@ -256,9 +256,9 @@ export default function StudentRegisterPage() {
           <div className="mb-10 text-center md:text-left">
             <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center md:justify-start gap-3">
               <Sparkles className="text-blue-400" />
-              Establish Access Nodes
+              Setup Your Account
             </h1>
-            <p className="text-gray-400 text-sm">Privacy masking active. Update your localization nodes before activation.</p>
+            <p className="text-gray-400 text-sm">Verify and update your details before activating your portal account.</p>
           </div>
 
           <div className="flex items-center gap-4 mb-10 overflow-x-auto pb-2 scrollbar-hide">
@@ -270,7 +270,7 @@ export default function StudentRegisterPage() {
                   {step > i ? <CheckCircle2 size={16} /> : i}
                 </div>
                 <span className={`text-xs font-semibold uppercase tracking-widest ${step === i ? 'text-white' : 'text-gray-500'}`}>
-                  {i === 1 ? 'Nodes' : 'Access Cipher'}
+                  {i === 1 ? 'Details' : 'Security'}
                 </span>
                 {i === 1 && <div className="w-8 h-px bg-white/5 mx-2" />}
               </div>
@@ -319,7 +319,7 @@ export default function StudentRegisterPage() {
                   </div>
 
                   <Input 
-                    label={`Registry Name ${editableFields.includes('fullName') ? '*' : ''}`}
+                    label={`Full Name ${editableFields.includes('fullName') ? '*' : ''}`}
                     name="fullName"
                     value={formData.fullName} 
                     readOnly={!editableFields.includes('fullName')} 
@@ -329,7 +329,7 @@ export default function StudentRegisterPage() {
                     className={!editableFields.includes('fullName') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
-                    label="Masked Mobile" 
+                    label="Mobile Number" 
                     name="mobile"
                     value={formData.mobile} 
                     readOnly 
@@ -337,7 +337,7 @@ export default function StudentRegisterPage() {
                     className="opacity-50 blur-[0.5px] cursor-not-allowed" 
                   />
                   <Input 
-                    label={`Guardian Name ${editableFields.includes('fatherName') ? '*' : ''}`}
+                    label={`Father's Name ${editableFields.includes('fatherName') ? '*' : ''}`}
                     name="fatherName"
                     value={formData.fatherName} 
                     readOnly={!editableFields.includes('fatherName')} 
@@ -347,7 +347,7 @@ export default function StudentRegisterPage() {
                     className={!editableFields.includes('fatherName') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
-                    label={`Registry Email ${editableFields.includes('email') ? '*' : ''}`}
+                    label={`Email Address ${editableFields.includes('email') ? '*' : ''}`}
                     name="email"
                     value={formData.email} 
                     readOnly={!editableFields.includes('email')} 
@@ -358,7 +358,7 @@ export default function StudentRegisterPage() {
                   />
                   <div className="md:col-span-2">
                     <Input 
-                      label={`Registry Address ${editableFields.includes('address') ? '*' : ''}`}
+                      label={`Full Address ${editableFields.includes('address') ? '*' : ''}`}
                       name="address" 
                       value={formData.address} 
                       readOnly={!editableFields.includes('address')} 
@@ -369,7 +369,7 @@ export default function StudentRegisterPage() {
                     />
                   </div>
                   <Input 
-                    label={`Village/Area ${editableFields.includes('village') ? '*' : ''}`}
+                    label={`Village/Town ${editableFields.includes('village') ? '*' : ''}`}
                     name="village" 
                     value={formData.village} 
                     readOnly={!editableFields.includes('village')} 
@@ -379,7 +379,7 @@ export default function StudentRegisterPage() {
                     className={!editableFields.includes('village') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
-                    label={`City Hub ${editableFields.includes('city') ? '*' : ''}`}
+                    label={`City/District ${editableFields.includes('city') ? '*' : ''}`}
                     name="city" 
                     value={formData.city} 
                     readOnly={!editableFields.includes('city')} 
@@ -394,9 +394,9 @@ export default function StudentRegisterPage() {
                   <div className="md:col-span-2 space-y-4">
                     <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 text-blue-400/80 text-xs flex gap-3">
                       <ShieldCheck size={18} className="flex-shrink-0" />
-                      <p>Registry nodes mapped. Profile data is locked by administration. Define your 8+ character portal cipher to activate.</p>
+                      <p>Details verified. Standard profile data is locked. Create a strong password (8+ chars) to activate your account.</p>
                     </div>
-                    <Input label="Set Access Cipher" name="password" icon={Lock} placeholder="••••••••" value={formData.password} onChange={handleInputChange} type="password" required />
+                    <Input label="Create Your Password" name="password" icon={Lock} placeholder="••••••••" value={formData.password} onChange={handleInputChange} type="password" required />
                   </div>
                    <Input 
                     label={`State ${editableFields.includes('state') ? '*' : ''}`}
@@ -409,7 +409,7 @@ export default function StudentRegisterPage() {
                     className={!editableFields.includes('state') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
-                    label={`Point Code ${editableFields.includes('pincode') ? '*' : ''}`}
+                    label={`Pincode ${editableFields.includes('pincode') ? '*' : ''}`}
                     name="pincode" 
                     value={formData.pincode} 
                     readOnly={!editableFields.includes('pincode')} 
@@ -435,7 +435,7 @@ export default function StudentRegisterPage() {
               >
                 {loading ? <Loader2 className="animate-spin" size={20} /> : (
                   <>
-                    <span>{step === 1 ? 'Synchronize Nodes' : 'Initiate Activation'}</span>
+                    <span>{step === 1 ? 'Save and Continue' : 'Complete Registration'}</span>
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}

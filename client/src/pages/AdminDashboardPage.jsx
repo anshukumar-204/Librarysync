@@ -47,14 +47,14 @@ export default function AdminDashboardPage() {
             <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
               <Activity className="w-5 h-5 text-blue-500" />
             </div>
-            <h1 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.4em]">Operations Center</h1>
+            <h1 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.4em]">Administration Center</h1>
           </div>
           <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">
-            Registry <span className="text-zinc-600">Dynamics</span>
+            Attendance <span className="text-zinc-600">Analytics</span>
           </h2>
           <p className="text-zinc-500 text-sm mt-3 font-medium flex items-center gap-2">
             <Radio className="w-3 h-3 text-emerald-500 animate-pulse" />
-            Live data nodes synchronized at {new Date().toLocaleTimeString('en-US', { hour12: false })}
+            Live records updated at {new Date().toLocaleTimeString('en-US', { hour12: false })}
           </p>
         </div>
 
@@ -88,7 +88,7 @@ export default function AdminDashboardPage() {
           color="blue"
         />
         <StatCard
-          label="Sessions Inside"
+          label="Students Inside"
           value={liveStats.records?.filter(r => !r.checkOutTime).length || 0}
           icon={UserCheck}
           trend="Live"
@@ -98,14 +98,14 @@ export default function AdminDashboardPage() {
           label="Exits Recorded"
           value={liveStats.records?.filter(r => !!r.checkOutTime).length || 0}
           icon={UserMinus}
-          trend="Sync"
+          trend="Today"
           color="amber"
         />
         <StatCard
-          label="Registry Date"
+          label="Selected Date"
           value={formatDate(selectedDate)}
           icon={Calendar}
-          trend="Selected"
+          trend="Archive"
           color="indigo"
         />
       </div>
@@ -127,8 +127,8 @@ export default function AdminDashboardPage() {
                   <Activity className="w-6 h-6 text-emerald-500" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-white tracking-tight leading-none uppercase italic">Live Station</h3>
-                  <p className="text-zinc-500 text-[10px] mt-2 font-black uppercase tracking-[0.2em]">{filteredRecords.length} active sessions detected</p>
+                  <h3 className="text-lg font-black text-white tracking-tight leading-none uppercase italic">Live Attendance</h3>
+                  <p className="text-zinc-500 text-[10px] mt-2 font-black uppercase tracking-[0.2em]">{filteredRecords.length} students currently present</p>
                 </div>
               </div>
 
@@ -202,7 +202,7 @@ export default function AdminDashboardPage() {
                 {filteredRecords.length === 0 && (
                   <div className="h-64 flex flex-col items-center justify-center text-zinc-700 space-y-4">
                     <Activity className="w-12 h-12 opacity-20" />
-                    <p className="text-[11px] font-black uppercase tracking-[0.3em]">No registry nodes found</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.3em]">No attendance records found</p>
                   </div>
                 )}
               </div>
@@ -227,7 +227,7 @@ export default function AdminDashboardPage() {
                 <div key={idx} className="space-y-2">
                   <div className="flex justify-between items-end">
                     <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{day.date}</span>
-                    <span className="text-[11px] font-black text-white">{day.count} nodes</span>
+                    <span className="text-[11px] font-black text-white">{day.count} records</span>
                   </div>
                   <div className="h-1.5 w-full bg-zinc-800/50 rounded-full overflow-hidden">
                     <motion.div
@@ -246,9 +246,9 @@ export default function AdminDashboardPage() {
           <div className="group bg-blue-600 rounded-[40px] p-8 shadow-[0_24px_50px_rgba(37,99,235,0.3)] relative overflow-hidden transition-all hover:scale-[1.02]">
             <div className="relative z-10">
               <Activity className="w-10 h-10 text-white mb-6 group-hover:scale-110 transition-transform" />
-              <h3 className="text-2xl font-black text-white tracking-tighter uppercase italic leading-tight">System<br />Optimization</h3>
+              <h3 className="text-2xl font-black text-white tracking-tighter uppercase italic leading-tight">Library<br />Usage</h3>
               <p className="text-blue-100/60 text-[11px] mt-4 font-bold uppercase tracking-widest leading-loose">
-                Peak usage detected between 1 PM - 4 PM. Node capacity remaining: 82%.
+                Peak usage detected between 1 PM - 4 PM. Library capacity remaining: 82%.
               </p>
             </div>
             {/* DECORATION */}

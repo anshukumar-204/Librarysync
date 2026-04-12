@@ -24,13 +24,13 @@ export default function ResetPasswordPage() {
     try {
       const resultAction = await dispatch(resetPasswordAdmin({ email, otp, newPassword }));
       if (resetPasswordAdmin.fulfilled.match(resultAction)) {
-        toast.success("Registry Cipher Updated Successfully");
+        toast.success("Password Updated Successfully");
         navigate('/login');
       } else {
-        toast.error(resultAction.payload || "OTP Verification Failed");
+        toast.error(resultAction.payload || "Verification Failed");
       }
     } catch (err) {
-      toast.error("Network Synchronicity Lost");
+      toast.error("Connection lost");
     } finally {
       setIsSubmitting(false);
     }
@@ -50,15 +50,15 @@ export default function ResetPasswordPage() {
             <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-6 font-mono font-bold text-2xl">
               <KeyRound size={32} />
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">Registry Key Update</h1>
+            <h1 className="text-2xl font-bold text-white mb-2">Change Password</h1>
             <p className="text-gray-400 text-sm">
-              Validate your identity with the disseminated OTP and set a new grid access cipher.
+              Enter the verification code sent to your email and set your new password below.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest pl-1">Registry Email</label>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest pl-1">Email Address</label>
               <input 
                 type="email" 
                 value={email}
@@ -69,7 +69,7 @@ export default function ResetPasswordPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest pl-1">Verification OTP</label>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest pl-1">Verification Code</label>
               <div className="relative group/input">
                 <div className="absolute inset-y-0 left-4 flex items-center text-gray-400 group-focus-within/input:text-emerald-400">
                   <ShieldEllipsis size={18} />
@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest pl-1">New Access Cipher</label>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest pl-1">New Password</label>
               <div className="relative group/input">
                 <div className="absolute inset-y-0 left-4 flex items-center text-gray-400 group-focus-within/input:text-emerald-400">
                   <Lock size={18} />
@@ -120,7 +120,7 @@ export default function ResetPasswordPage() {
               ) : (
                 <>
                   <CheckCircle2 size={18} />
-                  <span>Update Registry Key</span>
+                  <span>Update Password</span>
                 </>
               )}
             </motion.button>
@@ -128,7 +128,7 @@ export default function ResetPasswordPage() {
 
           <div className="mt-8 text-center">
             <Link to="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
-              Return to Grid Entry
+              Back to Login
             </Link>
           </div>
         </div>
