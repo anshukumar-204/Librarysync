@@ -1167,7 +1167,6 @@ export default function StudentDashboard() {
                     <p className="text-[10px] font-black uppercase tracking-widest">No Data</p>
                   </div>
                 )}
-              </div>
             </div>
           </div>
           </div>
