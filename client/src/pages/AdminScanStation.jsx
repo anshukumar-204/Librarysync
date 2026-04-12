@@ -5,7 +5,7 @@ import { ShieldCheck, MapPin, GraduationCap, ArrowLeft, RefreshCw, Printer } fro
 import { Link } from 'react-router-dom';
 
 export default function AdminScanStation() {
-  const qrValue = "LIBRARY_NODE_QR_MOCK"; // Static QR for the library station
+  const qrValue = import.meta.env.VITE_LIBRARY_STATION_SECRET || "LIBRARY_NODE_QR_MOCK"; // Secure QR for the library station
 
   const handlePrint = () => {
     window.print();

@@ -27,9 +27,17 @@ export const markAttendance = async (req: Request, res: Response) => {
   try {
     const { qrToken } = req.body;
     
-    // For now, accept any non-empty qrToken (or you can specifically validate it matches a static string like "LIBRARY_CHECKIN_NODE")
     if (!qrToken) {
-      return res.status(400).json({ success: false, message: "QR Token is required" });
+      return res.status(400).json({ success: false, message: "Scanner data (QR Token) is required" });
+    }
+
+    // STRICT CHECK: Only allow the library's physical station QR
+    const stationSecret = process.env.LIBRARY_STATION_SECRET || "LIBRARY_NODE_QR_MOCK";
+    if (qrToken !== stationSecret) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Invalid Scanner Node. Please scan the official QR code displayed at the library entrance." 
+      });
     }
 
     // Identify the student using their logged-in session, not the QR code!
