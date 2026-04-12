@@ -791,7 +791,7 @@ export default function StudentDashboard() {
           </div>
           <div className="text-center">
             <h2 className="text-2xl sm:text-3xl font-black text-white italic tracking-tighter uppercase leading-none">{user?.fullName}</h2>
-            <p className="text-[10px] sm:text-xs text-blue-500 font-bold uppercase tracking-[0.2em] mt-3">Elite Scholar • {user?.id?.slice(-6).toUpperCase() || 'EXTERNAL NODE'}</p>
+            <p className="text-[10px] sm:text-xs text-blue-500 font-bold uppercase tracking-[0.2em] mt-3">Elite Scholar • {String(user?.id || '').slice(-6).toUpperCase() || 'EXTERNAL NODE'}</p>
           </div>
         </div>
 
@@ -1190,7 +1190,7 @@ export default function StudentDashboard() {
           <div className="glass-card p-8 rounded-[3rem] bg-gradient-to-br from-blue-600/5 to-transparent border border-white/5 relative overflow-hidden shadow-2xl">
             <div className="flex flex-col items-center">
               <div className="w-48 h-48 relative mb-8">
-                <ResponsiveContainer width="100%" height="100%" aspect={1}>
+                <ResponsiveContainer width="100%" height="100%" aspect={1} debounce={100}>
                   <PieChart>
                     <Pie
                       data={[
@@ -1262,7 +1262,7 @@ export default function StudentDashboard() {
                 <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight italic">Velocity</h2>
               </div>
               <div className="h-[200px] sm:h-[250px] min-h-[200px] sm:min-h-[250px]">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={100}>
                   <BarChart data={getProcessedChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
                     <XAxis dataKey={chartRange === 'year' ? 'label' : 'date'} axisLine={false} tickLine={false} tick={{ fill: '#4B5563', fontSize: 10, fontWeight: '800' }} tickFormatter={getRangeLabel} />
@@ -1281,7 +1281,7 @@ export default function StudentDashboard() {
               </div>
               <div className="h-[200px] sm:h-[250px] min-h-[200px] sm:min-h-[250px]">
                 {subjectAnalytics.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0} aspect={1}>
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} aspect={1} debounce={100}>
                     <PieChart>
                       <Pie data={subjectAnalytics} dataKey="hours" nameKey="subject" cx="50%" cy="50%" innerRadius={50} outerRadius={70} fill="#8884d8" paddingAngle={5}>
                         {subjectAnalytics.map((entry, index) => (
