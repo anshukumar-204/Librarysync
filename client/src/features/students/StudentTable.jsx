@@ -86,7 +86,7 @@ export default function StudentTable() {
                   <div className="flex justify-center">
                     <span className={cn(
                       "px-4 py-2 text-[9px] font-black uppercase tracking-widest rounded-full border",
-                      (student.status === 'Active' || student.user?.status === 'active')
+                      (student.status?.toLowerCase() === 'active' || student.user?.status?.toLowerCase() === 'active')
                         ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                         : "bg-rose-500/10 text-rose-500 border-rose-500/20"
                     )}>
