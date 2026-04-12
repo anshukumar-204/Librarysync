@@ -1,5 +1,6 @@
 import { MoreHorizontal, PenLine, ChevronLeft, ChevronRight, Eye, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { calculateFeeStatus } from '../../utils/feeUtils';
 import { fetchStudents, openEditModal } from './studentSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { useEffect } from 'react';
