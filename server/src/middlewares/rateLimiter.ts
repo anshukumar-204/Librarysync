@@ -4,7 +4,7 @@ import rateLimit from "express-rate-limit";
 // Relaxed to 20 to allow multiple students from same Library WiFi/Network
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes window
-  max: 20, // limit each IP to 20 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
   message: {
     success: false,
     message: "Network Security Alert: Too many login attempts from this connection. Please wait 15 minutes."
@@ -16,7 +16,7 @@ export const authRateLimiter = rateLimit({
 // Standard API limiter for general routes
 export const apiRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 100, 
+  max: 2000, 
   message: {
     success: false,
     message: "Too many requests, please try again later."
