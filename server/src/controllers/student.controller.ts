@@ -56,7 +56,8 @@ export const createStudent = async (req: Request, res: Response) => {
             district: district || null,
             city: city || null,
             state: state || null,
-            pincode: pincode || null
+            pincode: pincode || null,
+            joinDate: joinDate ? new Date(joinDate) : new Date()
           }
         }
       },
@@ -128,8 +129,9 @@ export const updateStudent = async (req: Request, res: Response) => {
 
     const studentId = Number(req.params.id);
     const { 
-      fullName, fatherName, profileImage, mobile, email, 
-      address, village, post, district, city, state, pincode, status 
+      fullName, fatherName, profileImage, mobile, email,
+      address, village, post, district, city, state, pincode,
+      status, bio, joinDate
     } = req.body;
 
     // MANDATORY CHANGE: At least one primary identifier is required

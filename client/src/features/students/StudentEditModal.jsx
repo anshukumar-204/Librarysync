@@ -41,7 +41,8 @@ export default function StudentEditModal() {
     state: "",
     pincode: "",
     status: "Active",
-    bio: ""
+    bio: "",
+    joinDate: new Date().toISOString().split('T')[0]
   });
 
   useEffect(() => {
@@ -61,13 +62,14 @@ export default function StudentEditModal() {
           state: editingStudent.state || "",
           pincode: editingStudent.pincode || "",
           status: editingStudent.status || editingStudent.user?.status || "Active",
-          bio: editingStudent.bio || ""
+          bio: editingStudent.bio || "",
+          joinDate: editingStudent.joinDate ? editingStudent.joinDate.split('T')[0] : new Date().toISOString().split('T')[0]
         });
       } else {
         setFormData({
           fullName: "", email: "", mobile: "", fatherName: "", profileImage: "",
           address: "", village: "", post: "", district: "", city: "", state: "", pincode: "",
-          status: "Active", bio: ""
+          status: "Active", bio: "", joinDate: new Date().toISOString().split('T')[0]
         });
       }
       setErrors({});
@@ -397,6 +399,18 @@ export default function StudentEditModal() {
                               <option value="Inactive">Registry Hold</option>
                             </select>
                             <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 rotate-90 text-zinc-600 pointer-events-none" size={16} />
+                          </div>
+                        </div>
+                        <div className="space-y-2 col-span-2">
+                          <label className="text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest block">Official Joining Date</label>
+                          <div className="relative">
+                            <input 
+                              type="date"
+                              name="joinDate"
+                              value={formData.joinDate}
+                              onChange={handleChange}
+                              className="w-full bg-zinc-900 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white outline-none focus:border-emerald-500/30 transition-all cursor-pointer"
+                            />
                           </div>
                         </div>
                         <div className="col-span-2">
