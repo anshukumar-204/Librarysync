@@ -540,8 +540,8 @@ function Input({ label, icon: Icon, className, type, status, ...props }) {
             <CheckCircle2 size={14} className="text-emerald-500" />
           )}
 
-          {/* Manual Verify Action if not checked and value is present */}
-          {status && !status.loading && !status.message && props.value && props.value.length > 5 && (
+          {/* Manual Verify Action - Persistent so users can re-trigger check if needed */}
+          {status && !status.loading && props.value && props.value.length > 5 && (
             <button 
               type="button"
               onClick={status.onCheckNow || props.onCheckNow}

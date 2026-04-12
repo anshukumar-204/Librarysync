@@ -480,8 +480,8 @@ const Field = ({ label, error, isTextArea, isLarge, status, onCheckNow, ...props
           </div>
         )}
 
-        {/* Manual Verify Action if not checked */}
-        {status && !status.loading && !status.message && props.value && props.value.length > 5 && (
+        {/* Manual Verify Action - Persistent so users can re-check if needed */}
+        {status && !status.loading && props.value && props.value.length > 5 && (
           <button 
             type="button"
             onClick={onCheckNow}
