@@ -59,7 +59,9 @@ import {
   fetchSubjectAnalytics,
   updatePomodoro,
   tickPomodoro,
-  savePomodoroSettings
+  savePomodoroSettings,
+  requestProfileOtp,
+  updateProfileSelf
 } from '../store/slices/studentDashboardSlice';
 import {
   ResponsiveContainer,
