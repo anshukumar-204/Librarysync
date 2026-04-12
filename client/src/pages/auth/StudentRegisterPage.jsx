@@ -44,8 +44,6 @@ export default function StudentRegisterPage() {
 
   const [step, setStep] = useState(1);
   const dispatch = useDispatch();
-    runCheck();
-  };
 
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.adminAuth);
@@ -535,10 +533,24 @@ function Input({ label, icon: Icon, className, type, status, ...props }) {
         {/* Status Badges inside input */}
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
           {status?.loading && <Loader2 size={12} className="text-blue-500 animate-spin" />}
+          
           {!status?.loading && status?.available === false && <AlertCircle size={14} className="text-rose-500" />}
+          
           {!status?.loading && status?.available === true && props.value && props.value.length > 5 && (
             <CheckCircle2 size={14} className="text-emerald-500" />
           )}
+
+          {/* Manual Verify Action if not checked and value is present */}
+          {status && !status.loading && !status.message && props.value && props.value.length > 5 && (
+            <button 
+              type="button"
+              onClick={status.onCheckNow || props.onCheckNow}
+              className="text-[8px] font-black uppercase tracking-tighter px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all text-zinc-400"
+            >
+              Check Now
+            </button>
+          )}
+
           {isPassword && (
             <button
               type="button"

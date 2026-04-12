@@ -327,7 +327,7 @@ export default function StudentEditModal() {
                             error={errors.mobile || availability.mobile.message} 
                             isLarge 
                             status={availability.mobile}
-                            onCheckNow={() => runCheck('mobile', formData.mobile)}
+                            onCheckNow={() => forceCheck('mobile')}
                           />
                         </div>
                         <div className="col-span-2">
@@ -340,7 +340,7 @@ export default function StudentEditModal() {
                             error={errors.email || availability.email.message} 
                             isLarge 
                             status={availability.email}
-                            onCheckNow={() => runCheck('email', formData.email)}
+                            onCheckNow={() => forceCheck('email')}
                           />
                         </div>
                       </div>
