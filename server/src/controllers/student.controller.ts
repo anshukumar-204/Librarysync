@@ -108,7 +108,8 @@ export const getStudents = async (req: Request, res: Response) => {
             email: true,
             status: true
           }
-        }
+        },
+        feePayments: true
       },
       orderBy: { joinDate: 'desc' }
     });

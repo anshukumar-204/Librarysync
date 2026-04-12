@@ -3,6 +3,7 @@ import studentReducer from '../features/students/studentSlice';
 import adminAuthReducer from './slices/authSlice';
 import studentDashboardReducer from './slices/studentDashboardSlice';
 import adminDashboardReducer from './slices/adminDashboardSlice';
+import feeReducer from './slices/feeSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,5 +11,6 @@ export const store = configureStore({
     adminAuth: adminAuthReducer,
     studentDashboard: studentDashboardReducer,
     adminDashboard: adminDashboardReducer,
+    fees: feeReducer,
   },
 });

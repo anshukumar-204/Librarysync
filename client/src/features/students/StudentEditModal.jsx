@@ -4,10 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, User, Settings, ShieldCheck,
   Loader2, Camera, Check, ChevronRight, AlertCircle,
-  GraduationCap, Mail, MapPin, Home
+  GraduationCap, Mail, MapPin, Home, CreditCard
 } from "lucide-react";
 import { registerStudent, modifyStudent, closeEditModal } from './studentSlice';
 import StudentProfileView from './StudentProfileView';
+import StudentFeeSection from './StudentFeeSection';
 import { uploadImageToCloudinary } from '../../services/cloudinary';
 import { checkAvailability } from '../../services/studentApi';
 import toast from "react-hot-toast";
@@ -191,6 +192,7 @@ export default function StudentEditModal() {
     { id: "personal", label: "Identity", icon: User, hasError: !!errors.fullName || !!errors.fatherName || !!errors.mobile },
     { id: "residence", label: "Residence", icon: Home, hasError: !!errors.village || !!errors.post || !!errors.district || !!errors.address },
     { id: "academic", label: "Administrative", icon: ShieldCheck, hasError: false },
+    ...(editingStudent ? [{ id: "financials", label: "Fees & Ledger", icon: CreditCard, hasError: false }] : []),
   ];
 
   if (!isEditModalOpen) return null;
@@ -403,6 +405,12 @@ export default function StudentEditModal() {
                       </div>
                     </motion.div>
                   )}
+
+                  {activeSection === "financials" && (
+                    <motion.div key="f" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}>
+                      <StudentFeeSection studentId={editingStudent?.id} />
+                    </motion.div>
+                  )}
                 </>
               )}
             </AnimatePresence>
@@ -420,9 +428,9 @@ export default function StudentEditModal() {
                   Back
                 </button>
                 <button
-                  onClick={activeSection !== 'academic' ? () => { if (activeSection === 'personal') setActiveSection('residence'); if (activeSection === 'residence') setActiveSection('academic'); } : handleSubmit}
+                  onClick={activeSection === 'personal' ? () => setActiveSection('residence') : activeSection === 'residence' ? () => setActiveSection('academic') : activeSection === 'academic' ? handleSubmit : () => {}}
                   disabled={isSubmitting || uploading}
-                  className="flex items-center gap-3 px-10 py-5 bg-emerald-600 text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/20 active:scale-95 transition-all disabled:opacity-50"
+                  className={`flex items-center gap-3 px-10 py-5 bg-emerald-600 text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/20 active:scale-95 transition-all disabled:opacity-50 ${activeSection === 'financials' ? 'hidden' : ''}`}
                 >
                   {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : activeSection === 'academic' ? <Check size={16} strokeWidth={3} /> : <ChevronRight size={16} strokeWidth={3} />}
                   <span>{activeSection === 'academic' ? (editingStudent ? 'Synchronize Record' : 'Finalize Registry') : 'Continue Registry'}</span>

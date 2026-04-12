@@ -43,6 +43,7 @@ export default function StudentTable() {
               <th className="px-6 py-7">PROXY_UNIT</th>
               <th className="px-6 py-7">COMMS_NODE</th>
               <th className="px-6 py-7 text-center">STATUS</th>
+              <th className="px-6 py-7 text-center">FINANCIALS</th>
               <th className="px-10 py-7 text-right">OPERATIONS</th>
             </tr>
           </thead>
@@ -92,6 +93,24 @@ export default function StudentTable() {
                     )}>
                       {student.status || student.user?.status || 'Active'}
                     </span>
+                  </div>
+                </td>
+                <td className="px-6 py-6 border-l border-white/[0.02]">
+                  <div className="flex flex-col items-center gap-1">
+                    {(() => {
+                        const fee = calculateFeeStatus(student);
+                        const colors = {
+                            emerald: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]",
+                            rose: "bg-rose-500/20 text-rose-400 border-rose-500/20 animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.1)]",
+                            blue: "bg-blue-500/10 text-blue-500 border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]",
+                            zinc: "bg-zinc-500/10 text-zinc-500 border-zinc-500/20"
+                        };
+                        return (
+                            <span className={cn("px-4 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-[0.2em] border transition-all", colors[fee.color])}>
+                                {fee.label}
+                            </span>
+                        );
+                    })()}
                   </div>
                 </td>
                 <td className="px-10 py-6">

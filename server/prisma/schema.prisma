@@ -56,12 +56,28 @@ model Student {
   currentStreak  Int      @default(0)
   maxStreak      Int      @default(0)
   lastAttendanceDate DateTime?
+  monthlyFee     Float    @default(500.0)
 
   user         User     @relation(fields: [userId], references: [id])
   attendances  Attendance[]
   studyLogs    StudyLog[]
   tasks        Task[]
   routines     WeeklyRoutine[]
+  feePayments  FeePayment[]
+}
+
+model FeePayment {
+  id          Int      @id @default(autoincrement())
+  studentId   Int
+  month       Int      // 1-12
+  year        Int
+  amount      Float
+  paymentDate DateTime @default(now())
+  remarks     String?
+  
+  student     Student  @relation(fields: [studentId], references: [id])
+
+  @@index([studentId, month, year])
 }
 
 model WeeklyRoutine {

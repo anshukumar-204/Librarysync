@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.routes.js";
 import studentRoutes from "./routes/student.routes.js";
 import attendanceRoutes from "./routes/attendance.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
+import feeRoutes from "./routes/fee.routes.js";
 import { apiRateLimiter } from "./middlewares/rateLimiter.js";
 
 const app = express();
@@ -63,6 +64,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/students", studentRoutes);
 app.use("/api/v1/attendance", attendanceRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
+app.use("/api/v1/fees", feeRoutes);
 
 // Export for server.ts
 export default app;

@@ -37,9 +37,12 @@ import {
   Mail,
   Phone,
   Shield,
-  Power
+  Power,
+  IndianRupee,
+  CreditCard
 } from 'lucide-react';
 import { logoutAdmin } from '../store/slices/authSlice';
+import { getFeeStatus } from '../store/slices/feeSlice';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import {
   fetchTodayStatus,
@@ -82,6 +85,7 @@ import {
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { cn } from '../utils/cn';
 
 export default function StudentDashboard() {
   const { user } = useSelector((state) => state.adminAuth);
@@ -99,6 +103,7 @@ export default function StudentDashboard() {
     loading,
     actionLoading
   } = useSelector((state) => state.studentDashboard);
+  const { status: feeStatus } = useSelector((state) => state.fees);
 
   const isRestricted = user?.status?.toLowerCase() === 'inactive' || user?.status?.toLowerCase() === 'hold';
   const isInLibrary = todayStatus?.status === 'In Library';
@@ -194,6 +199,7 @@ export default function StudentDashboard() {
     dispatch(fetchTasks());
     dispatch(fetchRoutine());
     dispatch(fetchSubjectAnalytics());
+    dispatch(getFeeStatus());
   }, [dispatch]);
 
   // Pomodoro Ticker
@@ -1203,6 +1209,7 @@ export default function StudentDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Stats */}
         <div className="lg:col-span-5 xl:col-span-4 space-y-8">
+          {renderFeeStatusCard()}
           <div className="glass-card p-6 rounded-[2.5rem] bg-white/[0.02] border border-white/5 flex items-center justify-between shadow-xl">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500 border border-orange-500/20">
