@@ -618,6 +618,29 @@ export default function StudentDashboard() {
     </div>
   );
 
+  const renderRestrictedAccess = () => (
+    <div className="min-h-[70vh] flex flex-col items-center justify-center text-center p-6 bg-zinc-900/40 backdrop-blur-3xl rounded-[3rem] border border-rose-500/10 shadow-[0_32px_100px_rgba(244,63,94,0.1)]">
+      <div className="w-24 h-24 rounded-[32px] bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-10 shadow-lg shadow-rose-500/5">
+        <AlertCircle size={48} className="text-rose-500" />
+      </div>
+      <h2 className="text-4xl font-black text-rose-500 tracking-tighter uppercase italic leading-tight mb-6">
+        Registry<br />
+        <span className="text-white">Access Locked</span>
+      </h2>
+      <p className="max-w-md text-zinc-400 font-bold uppercase tracking-[0.1em] text-[11px] leading-loose mb-12">
+        Your institutional profile is currently on <span className="text-rose-400 font-black tracking-widest">Registry Hold</span>. Access to library rhythms and study nodes has been suspended. Please synchronize with the administration office to restore portal connectivity.
+      </p>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <a href="mailto:admin@institute.edu" className="px-10 py-5 bg-white text-black rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all">
+          Contact Administration
+        </a>
+        <button onClick={handleLogout} className="px-10 py-5 bg-zinc-800 text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] border border-white/5 shadow-2xl active:scale-95 transition-all">
+          Exit Portal
+        </button>
+      </div>
+    </div>
+  );
+
   // --- VIEW RENDERING FUNCTIONS ---
 
   const renderStudyHub = () => (
@@ -1242,7 +1265,11 @@ export default function StudentDashboard() {
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 pt-8 pb-20">
         <AnimatePresence mode="wait">
-          {loading ? (
+          {user?.status?.toLowerCase() === 'inactive' || user?.status?.toLowerCase() === 'hold' || user?.status === 'Inactive' || user?.status === 'Hold' ? (
+             <motion.div key="restricted" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
+               {renderRestrictedAccess()}
+             </motion.div>
+          ) : loading ? (
             <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {activeView === 'hub' && <HubSkeleton />}
               {activeView === 'rank' && <RankSkeleton />}

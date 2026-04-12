@@ -168,7 +168,7 @@ export const login = async (req: Request, res: Response) => {
       success: true,
       message: "Access granted",
       accessToken,
-      user: { id: user.id, name: user.name, role: user.role, email: user.email }
+      user: { id: user.id, name: user.name, role: user.role, email: user.email, status: user.status }
     });
 
   } catch (error) {
@@ -212,7 +212,7 @@ export const verifyLoginOtp = async (req: Request, res: Response) => {
       success: true,
       message: "Identity verified. Node access authorized.",
       accessToken,
-      user: { id: user.id, name: user.name, role: user.role, email: user.email }
+      user: { id: user.id, name: user.name, role: user.role, email: user.email, status: user.status }
     });
 
   } catch (error) {
@@ -544,7 +544,7 @@ export const completeRegistration = async (req: Request, res: Response) => {
       success: true,
       message: "Portal account successfully activated",
       accessToken,
-      user: { id: updatedUser.id, name: updatedUser.name, role: updatedUser.role, email: updatedUser.email }
+      user: { id: updatedUser.id, name: updatedUser.name, role: updatedUser.role, email: updatedUser.email, status: updatedUser.status }
     });
 
   } catch (error) {
