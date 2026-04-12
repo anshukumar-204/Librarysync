@@ -105,14 +105,26 @@ export default function StudentDashboard() {
   const [activeView, setActiveView] = React.useState('hub'); // 'hub' | 'rank' | 'journal' | 'history' | 'routine' | 'profile'
   const [activeModal, setActiveModal] = React.useState(null); // 'qr' | 'goal' | 'profile_otp'
   const [chartRange, setChartRange] = React.useState('week'); // 'week' | 'month' | 'year'
-  const [tempGoal, setTempGoal] = React.useState(metrics?.dailyGoalHours || 8);
-  const [profileFormData, setProfileFormData] = React.useState({});
+  const [profileFormData, setProfileFormData] = React.useState({
+    fullName: '',
+    fatherName: '',
+    address: '',
+    village: '',
+    post: '',
+    district: '',
+    city: '',
+    state: '',
+    pincode: '',
+    bio: ''
+  });
+
   const [otpValue, setOtpValue] = React.useState('');
   const [otpRequestPending, setOtpRequestPending] = React.useState(false);
   const [isProfileSynced, setIsProfileSynced] = React.useState(false);
 
   // Sync Profile Form Data when metrics are loaded
   useEffect(() => {
+    // If we have verified student data from the registry, prioritize it
     if (metrics?.student) {
       const s = metrics.student;
       setProfileFormData({
@@ -129,13 +141,13 @@ export default function StudentDashboard() {
       });
       setIsProfileSynced(true);
     } else if (user && !isProfileSynced) {
-       // Fallback to basic user info if student profile hasn't been created yet
+       // Fallback to basic session info while registry is loading
        setProfileFormData(prev => ({
          ...prev,
          fullName: prev.fullName || user.name || ''
        }));
     }
-  }, [metrics?.student, user, isProfileSynced]);
+  }, [metrics?.student, user?.name, isProfileSynced]);
   const [logFormData, setLogFormData] = React.useState({
     subject: '',
     topicsCovered: '',
@@ -737,35 +749,35 @@ export default function StudentDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
               <div className="space-y-3">
                 <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Full Name</label>
-                <input name="fullName" value={profileFormData.fullName || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+                <input name="fullName" value={profileFormData.fullName || ''} onChange={handleProfileChange} placeholder="Enter your full name" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
               </div>
               <div className="space-y-3">
                 <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Father/Guardian Name</label>
-                <input name="fatherName" value={profileFormData.fatherName || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+                <input name="fatherName" value={profileFormData.fatherName || ''} onChange={handleProfileChange} placeholder="Enter guardian name" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
               </div>
               <div className="space-y-3">
                 <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Village/Locality</label>
-                <input name="village" value={profileFormData.village || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+                <input name="village" value={profileFormData.village || ''} onChange={handleProfileChange} placeholder="e.g. Rampur" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
               </div>
               <div className="space-y-3">
                 <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Post Office</label>
-                <input name="post" value={profileFormData.post || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+                <input name="post" value={profileFormData.post || ''} onChange={handleProfileChange} placeholder="Enter post office" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
               </div>
               <div className="space-y-3">
                 <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">District</label>
-                <input name="district" value={profileFormData.district || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+                <input name="district" value={profileFormData.district || ''} onChange={handleProfileChange} placeholder="Enter district" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
               </div>
               <div className="space-y-3">
                 <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Pincode</label>
-                <input name="pincode" value={profileFormData.pincode || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+                <input name="pincode" value={profileFormData.pincode || ''} onChange={handleProfileChange} placeholder="6-digit PIN" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
               </div>
               <div className="col-span-1 sm:col-span-2 space-y-3">
                 <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Permanent Address</label>
-                <textarea name="address" value={profileFormData.address || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none" />
+                <textarea name="address" value={profileFormData.address || ''} onChange={handleProfileChange} placeholder="Enter your full permanent address details..." className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none placeholder:text-white/10" />
               </div>
               <div className="col-span-1 sm:col-span-2 space-y-3">
                 <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Personal Bio/Note</label>
-               <textarea name="bio" value={profileFormData.bio || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none" />
+               <textarea name="bio" value={profileFormData.bio || ''} onChange={handleProfileChange} placeholder="Add a short bio or notes about your study goals..." className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none placeholder:text-white/10" />
              </div>
           </div>
 
