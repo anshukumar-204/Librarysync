@@ -30,7 +30,8 @@ import {
   Timer,
   Activity,
   RefreshCcw,
-  Zap
+  Zap,
+  AlertCircle
 } from 'lucide-react';
 import { logoutAdmin } from '../store/slices/authSlice';
 import { Scanner } from '@yudiel/react-qr-scanner';
