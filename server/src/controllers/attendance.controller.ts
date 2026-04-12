@@ -113,6 +113,20 @@ export const markAttendance = async (req: Request, res: Response) => {
 
     // Case 2: Second Scan -> Check-out
     if (existingRecord.checkInTime && !existingRecord.checkOutTime) {
+      // Logic: Allow check-out only after 2 minutes of check-in
+      const checkInTime = new Date(existingRecord.checkInTime).getTime();
+      const currentTime = new Date().getTime();
+      const diffMinutes = (currentTime - checkInTime) / (1000 * 60);
+
+      if (diffMinutes < 2) {
+        const remainingSeconds = Math.ceil(120 - (currentTime - checkInTime) / 1000);
+        return res.status(403).json({ 
+          success: false, 
+          message: `Too early to check out. Please wait ${remainingSeconds} more seconds to ensure session validity.`,
+          status: "In Library"
+        });
+      }
+
       await prisma.attendance.update({
         where: { id: existingRecord.id },
         data: { checkOutTime: new Date() }
