@@ -394,7 +394,7 @@ export default function StudentRegisterPage() {
                     icon={Phone} 
                     status={availability.mobile}
                     onCheckNow={() => forceCheck('mobile')}
-                    className="opacity-50 blur-[0.5px] cursor-not-allowed" 
+                    className={availability.mobile.available === false ? "border-rose-500/50" : "opacity-50 blur-[0.5px] cursor-not-allowed"} 
                   />
                   <Input 
                     label={`Father's Name ${editableFields.includes('fatherName') ? '*' : ''}`}
@@ -416,7 +416,7 @@ export default function StudentRegisterPage() {
                     required={editableFields.includes('email')}
                     status={availability.email}
                     onCheckNow={() => forceCheck('email')}
-                    className={!editableFields.includes('email') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
+                    className={availability.email.available === false ? "border-rose-500/50" : !editableFields.includes('email') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <div className="md:col-span-2">
                     <Input 
@@ -527,7 +527,7 @@ function Input({ label, icon: Icon, className, type, status, ...props }) {
         <input 
           {...props}
           type={effectiveType}
-          className={`w-full bg-[#161B22]/50 border border-white/5 rounded-xl py-3.5 ${Icon ? 'pl-11' : 'px-4'} ${isPassword ? 'pr-12' : 'pr-4'} text-white text-sm focus:outline-none focus:border-blue-500/50 focus:bg-[#161B22] transition-all ${className}`}
+          className={`w-full bg-[#161B22]/50 border ${status?.available === false ? 'border-rose-500/50' : 'border-white/5'} rounded-xl py-3.5 ${Icon ? 'pl-11' : 'px-4'} ${isPassword ? 'pr-12' : 'pr-4'} text-white text-sm focus:outline-none focus:border-blue-500/50 focus:bg-[#161B22] transition-all ${className}`}
         />
         
         {/* Status Badges inside input */}

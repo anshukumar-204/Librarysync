@@ -324,7 +324,7 @@ export default function StudentEditModal() {
                             value={formData.mobile} 
                             onChange={handleChange} 
                             placeholder="+1 (555) 000-0000" 
-                            error={errors.mobile || availability.mobile.message} 
+                            error={errors.mobile || (availability.mobile.available === false ? availability.mobile.message : '')} 
                             isLarge 
                             status={availability.mobile}
                             onCheckNow={() => forceCheck('mobile')}
@@ -337,7 +337,7 @@ export default function StudentEditModal() {
                             value={formData.email} 
                             onChange={handleChange} 
                             placeholder="alex@institute.edu" 
-                            error={errors.email || availability.email.message} 
+                            error={errors.email || (availability.email.available === false ? availability.email.message : '')} 
                             isLarge 
                             status={availability.email}
                             onCheckNow={() => forceCheck('email')}
