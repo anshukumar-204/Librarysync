@@ -113,7 +113,19 @@ export const getConsistencyMetrics = async (req: Request, res: Response) => {
       data: {
         totalDaysAttended,
         totalStudyHours: Number(totalStudyHours.toFixed(2)),
-        currentStreak
+        currentStreak,
+        student: {
+          fullName: student.fullName,
+          fatherName: student.fatherName,
+          address: student.address,
+          village: student.village,
+          post: student.post,
+          district: student.district,
+          city: student.city,
+          state: student.state,
+          pincode: student.pincode,
+          bio: student.bio
+        }
       }
     });
 

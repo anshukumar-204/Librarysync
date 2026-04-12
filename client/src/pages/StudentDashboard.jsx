@@ -709,42 +709,42 @@ export default function StudentDashboard() {
     return (
       <div className="space-y-10 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-2xl mx-auto">
         <div className="flex flex-col gap-2">
-          <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Profile Registry</h2>
-          <p className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.3em]">Institutional Identity Management</p>
+          <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Your Profile</h2>
+          <p className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.3em]">Manage your personal library records</p>
         </div>
 
         <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[3rem] border border-white/5 p-8 sm:p-12 space-y-10 shadow-2xl">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-             <div className="space-y-3">
-               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Full Legal Name</label>
-               <input name="fullName" value={profileFormData.fullName || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
-             </div>
-             <div className="space-y-3">
-               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Guardian Name</label>
-               <input name="fatherName" value={profileFormData.fatherName || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
-             </div>
-             <div className="space-y-3">
-               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Village / Locality</label>
-               <input name="village" value={profileFormData.village || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
-             </div>
-             <div className="space-y-3">
-               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Post Office</label>
-               <input name="post" value={profileFormData.post || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
-             </div>
-             <div className="space-y-3">
-               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">District Node</label>
-               <input name="district" value={profileFormData.district || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
-             </div>
-             <div className="space-y-3">
-               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">PIN Index</label>
-               <input name="pincode" value={profileFormData.pincode || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
-             </div>
-             <div className="col-span-1 sm:col-span-2 space-y-3">
-               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Full Physical Address</label>
-               <textarea name="address" value={profileFormData.address || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none" />
-             </div>
-             <div className="col-span-1 sm:col-span-2 space-y-3">
-               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Internal Log / Bio</label>
+              <div className="space-y-3">
+                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Full Name</label>
+                <input name="fullName" value={profileFormData.fullName || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+              </div>
+              <div className="space-y-3">
+                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Father/Guardian Name</label>
+                <input name="fatherName" value={profileFormData.fatherName || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+              </div>
+              <div className="space-y-3">
+                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Village/Locality</label>
+                <input name="village" value={profileFormData.village || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+              </div>
+              <div className="space-y-3">
+                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Post Office</label>
+                <input name="post" value={profileFormData.post || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+              </div>
+              <div className="space-y-3">
+                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">District</label>
+                <input name="district" value={profileFormData.district || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+              </div>
+              <div className="space-y-3">
+                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Pincode</label>
+                <input name="pincode" value={profileFormData.pincode || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+              </div>
+              <div className="col-span-1 sm:col-span-2 space-y-3">
+                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Permanent Address</label>
+                <textarea name="address" value={profileFormData.address || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none" />
+              </div>
+              <div className="col-span-1 sm:col-span-2 space-y-3">
+                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Personal Bio/Note</label>
                <textarea name="bio" value={profileFormData.bio || ''} onChange={handleProfileChange} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none" />
              </div>
           </div>
