@@ -330,22 +330,47 @@ const studentDashboardSlice = createSlice({
       })
       
       // Metrics
+      .addCase(fetchMetrics.pending, (state) => { state.loading = true; })
       .addCase(fetchMetrics.fulfilled, (state, action) => {
+        state.loading = false;
         state.metrics = action.payload;
+      })
+      .addCase(fetchMetrics.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
       
       // History
+      .addCase(fetchHistory.pending, (state) => { state.loading = true; })
       .addCase(fetchHistory.fulfilled, (state, action) => {
+        state.loading = false;
         state.history = action.payload;
       })
+      .addCase(fetchHistory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
 
+      // Leaderboard
+      .addCase(fetchLeaderboard.pending, (state) => { state.loading = true; })
       .addCase(fetchLeaderboard.fulfilled, (state, action) => {
+        state.loading = false;
         state.leaderboard = action.payload;
+      })
+      .addCase(fetchLeaderboard.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
       
       // History Tasks
+      .addCase(fetchHistoryTasks.pending, (state) => { state.loading = true; })
       .addCase(fetchHistoryTasks.fulfilled, (state, action) => {
+        state.loading = false;
         state.historyTasks = action.payload;
+      })
+      .addCase(fetchHistoryTasks.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
 
       // Goal Update
@@ -368,8 +393,14 @@ const studentDashboardSlice = createSlice({
       })
       
       // Tasks
+      .addCase(fetchTasks.pending, (state) => { state.loading = true; })
       .addCase(fetchTasks.fulfilled, (state, action) => {
+        state.loading = false;
         state.tasks = action.payload;
+      })
+      .addCase(fetchTasks.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
       .addCase(createTask.fulfilled, (state, action) => {
         state.actionLoading = false;
@@ -389,8 +420,14 @@ const studentDashboardSlice = createSlice({
       })
 
       // Weekly Routine
+      .addCase(fetchRoutine.pending, (state) => { state.loading = true; })
       .addCase(fetchRoutine.fulfilled, (state, action) => {
+        state.loading = false;
         state.weeklyRoutine = action.payload;
+      })
+      .addCase(fetchRoutine.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
       .addCase(createRoutineNode.fulfilled, (state, action) => {
         state.actionLoading = false;
@@ -407,8 +444,14 @@ const studentDashboardSlice = createSlice({
       })
 
       // Analytics
+      .addCase(fetchSubjectAnalytics.pending, (state) => { state.loading = true; })
       .addCase(fetchSubjectAnalytics.fulfilled, (state, action) => {
+        state.loading = false;
         state.subjectAnalytics = action.payload;
+      })
+      .addCase(fetchSubjectAnalytics.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
 
       // Mark Attendance

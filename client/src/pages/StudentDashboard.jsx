@@ -539,6 +539,85 @@ export default function StudentDashboard() {
     return `${mins}m`;
   };
 
+  // --- SKELETON COMPONENTS ---
+  const Skeleton = ({ className }) => (
+    <div className={`skeleton shimmer rounded-xl ${className}`} />
+  );
+
+  const HubSkeleton = () => (
+    <div className="space-y-8 pb-32">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <Skeleton className="h-16 w-full md:w-64 rounded-3xl" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-4 space-y-8">
+          <Skeleton className="h-24 w-full rounded-[2.5rem]" />
+          <Skeleton className="h-24 w-full rounded-[2.5rem]" />
+          <Skeleton className="h-24 w-full rounded-[2.5rem]" />
+          <Skeleton className="h-64 w-full rounded-[2.5rem]" />
+        </div>
+        <div className="lg:col-span-8 space-y-8">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            <Skeleton className="h-[500px] w-full rounded-[3rem]" />
+            <Skeleton className="h-20 w-full rounded-[2.5rem]" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Skeleton className="h-[350px] w-full rounded-[3rem]" />
+            <Skeleton className="h-[350px] w-full rounded-[3rem]" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const RankSkeleton = () => (
+    <div className="space-y-8 pb-32">
+       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <Skeleton className="h-12 w-64" />
+          <Skeleton className="h-10 w-32" />
+       </div>
+       <div className="glass-card rounded-[3rem] p-8 border border-white/5 space-y-4">
+          {[1,2,3,4,5].map(i => (
+            <Skeleton key={i} className="h-20 w-full rounded-2xl" />
+          ))}
+       </div>
+    </div>
+  );
+
+  const RoutineSkeleton = () => (
+    <div className="space-y-8 pb-32">
+       <div className="flex items-center gap-4">
+          <Skeleton className="h-12 w-48" />
+          <div className="flex gap-2">
+            {[1,2,3].map(i => <Skeleton key={i} className="h-10 w-12" />)}
+          </div>
+       </div>
+       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Skeleton className="h-[400px] w-full rounded-[3rem]" />
+          <Skeleton className="h-[400px] w-full rounded-[3rem]" />
+       </div>
+    </div>
+  );
+
+  const HistorySkeleton = () => (
+    <div className="space-y-8 pb-32 max-w-4xl mx-auto">
+      <Skeleton className="h-12 w-64" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="md:col-span-1 space-y-4">
+           {[1,2,3,4].map(i => <Skeleton key={i} className="h-16 w-full rounded-2xl" />)}
+        </div>
+        <div className="md:col-span-2">
+          <Skeleton className="h-[500px] w-full rounded-[3rem]" />
+        </div>
+      </div>
+    </div>
+  );
+
   // --- VIEW RENDERING FUNCTIONS ---
 
   const renderStudyHub = () => (
@@ -1163,10 +1242,21 @@ export default function StudentDashboard() {
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 pt-8 pb-20">
         <AnimatePresence mode="wait">
-          {activeView === 'hub' && renderHub()}
-          {activeView === 'rank' && renderRank()}
-          {activeView === 'routine' && renderRoutineBuilder()}
-          {activeView === 'history' && renderHistory()}
+          {loading ? (
+            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              {activeView === 'hub' && <HubSkeleton />}
+              {activeView === 'rank' && <RankSkeleton />}
+              {activeView === 'routine' && <RoutineSkeleton />}
+              {activeView === 'history' && <HistorySkeleton />}
+            </motion.div>
+          ) : (
+            <>
+              {activeView === 'hub' && renderHub()}
+              {activeView === 'rank' && renderRank()}
+              {activeView === 'routine' && renderRoutineBuilder()}
+              {activeView === 'history' && renderHistory()}
+            </>
+          )}
         </AnimatePresence>
       </main>
 
