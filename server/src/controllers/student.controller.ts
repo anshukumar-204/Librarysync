@@ -668,17 +668,31 @@ export const updateStudentProfileSelf = async (req: Request, res: Response) => {
         verifyOtp: null,
         verifyOtpExpiresAt: null,
         student: {
-          update: {
-            fullName: fullName || undefined,
-            fatherName: fatherName || undefined,
-            address: address || undefined,
-            village: village || undefined,
-            post: post || undefined,
-            district: district || undefined,
-            city: city || undefined,
-            state: state || undefined,
-            pincode: pincode || undefined,
-            bio: bio || undefined
+          upsert: {
+            create: {
+              fullName: fullName || '',
+              fatherName: fatherName || '',
+              address: address || '',
+              village: village || '',
+              post: post || '',
+              district: district || '',
+              city: city || '',
+              state: state || '',
+              pincode: pincode || '',
+              bio: bio || ''
+            },
+            update: {
+              fullName: fullName || undefined,
+              fatherName: fatherName || undefined,
+              address: address || undefined,
+              village: village || undefined,
+              post: post || undefined,
+              district: district || undefined,
+              city: city || undefined,
+              state: state || undefined,
+              pincode: pincode || undefined,
+              bio: bio || undefined
+            }
           }
         }
       }

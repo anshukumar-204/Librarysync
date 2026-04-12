@@ -113,8 +113,7 @@ export default function StudentDashboard() {
 
   // Sync Profile Form Data when metrics are loaded
   useEffect(() => {
-    // Only target sync if we haven't synced yet OR if we have metrics but the form is still empty
-    if (metrics?.student && (!isProfileSynced || Object.keys(profileFormData).length === 0)) {
+    if (metrics?.student) {
       const s = metrics.student;
       setProfileFormData({
         fullName: s.fullName || user?.name || '',
@@ -129,8 +128,14 @@ export default function StudentDashboard() {
         bio: s.bio || ''
       });
       setIsProfileSynced(true);
+    } else if (user && !isProfileSynced) {
+       // Fallback to basic user info if student profile hasn't been created yet
+       setProfileFormData(prev => ({
+         ...prev,
+         fullName: prev.fullName || user.name || ''
+       }));
     }
-  }, [metrics, user?.name, isProfileSynced, profileFormData]);
+  }, [metrics?.student, user, isProfileSynced]);
   const [logFormData, setLogFormData] = React.useState({
     subject: '',
     topicsCovered: '',
