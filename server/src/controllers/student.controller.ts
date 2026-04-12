@@ -14,7 +14,7 @@ export const createStudent = async (req: Request, res: Response) => {
 
     const { 
       fullName, fatherName, profileImage, mobile, email, 
-      address, village, post, district, city, state, pincode 
+      address, village, post, district, city, state, pincode, joinDate 
     } = req.body;
 
     // MANDATORY CHANGE: At least one primary identifier is required
@@ -176,7 +176,9 @@ export const updateStudent = async (req: Request, res: Response) => {
             district,
             city,
             state,
-            pincode
+            pincode,
+            bio,
+            joinDate: joinDate ? new Date(joinDate) : undefined
           }
         }
       },
