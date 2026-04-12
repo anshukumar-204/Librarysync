@@ -1131,8 +1131,8 @@ export default function StudentDashboard() {
                 <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500"><TrendingUp size={20} /></div>
                 <h2 className="text-xl font-black text-white uppercase tracking-tight">Velocity</h2>
               </div>
-              <div className="h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-[250px] min-h-[250px]">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={250}>
                   <BarChart data={getProcessedChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
                     <XAxis dataKey={chartRange === 'year' ? 'label' : 'date'} axisLine={false} tickLine={false} tick={{ fill: '#4B5563', fontSize: 10, fontWeight: '800' }} tickFormatter={getRangeLabel} />
@@ -1149,9 +1149,9 @@ export default function StudentDashboard() {
                 <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><LayoutGrid size={20} /></div>
                 <h2 className="text-xl font-black text-white uppercase tracking-tight">Subjects</h2>
               </div>
-              <div className="h-[250px]">
+              <div className="h-[250px] min-h-[250px]">
                 {subjectAnalytics.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={250}>
                     <PieChart>
                       <Pie data={subjectAnalytics} dataKey="hours" nameKey="subject" cx="50%" cy="50%" innerRadius={60} outerRadius={80} fill="#8884d8" paddingAngle={5}>
                         {subjectAnalytics.map((entry, index) => (
@@ -1169,6 +1169,7 @@ export default function StudentDashboard() {
                 )}
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
