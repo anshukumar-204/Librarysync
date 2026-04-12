@@ -37,9 +37,22 @@ export const recordFeePayment = createAsyncThunk(
   }
 );
 
+export const getFeesRegistry = createAsyncThunk(
+  'fees/getRegistry',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await feeApi.fetchFeesRegistry();
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Failed to load fee registry");
+    }
+  }
+);
+
 const initialState = {
   status: null,
   summary: null,
+  registry: [],
   loading: false,
   error: null,
 };
@@ -72,9 +85,19 @@ const feeSlice = createSlice({
         state.loading = false;
         state.summary = action.payload.data;
       })
+      .addCase(getFeesRegistry.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getFeesRegistry.fulfilled, (state, action) => {
+        state.loading = false;
+        state.registry = action.payload.data;
+      })
+      .addCase(getFeesRegistry.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
       .addCase(recordFeePayment.fulfilled, (state) => {
         state.loading = false;
-        // Optionally trigger a refresh or update locally
       });
   }
 });

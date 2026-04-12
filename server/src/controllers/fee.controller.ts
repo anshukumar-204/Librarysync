@@ -2,10 +2,52 @@ import type { Request, Response } from "express";
 import { prisma } from "../db/prisma.js";
 
 /**
- * Calculates a summary of monthly fee cycles for a student,
- * determining Paid, Partial, or Overdue status by comparing
- * joinDate cycles against FeePayment records.
+ * Helper to calculate fee summary for a single student based on their joinDate and fee payments.
  */
+const calculateDetailedSummary = (student: any, payments: any[], monthlyFee: number, today: Date) => {
+  const joinDate = new Date(student.joinDate);
+  const cycleDay = joinDate.getDate();
+
+  const historicalCycles: any[] = [];
+  let currentCycleDate = new Date(joinDate.getFullYear(), joinDate.getMonth(), joinDate.getDate());
+
+  // Iterate through all months from joining until the current month to build the ledger
+  while (currentCycleDate <= today || (currentCycleDate.getMonth() === today.getMonth() && currentCycleDate.getFullYear() === today.getFullYear())) {
+    const monthLabel = currentCycleDate.getMonth() + 1;
+    const yearLabel = currentCycleDate.getFullYear();
+    
+    const paymentsForCycle = payments.filter(p => p.month === monthLabel && p.year === yearLabel);
+    const totalPaid = paymentsForCycle.reduce((sum, p) => sum + p.amount, 0);
+    
+    let status: 'PAID' | 'PARTIAL' | 'PENDING' = "PENDING";
+    if (totalPaid >= monthlyFee) status = "PAID";
+    else if (totalPaid > 0) status = "PARTIAL";
+
+    const isPastCycleDay = today.getDate() > cycleDay;
+    const isPastMonth = (today.getFullYear() > yearLabel) || (today.getFullYear() === yearLabel && today.getMonth() + 1 > monthLabel);
+    const isCurrentMonth = today.getMonth() + 1 === monthLabel && today.getFullYear() === yearLabel;
+    
+    const shouldNotify = status !== "PAID" && (isPastMonth || (isCurrentMonth && isPastCycleDay));
+
+    historicalCycles.push({
+      month: monthLabel,
+      year: yearLabel,
+      expected: monthlyFee,
+      paid: totalPaid,
+      balance: Math.max(0, monthlyFee - totalPaid),
+      status,
+      cycleDate: new Date(yearLabel, monthLabel - 1, cycleDay),
+      isOverdue: shouldNotify,
+      payments: paymentsForCycle
+    });
+
+    currentCycleDate = new Date(currentCycleDate.getFullYear(), currentCycleDate.getMonth() + 1, cycleDay);
+    if (historicalCycles.length > 240) break; 
+  }
+
+  return historicalCycles;
+};
+
 export const getStudentFeeSummary = async (req: Request, res: Response) => {
   try {
     const requesterId = req.user?.id;
@@ -18,7 +60,6 @@ export const getStudentFeeSummary = async (req: Request, res: Response) => {
       if (!studentId) return res.status(400).json({ success: false, message: "Student ID required for admin lookup" });
       targetStudentId = Number(studentId);
     } else {
-      // Student is requesting their own status
       const studentProfile = await prisma.student.findUnique({ where: { userId: requesterId } });
       if (!studentProfile) return res.status(404).json({ success: false, message: "Student profile not found" });
       targetStudentId = studentProfile.id;
@@ -37,53 +78,7 @@ export const getStudentFeeSummary = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: "Student record not found" });
     }
 
-    const joinDate = new Date(student.joinDate);
-    const today = new Date();
-    const monthlyFee = student.monthlyFee;
-    const cycleDay = joinDate.getDate();
-
-    const historicalCycles: any[] = [];
-    let currentCycleDate = new Date(joinDate.getFullYear(), joinDate.getMonth(), joinDate.getDate());
-
-    // Iterate through all months from joining until the current month to build the ledger
-    while (currentCycleDate <= today || (currentCycleDate.getMonth() === today.getMonth() && currentCycleDate.getFullYear() === today.getFullYear())) {
-      const monthLabel = currentCycleDate.getMonth() + 1;
-      const yearLabel = currentCycleDate.getFullYear();
-      
-      const paymentsForCycle = student.feePayments.filter(p => p.month === monthLabel && p.year === yearLabel);
-      const totalPaid = paymentsForCycle.reduce((sum, p) => sum + p.amount, 0);
-      
-      let status: 'PAID' | 'PARTIAL' | 'PENDING' = "PENDING";
-      if (totalPaid >= monthlyFee) status = "PAID";
-      else if (totalPaid > 0) status = "PARTIAL";
-
-      // Strict Due Logic: Notification appears AFTER the cycle day of the current month
-      const isPastCycleDay = today.getDate() > cycleDay;
-      const isPastMonth = (today.getFullYear() > yearLabel) || (today.getFullYear() === yearLabel && today.getMonth() + 1 > monthLabel);
-      
-      const isCurrentMonth = today.getMonth() + 1 === monthLabel && today.getFullYear() === yearLabel;
-      
-      // Notify only if it's a past month OR it's the current month AND we are past the joining day
-      const shouldNotify = status !== "PAID" && (isPastMonth || (isCurrentMonth && isPastCycleDay));
-
-      historicalCycles.push({
-        month: monthLabel,
-        year: yearLabel,
-        expected: monthlyFee,
-        paid: totalPaid,
-        balance: Math.max(0, monthlyFee - totalPaid),
-        status,
-        cycleDate: new Date(yearLabel, monthLabel - 1, cycleDay),
-        isOverdue: shouldNotify,
-        payments: paymentsForCycle
-      });
-
-      // Increment by 1 month safely
-      currentCycleDate = new Date(currentCycleDate.getFullYear(), currentCycleDate.getMonth() + 1, cycleDay);
-      
-      // Break safety if data is corrupted or joinDate is in future
-      if (historicalCycles.length > 240) break; // 20 year cap
-    }
+    const historicalCycles = calculateDetailedSummary(student, student.feePayments, student.monthlyFee, new Date());
 
     return res.json({
       success: true,
@@ -100,13 +95,58 @@ export const getStudentFeeSummary = async (req: Request, res: Response) => {
           totalPending: historicalCycles.reduce((sum, c) => sum + c.balance, 0),
           isDefaulter: historicalCycles.some(c => c.isOverdue)
         },
-        history: historicalCycles.reverse() // Show latest first for UI UX
+        history: historicalCycles.reverse() 
       }
     });
 
   } catch (error) {
     console.error("FEE ANALYTICS ERROR:", error);
     return res.status(500).json({ success: false, message: "Financial vault access error" });
+  }
+};
+
+/**
+ * Returns a high-level fee registry for all students.
+ * Admin only.
+ */
+export const getFeesRegistry = async (req: Request, res: Response) => {
+  try {
+    if (req.user?.role !== "admin") return res.status(403).json({ success: false, message: "Forbidden" });
+
+    const students = await prisma.student.findMany({
+      include: { 
+        feePayments: true,
+        user: { select: { mobile: true, status: true } }
+      }
+    });
+
+    const today = new Date();
+    const registry = students.map(student => {
+      const cycles = calculateDetailedSummary(student, student.feePayments, student.monthlyFee, today);
+      const totalPaid = student.feePayments.reduce((sum, p) => sum + p.amount, 0);
+      const totalPending = cycles.reduce((sum, c) => sum + c.balance, 0);
+      
+      return {
+        id: student.id,
+        fullName: student.fullName,
+        mobile: student.user.mobile,
+        status: student.user.status,
+        monthlyFee: student.monthlyFee,
+        totalPaid,
+        totalPending,
+        isDefaulter: cycles.some(c => c.isOverdue),
+        lastPayment: student.feePayments.length > 0 ? student.feePayments.sort((a,b) => b.paymentDate.getTime() - a.paymentDate.getTime())[0].paymentDate : null
+      };
+    });
+
+    return res.json({
+      success: true,
+      data: registry
+    });
+
+  } catch (error) {
+    console.error("FEES REGISTRY ERROR:", error);
+    return res.status(500).json({ success: false, message: "Internal financial registry error" });
   }
 };
 

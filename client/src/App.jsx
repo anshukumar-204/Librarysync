@@ -16,6 +16,7 @@ import PublicRoute from './components/auth/PublicRoute';
 import StudentDashboard from './pages/StudentDashboard';
 import AdminScanStation from './pages/AdminScanStation';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import FeeManagementPage from './pages/FeeManagementPage';
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
             <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
             <Route path="/admin/students" element={<StudentManagementPage />} />
             <Route path="/admin/scan-station" element={<AdminScanStation />} />
+            <Route path="/admin/fees" element={<FeeManagementPage />} />
             <Route path="/admin/*" element={<Navigate to="/admin/dashboard" replace />} />
           </Route>
         </Route>
