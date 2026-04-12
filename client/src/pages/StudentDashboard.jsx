@@ -1163,6 +1163,75 @@ export default function StudentDashboard() {
     </div>
   );
 
+  const renderFeeStatusCard = () => {
+    if (!feeStatus) return null;
+
+    const { summary, history } = feeStatus;
+    const currentCycle = history?.[0]; // Latest cycle
+
+    return (
+      <div className="glass-card p-6 rounded-[2.5rem] bg-indigo-500/5 border border-indigo-500/10 relative overflow-hidden group shadow-2xl">
+        <div className="flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "w-12 h-12 rounded-2xl flex items-center justify-center border shadow-lg transition-transform group-hover:scale-110",
+              currentCycle?.isOverdue ? "bg-rose-500/10 border-rose-500/20 text-rose-500" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+            )}>
+              <CreditCard size={24} />
+            </div>
+            <div>
+              <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Financial Health</p>
+              <h3 className="text-xl font-black text-white italic tracking-tighter uppercase leading-none">
+                {currentCycle?.isOverdue ? 'Action Required' : 'Subscription Active'}
+              </h3>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className={cn(
+              "px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border",
+              currentCycle?.isOverdue ? "bg-rose-500/20 text-rose-400 border-rose-500/30 animate-pulse" : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+            )}>
+              {currentCycle?.status}
+            </span>
+          </div>
+        </div>
+
+        {currentCycle?.isOverdue && (
+          <div className="mt-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-4">
+            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-[10px] font-bold text-white uppercase tracking-tight">Fee Balance Pending</p>
+              <p className="text-[9px] text-rose-400 font-medium leading-relaxed mt-1 tracking-wide">
+                Your monthly cycle completed on <span className="font-black">{new Date(currentCycle.cycleDate).toLocaleDateString()}</span>. 
+                Remaining balance: <span className="font-black">₹{currentCycle.balance}</span>.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
+          <div>
+            <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest block mb-1">Total Paid</span>
+            <span className="text-lg font-black text-white flex items-center gap-1">
+              <IndianRupee size={12} strokeWidth={3} /> {summary?.totalPaid}
+            </span>
+          </div>
+          <div>
+            <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest block mb-1">Total Due</span>
+            <span className={cn("text-lg font-black flex items-center gap-1", summary?.totalPending > 0 ? "text-rose-500" : "text-emerald-500")}>
+              <IndianRupee size={12} strokeWidth={3} /> {summary?.totalPending}
+            </span>
+          </div>
+        </div>
+
+        {/* Decor */}
+        <div className="absolute -right-4 -bottom-4 text-indigo-500/5 group-hover:scale-125 transition-transform">
+          <IndianRupee size={120} />
+        </div>
+      </div>
+    );
+  };
+
   const renderHub = () => (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8 pb-32">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
