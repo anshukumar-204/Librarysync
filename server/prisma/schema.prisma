@@ -48,6 +48,7 @@ model Student {
   city         String?
   state        String?
   pincode      String?
+  bio          String?
   joinDate     DateTime @default(now())
 
   // Productivity Platform Fields
