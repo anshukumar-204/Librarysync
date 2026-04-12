@@ -797,20 +797,20 @@ export default function StudentDashboard() {
         <div className="space-y-6 sm:space-y-8">
           {/* Security Node */}
           <div className="bg-[#1a1a1c]/40 backdrop-blur-3xl rounded-[2rem] sm:rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden group/card text-center sm:text-left">
-             <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-500"><Lock size={20} /></div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Credential Sync</h3>
-                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Institutional security protocols apply</p>
-                </div>
-                <button
-                  onClick={handleSendOTP}
-                  disabled={actionLoading}
-                  className="w-full sm:w-auto px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest rounded-xl border border-white/5 transition-all"
-                >
-                  {actionLoading ? 'DISPATCHING...' : 'Update Sync'}
-                </button>
-             </div>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-500"><Lock size={20} /></div>
+              <div className="flex-1">
+                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Credential Sync</h3>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Institutional security protocols apply</p>
+              </div>
+              <button
+                onClick={handleSendOTP}
+                disabled={actionLoading}
+                className="w-full sm:w-auto px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest rounded-xl border border-white/5 transition-all"
+              >
+                {actionLoading ? 'DISPATCHING...' : 'Update Sync'}
+              </button>
+            </div>
           </div>
 
           {/* Personal Node */}
@@ -1057,7 +1057,7 @@ export default function StudentDashboard() {
 
     return (
       <div className="glass-card p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] bg-indigo-500/5 border border-indigo-500/10 relative overflow-hidden group shadow-2xl">
-        <div className="flex items-center justify-between relative z-10 flex-wrap gap-4">
+        <div className="flex items-center flex-col md:flex-row justify-between relative z-10 flex-wrap gap-4">
           <div className="flex items-center gap-4 sm:gap-5">
             <div className={cn(
               "w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-[2rem] flex items-center justify-center border shadow-xl transition-transform group-hover:scale-110",
@@ -1083,18 +1083,18 @@ export default function StudentDashboard() {
         </div>
 
         {currentCycle?.isOverdue && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="mt-6 sm:mt-8 p-5 sm:p-6 rounded-2xl sm:rounded-[2.5rem] bg-rose-500/10 border border-rose-500/20 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5"
           >
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-500/20 flex items-center justify-center shrink-0">
-               <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7 text-rose-500" />
+              <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7 text-rose-500" />
             </div>
             <div className="text-center sm:text-left">
               <p className="text-xs font-black text-white uppercase tracking-widest">Fee Balance Pending</p>
               <p className="text-[11px] sm:text-xs text-rose-300 font-bold leading-relaxed mt-1.5 tracking-wide">
-                Monthly cycle completed on <span className="text-white font-black underline decoration-rose-500/50 underline-offset-4">{new Date(currentCycle.cycleDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</span>. 
+                Monthly cycle completed on <span className="text-white font-black underline decoration-rose-500/50 underline-offset-4">{new Date(currentCycle.cycleDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</span>.
                 Pending: <span className="text-white font-black text-base ml-1">₹{currentCycle.balance}</span>.
               </p>
             </div>
@@ -1295,8 +1295,8 @@ export default function StudentDashboard() {
                     <p className="text-[10px] font-black uppercase tracking-widest">No Data</p>
                   </div>
                 )}
+              </div>
             </div>
-          </div>
           </div>
         </div>
       </div>
@@ -1305,7 +1305,7 @@ export default function StudentDashboard() {
 
   const renderRank = () => (
     <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-8 sm:space-y-12 max-w-4xl mx-auto pb-32">
-       <div>
+      <div>
         <h2 className="text-3xl sm:text-4xl font-black text-white italic tracking-tighter uppercase leading-tight text-center sm:text-left">Institutional <span className="text-blue-500">Leaderboard</span></h2>
         <p className="text-zinc-500 text-xs sm:text-sm mt-3 font-medium text-center sm:text-left">Real-time study performance across the campus ecosystem.</p>
       </div>
