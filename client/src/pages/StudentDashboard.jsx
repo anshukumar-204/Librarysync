@@ -1013,19 +1013,19 @@ export default function StudentDashboard() {
   );
 
   const renderDailyTasks = () => (
-    <div className="glass-card rounded-[3rem] p-8 border border-white/5 shadow-2xl h-full flex flex-col">
+    <div className="glass-card rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-8 border border-white/5 shadow-2xl h-full flex flex-col">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><CheckSquare size={20} /></div>
+          <div className="w-10 h-10 rounded-xl sm:rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><CheckSquare size={18} className="sm:w-5 sm:h-5" /></div>
           <div>
-            <h2 className="text-xl font-black text-white uppercase tracking-tight">Daily Tasks</h2>
+            <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight italic">Daily Tasks</h2>
             <div className="flex gap-2 mt-1">
-              <button onClick={() => handleToggleTaskView('today')} className={`text-[8px] font-black uppercase tracking-widest ${taskView === 'today' ? 'text-indigo-500' : 'text-gray-600'}`}>Today</button>
-              <button onClick={() => handleToggleTaskView('archived')} className={`text-[8px] font-black uppercase tracking-widest ${taskView === 'archived' ? 'text-orange-500' : 'text-gray-600'}`}>History</button>
+              <button onClick={() => handleToggleTaskView('today')} className={`text-[9px] font-black uppercase tracking-widest ${taskView === 'today' ? 'text-indigo-500' : 'text-gray-600'}`}>Today</button>
+              <button onClick={() => handleToggleTaskView('archived')} className={`text-[9px] font-black uppercase tracking-widest ${taskView === 'archived' ? 'text-orange-500' : 'text-gray-600'}`}>History</button>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           {taskView === 'today' && (
             <button
               onClick={handleSyncRoutine}
@@ -1033,11 +1033,11 @@ export default function StudentDashboard() {
               className={`p-2 rounded-xl bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600/20 transition-all ${actionLoading || !isInLibrary ? 'opacity-30 cursor-not-allowed' : ''}`}
               title={isInLibrary ? "Sync Schedule" : "Check in to sync"}
             >
-              <RefreshCcw size={16} className={actionLoading ? 'animate-spin' : ''} />
+              <RefreshCcw size={14} className={actionLoading ? 'animate-spin' : ''} />
             </button>
           )}
-          <span className="text-[10px] font-black text-gray-600 uppercase">
-            {tasks.filter(t => t.isCompleted).length}/{tasks.length} DONE
+          <span className="text-[9px] font-black text-gray-600 uppercase">
+            {tasks.filter(t => t.isCompleted).length}/{tasks.length}
           </span>
         </div>
       </div>
@@ -1163,6 +1163,9 @@ export default function StudentDashboard() {
     </div>
   );
 
+    );
+  };
+
   const renderFeeStatusCard = () => {
     if (!feeStatus) return null;
 
@@ -1170,25 +1173,25 @@ export default function StudentDashboard() {
     const currentCycle = history?.[0]; // Latest cycle
 
     return (
-      <div className="glass-card p-8 sm:p-10 rounded-[3rem] bg-indigo-500/5 border border-indigo-500/10 relative overflow-hidden group shadow-2xl">
-        <div className="flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-5">
+      <div className="glass-card p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] bg-indigo-500/5 border border-indigo-500/10 relative overflow-hidden group shadow-2xl">
+        <div className="flex items-center justify-between relative z-10 flex-wrap gap-4">
+          <div className="flex items-center gap-4 sm:gap-5">
             <div className={cn(
-              "w-16 h-16 rounded-[2rem] flex items-center justify-center border shadow-xl transition-transform group-hover:scale-110",
+              "w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-[2rem] flex items-center justify-center border shadow-xl transition-transform group-hover:scale-110",
               currentCycle?.isOverdue ? "bg-rose-500/20 border-rose-500/30 text-rose-500" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
             )}>
-              <CreditCard size={32} />
+              <CreditCard size={28} className="sm:w-8 sm:h-8" />
             </div>
             <div>
-              <p className="text-[11px] font-black text-gray-500 uppercase tracking-[0.4em] mb-2 leading-none">Subscription Status</p>
-              <h3 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">
-                {currentCycle?.isOverdue ? 'Action Required' : 'Elite Access Active'}
+              <p className="text-[10px] sm:text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] sm:tracking-[0.4em] mb-1 leading-none">Subscription</p>
+              <h3 className="text-xl sm:text-2xl font-black text-white italic tracking-tighter uppercase leading-none">
+                {currentCycle?.isOverdue ? 'Balance Due' : 'Active Access'}
               </h3>
             </div>
           </div>
-          <div className="text-right flex flex-col items-end gap-2">
+          <div className="flex-1 sm:flex-none text-right flex flex-col items-end gap-2">
             <span className={cn(
-              "px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] border",
+              "px-4 sm:px-6 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] border",
               currentCycle?.isOverdue ? "bg-rose-500 text-white border-rose-500/30 animate-pulse" : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
             )}>
               {currentCycle?.status}
@@ -1200,43 +1203,38 @@ export default function StudentDashboard() {
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-8 p-6 rounded-[2.5rem] bg-rose-500/10 border border-rose-500/20 flex flex-col sm:flex-row items-center sm:items-start gap-5"
+            className="mt-6 sm:mt-8 p-5 sm:p-6 rounded-2xl sm:rounded-[2.5rem] bg-rose-500/10 border border-rose-500/20 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5"
           >
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/20 flex items-center justify-center shrink-0">
-               <AlertCircle className="w-7 h-7 text-rose-500" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-500/20 flex items-center justify-center shrink-0">
+               <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7 text-rose-500" />
             </div>
             <div className="text-center sm:text-left">
-              <p className="text-sm font-black text-white uppercase tracking-widest">Fee Balance Pending</p>
-              <p className="text-xs text-rose-300 font-bold leading-relaxed mt-1.5 tracking-wide">
-                Your monthly billing cycle completed on <span className="text-white font-black underline decoration-rose-500/50 underline-offset-4">{new Date(currentCycle.cycleDate).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span>. 
-                Remaining ledger balance: <span className="text-white font-black text-lg ml-1">₹{currentCycle.balance}</span>.
+              <p className="text-xs font-black text-white uppercase tracking-widest">Fee Balance Pending</p>
+              <p className="text-[11px] sm:text-xs text-rose-300 font-bold leading-relaxed mt-1.5 tracking-wide">
+                Monthly cycle completed on <span className="text-white font-black underline decoration-rose-500/50 underline-offset-4">{new Date(currentCycle.cycleDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</span>. 
+                Pending: <span className="text-white font-black text-base ml-1">₹{currentCycle.balance}</span>.
               </p>
-              <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-rose-500/70 uppercase tracking-widest">
-                <Shield size={12} />
-                Visit admin office to clear dues
-              </div>
             </div>
           </motion.div>
         )}
 
         <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
           <div>
-            <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest block mb-1">Total Paid</span>
-            <span className="text-lg font-black text-white flex items-center gap-1">
+            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Total Paid</span>
+            <span className="text-base sm:text-lg font-black text-white flex items-center gap-1">
               <IndianRupee size={12} strokeWidth={3} /> {summary?.totalPaid}
             </span>
           </div>
           <div>
-            <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest block mb-1">Total Due</span>
-            <span className={cn("text-lg font-black flex items-center gap-1", summary?.totalPending > 0 ? "text-rose-500" : "text-emerald-500")}>
+            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Total Due</span>
+            <span className={cn("text-base sm:text-lg font-black flex items-center gap-1", summary?.totalPending > 0 ? "text-rose-500" : "text-emerald-500")}>
               <IndianRupee size={12} strokeWidth={3} /> {summary?.totalPending}
             </span>
           </div>
         </div>
 
-        {/* Decor */}
-        <div className="absolute -right-4 -bottom-4 text-indigo-500/5 group-hover:scale-125 transition-transform">
-          <IndianRupee size={120} />
+        <div className="absolute -right-4 -bottom-4 text-indigo-500/5 group-hover:scale-125 transition-transform rotate-12">
+          <IndianRupee size={100} />
         </div>
       </div>
     );
@@ -1372,35 +1370,35 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-            <div className="glass-card rounded-[3rem] p-5 sm:p-8 border border-white/5 shadow-2xl">
-              <div className="flex items-center gap-3 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mt-4 sm:mt-8">
+            <div className="glass-card rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-8 border border-white/5 shadow-2xl">
+              <div className="flex items-center gap-3 mb-6 sm:mb-8">
                 <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500"><TrendingUp size={20} /></div>
-                <h2 className="text-xl font-black text-white uppercase tracking-tight">Velocity</h2>
+                <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight italic">Velocity</h2>
               </div>
-              <div className="h-[250px] min-h-[250px]">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={250}>
+              <div className="h-[200px] sm:h-[250px] min-h-[200px] sm:min-h-[250px]">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <BarChart data={getProcessedChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
                     <XAxis dataKey={chartRange === 'year' ? 'label' : 'date'} axisLine={false} tickLine={false} tick={{ fill: '#4B5563', fontSize: 10, fontWeight: '800' }} tickFormatter={getRangeLabel} />
                     <YAxis hide domain={[0, 'auto']} />
                     <ReTooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={{ backgroundColor: '#0c0c0e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', fontSize: '10px' }} />
-                    <Bar dataKey="studyHours" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={24} />
+                    <Bar dataKey="studyHours" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={20} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            <div className="glass-card rounded-[3rem] p-5 sm:p-8 border border-white/5 shadow-2xl">
-              <div className="flex items-center gap-3 mb-8">
+            <div className="glass-card rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-8 border border-white/5 shadow-2xl">
+              <div className="flex items-center gap-3 mb-6 sm:mb-8">
                 <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><LayoutGrid size={20} /></div>
-                <h2 className="text-xl font-black text-white uppercase tracking-tight">Subjects</h2>
+                <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight italic">Subjects</h2>
               </div>
-              <div className="h-[250px] min-h-[250px]">
+              <div className="h-[200px] sm:h-[250px] min-h-[200px] sm:min-h-[250px]">
                 {subjectAnalytics.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={250}>
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <PieChart>
-                      <Pie data={subjectAnalytics} dataKey="hours" nameKey="subject" cx="50%" cy="50%" innerRadius={60} outerRadius={80} fill="#8884d8" paddingAngle={5}>
+                      <Pie data={subjectAnalytics} dataKey="hours" nameKey="subject" cx="50%" cy="50%" innerRadius={50} outerRadius={70} fill="#8884d8" paddingAngle={5}>
                         {subjectAnalytics.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981'][index % 5]} />
                         ))}
@@ -1450,74 +1448,74 @@ export default function StudentDashboard() {
   );
 
   const renderRoutineBuilder = () => (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="space-y-12 pb-32 max-w-4xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="space-y-8 sm:space-y-12 pb-32 max-w-4xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4 sm:mb-12">
         <div>
-          <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase">Weekly <span className="text-indigo-500">Schedule</span></h2>
-          <p className="text-zinc-500 text-sm mt-3 font-medium">Design your recurring study sessions per day.</p>
+          <h2 className="text-3xl sm:text-4xl font-black text-white italic tracking-tighter uppercase leading-tight">Weekly <span className="text-indigo-500">Schedule</span></h2>
+          <p className="text-zinc-500 text-xs sm:text-sm mt-3 font-medium">Design your recurring study sessions per day.</p>
         </div>
       </div>
 
-      <div className="flex overflow-x-auto gap-2 pb-4 custom-scrollbar no-scrollbar">
+      <div className="flex overflow-x-auto gap-3 pb-4 custom-scrollbar no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
         {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day, idx) => (
-          <button key={day} onClick={() => setRoutineDay(idx)} className={`min-w-[70px] p-4 rounded-2xl border transition-all flex flex-col items-center gap-1 ${routineDay === idx ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20' : 'bg-white/5 border-white/10 text-gray-500'}`}>
-            <span className="text-[8px] font-black uppercase tracking-widest">{day}</span>
-            <span className="text-xs font-black italic">{weeklyRoutine.filter(r => r.dayOfWeek === idx).length} Subjects</span>
+          <button key={day} onClick={() => setRoutineDay(idx)} className={`min-w-[75px] sm:min-w-[90px] p-4 rounded-2xl border transition-all flex flex-col items-center gap-1.5 ${routineDay === idx ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20' : 'bg-white/5 border-white/10 text-gray-500'}`}>
+            <span className="text-[10px] font-black uppercase tracking-widest leading-none">{day}</span>
+            <span className="text-[10px] font-black italic">{weeklyRoutine.filter(r => r.dayOfWeek === idx).length}</span>
           </button>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-        <div className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12">
+        <div className="space-y-6 sm:space-y-8">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><PenLine size={20} /></div>
-            <h3 className="text-lg font-black text-white uppercase tracking-tight">Plan Subject</h3>
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><PenLine size={18} /></div>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight italic">Plan Subject</h3>
           </div>
 
-          <form onSubmit={handleAddScheduleItem} className="glass-card p-8 rounded-[3rem] bg-white/[0.03] border border-white/5 space-y-6">
+          <form onSubmit={handleAddScheduleItem} className="glass-card p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] bg-white/[0.03] border border-white/5 space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Subject</label>
+              <label className="text-[10px] font-black text-gray-500 uppercase ml-2 tracking-widest">Subject</label>
               <input type="text" placeholder="e.g., Mathematics" value={newRoutineSubject} onChange={(e) => setNewRoutineSubject(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-bold text-white focus:border-indigo-500 outline-none transition-all" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Hours</label>
+                <label className="text-[10px] font-black text-gray-500 uppercase ml-2 tracking-widest">Hours</label>
                 <input type="number" placeholder="2" value={newRoutineHrs} onChange={(e) => setNewRoutineHrs(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-black text-white outline-none" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Minutes</label>
+                <label className="text-[10px] font-black text-gray-500 uppercase ml-2 tracking-widest">Minutes</label>
                 <input type="number" placeholder="30" value={newRoutineMin} onChange={(e) => setNewRoutineMin(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-black text-white outline-none" />
               </div>
             </div>
 
-            <button type="submit" disabled={actionLoading} className={`w-full py-5 bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[2rem] shadow-xl hover:bg-indigo-500 transition-all active:scale-95 flex items-center justify-center gap-3 ${actionLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+            <button type="submit" disabled={actionLoading} className={`w-full py-5 bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.3em] rounded-2xl sm:rounded-[2rem] shadow-xl hover:bg-indigo-500 transition-all active:scale-95 flex items-center justify-center gap-3 ${actionLoading ? 'opacity-50 pointer-events-none' : ''}`}>
               {actionLoading ? <Loader2 size={18} className="animate-spin" /> : <PlusCircle size={18} />}
-              Add
+              Add Subject
             </button>
           </form>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500"><LayoutGrid size={20} /></div>
-            <h3 className="text-lg font-black text-white uppercase tracking-tight">Active Schedule</h3>
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500"><LayoutGrid size={18} /></div>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight italic">Active Slots</h3>
           </div>
 
           <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar no-scrollbar">
             {weeklyRoutine.filter(r => r.dayOfWeek === routineDay).length === 0 ? (
-              <div className="text-center py-20 opacity-20 bg-white/[0.01] rounded-[3rem] border border-dashed border-white/10">
+              <div className="text-center py-16 sm:py-20 opacity-20 bg-white/[0.01] rounded-[2rem] sm:rounded-[3rem] border border-dashed border-white/10">
                 <Calendar size={40} className="mx-auto mb-2" />
                 <p className="text-[10px] font-black uppercase tracking-widest">No subjects</p>
               </div>
             ) : (
               weeklyRoutine.filter(r => r.dayOfWeek === routineDay).map(node => (
-                <div key={node.id} className="p-6 rounded-[2.5rem] bg-white/[0.03] border border-white/5 flex items-center justify-between group">
+                <div key={node.id} className="p-5 sm:p-6 rounded-[2rem] bg-white/[0.03] border border-white/5 flex items-center justify-between group">
                   <div>
-                    <span className="text-lg font-bold text-white block leading-none">{node.subject}</span>
+                    <span className="text-base sm:text-lg font-bold text-white block leading-none">{node.subject}</span>
                     <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest mt-2 block">{formatDuration(node.estimatedMinutes)}</span>
                   </div>
-                  <button onClick={() => handleRemoveScheduleItem(node.id)} className="p-3 text-red-500/20 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                  <button onClick={() => handleRemoveScheduleItem(node.id)} className="p-3 text-red-500 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100 transition-all">
                     <Trash2 size={18} />
                   </button>
                 </div>
@@ -1727,7 +1725,7 @@ export default function StudentDashboard() {
 
       {/* Top Bar */}
       <nav className="relative z-50 border-b border-white/5 bg-[#0B0D17]/50 backdrop-blur-xl sticky top-0 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-7xl mx-auto px-6 h-16 sm:h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
               <GraduationCap size={22} />
@@ -1748,7 +1746,7 @@ export default function StudentDashboard() {
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 pt-8 pb-20">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-32 sm:pb-20">
         <AnimatePresence mode="wait">
           {isRestricted ? (
             <motion.div key="restricted" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
@@ -1803,8 +1801,8 @@ export default function StudentDashboard() {
 
       {/* --- HOTSTAR STYLE NAVIGATION BAR --- */}
       {!isRestricted && (
-        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[200] w-full max-w-md px-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-4">
-          <div className="bg-[#0B0D17]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex items-center justify-between shadow-[0_25px_50px_-12px_rgba(59,130,246,0.3)]">
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[200] w-full max-w-md px-2 sm:px-6 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-4">
+          <div className="bg-[#0B0D17]/80 backdrop-blur-3xl border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] p-1.5 sm:p-2 flex items-center justify-between shadow-[0_25px_50px_-12px_rgba(59,130,246,0.3)]">
             <button onClick={() => setActiveView('hub')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'hub' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
               <LayoutGrid size={24} />
               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Hub</span>
@@ -1837,39 +1835,39 @@ export default function StudentDashboard() {
       {/* --- OVERLAYS --- */}
       <AnimatePresence>
         {activeModal === 'qr' && (
-          <div className="fixed inset-0 z-[300] flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-zinc-900 border border-white/10 p-8 rounded-[3rem] w-full max-w-sm shadow-2xl overflow-hidden">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-zinc-900 border border-white/10 p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] w-full max-w-sm shadow-2xl overflow-hidden">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-black text-white">Attendance Scan</h3>
+                <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tighter italic">Attendance Scan</h3>
                 <button onClick={() => setActiveModal(null)} className="p-2 rounded-xl bg-white/5 text-gray-500 hover:text-white"><XCircle size={20} /></button>
               </div>
-              <div className="bg-black/50 rounded-[2rem] mb-6 overflow-hidden border border-white/5 h-[300px] relative">
+              <div className="bg-black/50 rounded-2xl sm:rounded-[2rem] mb-6 overflow-hidden border border-white/5 h-[280px] sm:h-[300px] relative">
                 <Scanner onScan={handleScanSuccess} components={{ audio: false, finder: true }} styles={{ container: { width: '100%', height: '100%' } }} />
               </div>
-              <button onClick={() => setActiveModal(null)} className="w-full py-4 rounded-2xl bg-white/5 text-gray-500 font-black text-[10px] uppercase tracking-widest hover:bg-white/10">Terminate Scan</button>
+              <button onClick={() => setActiveModal(null)} className="w-full py-4 rounded-xl sm:rounded-2xl bg-white/5 text-gray-500 font-black text-[10px] uppercase tracking-widest hover:bg-white/10">Terminate Scan</button>
             </motion.div>
           </div>
         )}
 
         {activeModal === 'goal' && (
-          <div className="fixed inset-0 z-[300] flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-zinc-900 border border-white/10 p-8 rounded-[3rem] w-full max-w-sm overflow-hidden">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-zinc-900 border border-white/10 p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] w-full max-w-sm overflow-hidden">
               <div className="flex items-center justify-between mb-8">
-                <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Daily Target</h3>
+                <h3 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tighter">Daily Target</h3>
                 <button onClick={() => setActiveModal(null)} className="p-2 rounded-xl bg-white/5 text-gray-500 hover:text-white"><XCircle size={20} /></button>
               </div>
-              <div className="space-y-8">
+              <div className="space-y-6 sm:space-y-8">
                 <div className="grid grid-cols-4 gap-2">
                   {[6, 8, 10, 12].map(hrs => (
-                    <button key={hrs} onClick={() => setTempGoal(hrs)} className={`py-4 rounded-2xl text-xs font-black border transition-all ${Number(tempGoal) === hrs ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/30' : 'bg-white/5 border-white/5 text-gray-500'}`}>{hrs}H</button>
+                    <button key={hrs} onClick={() => setTempGoal(hrs)} className={`py-3 sm:py-4 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black border transition-all ${Number(tempGoal) === hrs ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/30' : 'bg-white/5 border-white/5 text-gray-500'}`}>{hrs}H</button>
                   ))}
                 </div>
-                <input type="number" value={tempGoal} onChange={(e) => setTempGoal(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 text-4xl font-black text-center text-white focus:border-blue-500 outline-none" />
+                <input type="number" value={tempGoal} onChange={(e) => setTempGoal(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-2xl sm:text-4xl font-black text-center text-white focus:border-blue-500 outline-none" />
                 <div className="flex gap-3">
-                  <button onClick={() => setActiveModal(null)} className="flex-1 py-5 bg-white/5 text-gray-500 font-bold rounded-2xl">Abort</button>
-                  <button onClick={handleUpdateGoal} disabled={actionLoading} className={`flex-2 px-8 py-5 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20 ${actionLoading ? 'opacity-50' : ''}`}>
+                  <button onClick={() => setActiveModal(null)} className="flex-1 py-4 sm:py-5 bg-white/5 text-zinc-500 font-bold rounded-xl sm:rounded-2xl text-xs uppercase">Abort</button>
+                  <button onClick={handleUpdateGoal} disabled={actionLoading} className={`flex-2 px-6 sm:px-8 py-4 sm:py-5 bg-blue-600 text-white font-black rounded-xl sm:rounded-2xl shadow-xl shadow-blue-500/20 text-xs uppercase tracking-widest ${actionLoading ? 'opacity-50' : ''}`}>
                     {actionLoading ? 'SYNCING...' : 'Sync Goal'}
                   </button>
                 </div>
