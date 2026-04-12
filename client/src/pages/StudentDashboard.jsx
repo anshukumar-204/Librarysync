@@ -107,7 +107,7 @@ export default function StudentDashboard() {
   const { status: feeStatus } = useSelector((state) => state.fees);
 
   const isRestricted = user?.status?.toLowerCase() === 'inactive' || user?.status?.toLowerCase() === 'hold';
-  const isInLibrary = todayStatus?.status === 'In Library';
+  const isInLibrary = todayStatus?.status === 'In Library' || todayStatus?.status === 'Checked In';
 
   useEffect(() => {
     if (isRestricted) {
@@ -136,6 +136,8 @@ export default function StudentDashboard() {
   const [otpRequestPending, setOtpRequestPending] = React.useState(false);
   const [isProfileSynced, setIsProfileSynced] = React.useState(false);
   const [tempGoal, setTempGoal] = React.useState(8);
+  const [isCustomPomodoro, setIsCustomPomodoro] = React.useState(false);
+  const [customPomodoroMins, setCustomPomodoroMins] = React.useState('25');
 
   // Sync Profile Form Data when metrics are loaded
   useEffect(() => {
@@ -207,37 +209,47 @@ export default function StudentDashboard() {
   // Pomodoro Ticker
   useEffect(() => {
     let interval;
-    if (pomodoro.isRunning && pomodoro.timeLeft > 0) {
+    if (pomodoro.isRunning) {
       interval = setInterval(() => {
-        dispatch(tickPomodoro());
+        if (pomodoro.timeLeft > 0) {
+          dispatch(tickPomodoro());
+        } else {
+          handleTimerComplete('Focus Terminal');
+          clearInterval(interval);
+        }
       }, 1000);
-    } else if (pomodoro.timeLeft === 0 && pomodoro.isRunning) {
-      handleTimerComplete('Focus Terminal');
     }
     return () => clearInterval(interval);
-  }, [pomodoro.isRunning, pomodoro.timeLeft, dispatch]);
+  }, [pomodoro.isRunning, dispatch]);
 
   // Task Timer Ticker
   useEffect(() => {
     let interval;
-    if (activeTaskTimer?.isRunning && activeTaskTimer.timeLeft > 0) {
+    if (activeTaskTimer?.isRunning) {
       interval = setInterval(() => {
-        setActiveTaskTimer(prev => ({ ...prev, timeLeft: prev.timeLeft - 1 }));
+        setActiveTaskTimer(prev => {
+          if (!prev || !prev.isRunning) return prev;
+          if (prev.timeLeft <= 1) {
+            clearInterval(interval);
+            return { ...prev, timeLeft: 0 };
+          }
+          return { ...prev, timeLeft: prev.timeLeft - 1 };
+        });
       }, 1000);
-    } else if (activeTaskTimer?.timeLeft === 0 && activeTaskTimer.isRunning) {
-      const targetTask = tasks.find(t => t.id === activeTaskTimer.id);
-      handleTimerComplete(`Task: ${targetTask?.title || 'Task'}`);
-
-      // Auto-complete the task if not already completed
-      if (targetTask && !targetTask.isCompleted) {
-        handleToggleTask(targetTask.id, false); // Toggle from false to true
-      }
-
-      // KILL TIMER STATE TO PREVENT LOOP
-      setActiveTaskTimer(null);
     }
     return () => clearInterval(interval);
-  }, [activeTaskTimer?.isRunning, activeTaskTimer?.timeLeft, activeTaskTimer?.id, tasks]);
+  }, [activeTaskTimer?.isRunning, activeTaskTimer?.id]);
+
+  useEffect(() => {
+    if (activeTaskTimer?.timeLeft === 0 && activeTaskTimer?.isRunning) {
+      const targetTask = tasks.find(t => t.id === activeTaskTimer.id);
+      handleTimerComplete(`Task: ${targetTask?.title || 'Task'}`);
+      if (targetTask && !targetTask.isCompleted) {
+        handleToggleTask(targetTask.id, false);
+      }
+      setActiveTaskTimer(null);
+    }
+  }, [activeTaskTimer?.timeLeft, activeTaskTimer?.isRunning, activeTaskTimer?.id]);
 
   const handleTimerComplete = (source) => {
     if (pomodoro.isRunning) {
@@ -529,18 +541,6 @@ export default function StudentDashboard() {
     }
   };
 
-  const handleAutoTaskLogSync = async (logData) => {
-    try {
-      const result = await dispatch(createStudyLog(logData)).unwrap();
-      setTodayTasks(prev => prev.map(t => t.id === activeTaskTimer.id ? { ...t, isCompleted: true } : t));
-      toast.success("Study log synchronized.");
-      setLogFormData({ subject: '', topicsCovered: '', hoursSpent: '', productivityRating: 5 });
-    } catch (err) {
-      const errorMsg = typeof err === 'string' ? err : (err?.message || "Failed to save log");
-      toast.error(errorMsg);
-    }
-  };
-
   const handleRemoveLog = async (id) => {
     try {
       await dispatch(deleteStudyLog(id)).unwrap();
@@ -699,9 +699,11 @@ export default function StudentDashboard() {
           <Skeleton className="h-64 w-full rounded-[2.5rem]" />
         </div>
         <div className="lg:col-span-8 space-y-8">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            <Skeleton className="h-[500px] w-full rounded-[3rem]" />
-            <Skeleton className="h-20 w-full rounded-[2.5rem]" />
+          <div className="grid grid-cols-1 gap-8">
+            <div className="w-full">
+              <Skeleton className="h-[500px] w-full rounded-[3rem]" />
+              <Skeleton className="h-20 w-full rounded-[2.5rem]" />
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Skeleton className="h-[350px] w-full rounded-[3rem]" />
@@ -778,130 +780,321 @@ export default function StudentDashboard() {
     </div>
   );
 
+
   const renderProfileSettings = () => {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="max-w-2xl mx-auto space-y-8 sm:space-y-12 pb-32">
-        {/* Profile Header */}
-        <div className="flex flex-col items-center gap-6">
-          <div className="relative group">
-            <div className="absolute inset-0 bg-blue-600/20 blur-2xl rounded-full group-hover:bg-blue-600/40 transition-all opacity-0 group-hover:opacity-100" />
-            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-3xl sm:text-4xl font-black italic shadow-2xl relative z-10 border-4 border-white/10 group-hover:scale-105 transition-transform">
-              {user?.fullName?.split(' ').map(n => n[0]).join('')}
+      <div className="space-y-6 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-2xl mx-auto px-4 sm:px-0">
+        {/* Premium Profile Header */}
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[3rem] blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
+          <div className="relative bg-[#0c0c0e] rounded-[2.8rem] p-8 border border-white/5 flex flex-col items-center text-center shadow-2xl">
+            <div className="relative mb-6">
+              <input type="file" id="profile-upload" hidden accept="image/*" onChange={handleImageChange} />
+              <label htmlFor="profile-upload" className="cursor-pointer block relative group/avatar">
+                <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-600/20 to-indigo-600/20 flex items-center justify-center border-2 border-white/5 p-1 transition-all group-hover/avatar:border-blue-500/50">
+                  <div className="w-full h-full rounded-full bg-[#111113] flex items-center justify-center text-blue-500 shadow-inner overflow-hidden">
+                    {profileFormData.profileImage ? (
+                      <img src={profileFormData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={48} strokeWidth={1.5} />
+                    )}
+                  </div>
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-2xl bg-blue-600 hover:bg-blue-500 flex items-center justify-center border-4 border-[#0c0c0e] text-white shadow-lg transition-transform group-hover/avatar:scale-110">
+                  <Camera size={14} />
+                </div>
+              </label>
             </div>
-          </div>
-          <div className="text-center">
-            <h2 className="text-2xl sm:text-3xl font-black text-white italic tracking-tighter uppercase leading-none">{user?.fullName}</h2>
-            <p className="text-[10px] sm:text-xs text-blue-500 font-bold uppercase tracking-[0.2em] mt-3">Elite Scholar • {String(user?.id || '').slice(-6).toUpperCase() || 'EXTERNAL NODE'}</p>
+
+            <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none mb-2">
+              {profileFormData.fullName || user?.name || 'SYNC IDENTITY'}
+            </h2>
+            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10">
+              <GraduationCap size={14} className="text-zinc-500" />
+              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+                ID: {user?.id?.toString().padStart(4, '0') || '0000'} • STUDENT PORTAL
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Action Tabs */}
-        <div className="space-y-6 sm:space-y-8">
-          {/* Security Node */}
-          <div className="bg-[#1a1a1c]/40 backdrop-blur-3xl rounded-[2rem] sm:rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden group/card text-center sm:text-left">
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-500"><Lock size={20} /></div>
-              <div className="flex-1">
-                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Credential Sync</h3>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Institutional security protocols apply</p>
+        {/* Categorized Info Cards */}
+        <div className="space-y-6">
+          {/* Section: Security & Access (Admin Managed) */}
+          <div className="bg-[#1a1a1c]/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden group/card">
+            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover/card:opacity-[0.07] transition-opacity">
+              <Shield size={140} />
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-zinc-500/10 flex items-center justify-center text-zinc-400 group-hover/card:bg-zinc-500/20 transition-all">
+                  <Shield size={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest italic">Security & Access</h3>
+                  <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">Managed by administration</p>
+                </div>
               </div>
-              <button
-                onClick={handleRequestOtp}
-                disabled={actionLoading}
-                className="w-full sm:w-auto px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest rounded-xl border border-white/5 transition-all"
-              >
-                {actionLoading ? 'DISPATCHING...' : 'Update Sync'}
-              </button>
+              <div className="px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center gap-1.5">
+                <ShieldCheck size={10} className="text-blue-400" />
+                <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest leading-none">Verified</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 relative z-10">
+              <div className="space-y-2 opacity-60">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Official Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
+                  <input readOnly value={profileFormData.email || ''} className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold text-zinc-400 outline-none cursor-not-allowed" />
+                </div>
+              </div>
+              <div className="space-y-2 opacity-60">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Registered Mobile</label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
+                  <input readOnly value={profileFormData.mobile || ''} className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold text-zinc-400 outline-none cursor-not-allowed" />
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Personal Node */}
-          <div className="bg-[#1a1a1c]/40 backdrop-blur-3xl rounded-[2rem] sm:rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden group/card">
-            <div className="flex items-center gap-4 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center text-blue-500"><User size={20} /></div>
-              <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Internal Records</h3>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <div className="space-y-2 text-center sm:text-left">
-                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] ml-2">Mobile Identifier</label>
-                <div className="bg-black/40 border border-white/5 rounded-xl sm:rounded-2xl p-4 text-sm font-black text-zinc-400 select-all tracking-wider">{user?.mobile}</div>
+          {/* Section: Personal Profile */}
+          <div className="bg-zinc-900/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl group/card">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover/card:bg-blue-500/20 transition-all">
+                <User size={20} />
               </div>
-              <div className="space-y-2 text-center sm:text-left">
-                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] ml-2">Communication Hub</label>
-                <div className="bg-black/40 border border-white/5 rounded-xl sm:rounded-2xl p-4 text-sm font-black text-zinc-400 select-all truncate tracking-tight">{user?.email}</div>
+              <div>
+                <h3 className="text-sm font-black text-white uppercase tracking-widest italic">Personal Profile</h3>
+                <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">Identification details</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Your Full Name</label>
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-blue-500 transition-colors" size={14} />
+                  <input name="fullName" value={profileFormData.fullName || ''} onChange={handleProfileChange} placeholder="Enter full name" className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold text-white focus:border-blue-500/50 outline-none transition-all shadow-inner" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Guardian Name</label>
+                <div className="relative group">
+                  <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-blue-500 transition-colors" size={14} />
+                  <input name="fatherName" value={profileFormData.fatherName || ''} onChange={handleProfileChange} placeholder="Father/Guardian Name" className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold text-white focus:border-blue-500/50 outline-none transition-all shadow-inner" />
+                </div>
               </div>
             </div>
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="w-full py-5 sm:py-6 bg-rose-600/10 border border-rose-500/20 text-rose-500 font-extrabold text-[10px] sm:text-xs uppercase tracking-[0.5em] rounded-[1.5rem] sm:rounded-[2rem] hover:bg-rose-600 hover:text-white transition-all shadow-xl active:scale-95"
-          >
-            Terminal Shutdown
-          </button>
+          {/* Section: Residential Details */}
+          <div className="bg-zinc-900/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl group/card">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover/card:bg-indigo-500/20 transition-all">
+                <MapPin size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-white uppercase tracking-widest italic">Residential Details</h3>
+                <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">Current address info</p>
+              </div>
+            </div>
 
-          <p className="text-center text-[9px] text-zinc-700 font-black uppercase tracking-[0.3em]">
-            Vault Build 2.4.0 • Institutional Access only
-          </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="col-span-2 space-y-2">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Village/Locality</label>
+                <input name="village" value={profileFormData.village || ''} onChange={handleProfileChange} placeholder="Village name" className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-xs font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Post Office</label>
+                <input name="post" value={profileFormData.post || ''} onChange={handleProfileChange} placeholder="P.O. Name" className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-xs font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+              </div>
+              <div className="col-span-1 space-y-2">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">District</label>
+                <input name="district" value={profileFormData.district || ''} onChange={handleProfileChange} placeholder="District" className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-[10px] font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+              </div>
+              <div className="col-span-1 space-y-2">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">PIN Code</label>
+                <input name="pincode" value={profileFormData.pincode || ''} onChange={handleProfileChange} placeholder="6-digit" className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-[10px] font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Full Address</label>
+                <textarea name="address" value={profileFormData.address || ''} onChange={handleProfileChange} placeholder="Building, Street, Landmark..." className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-xs font-bold text-white h-20 focus:border-blue-500/50 outline-none transition-all resize-none" />
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Professional Bio */}
+          <div className="bg-zinc-900/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-4 shadow-xl group/card">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-2xl bg-violet-500/10 flex items-center justify-center text-violet-400 group-hover/card:bg-violet-500/20 transition-all">
+                <PenLine size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-white uppercase tracking-widest italic">Aspiration & Bio</h3>
+                <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">Share your study goals</p>
+              </div>
+            </div>
+            <textarea name="bio" value={profileFormData.bio || ''} onChange={handleProfileChange} placeholder="Tell us about your preparation or goals..." className="w-full bg-black/40 border border-white/5 rounded-2xl p-6 text-sm font-medium text-white h-32 focus:border-blue-500/50 outline-none transition-all resize-none leading-relaxed" />
+          </div>
+
+          {/* Action Footer */}
+          <div className="pt-8 space-y-4">
+            <button
+              onClick={handleRequestOtp}
+              disabled={otpRequestPending || actionLoading}
+              className="group relative w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-[11px] uppercase tracking-[0.4em] shadow-2xl shadow-blue-500/40 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-4 overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+              {otpRequestPending ? <Loader2 size={18} className="animate-spin" /> : <RefreshCcw size={18} />}
+              {otpRequestPending ? 'Verifying...' : 'Save & Sync Profile'}
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="w-full py-6 bg-red-500/5 hover:bg-red-500/10 text-red-500 border border-white/5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.4em] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+            >
+              <Power size={14} strokeWidth={3} />
+              Exit Portal
+            </button>
+          </div>
         </div>
-      </motion.div>
+
+      </div>
     );
   };
 
   // --- VIEW RENDERING FUNCTIONS ---
 
   const renderStudyHub = () => (
-    <div className="glass-card p-6 rounded-[2.5rem] bg-indigo-600/5 border border-indigo-500/10 shadow-2xl overflow-hidden relative group">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${pomodoro.isRunning ? 'bg-emerald-500 animate-pulse' : 'bg-gray-600'}`} />
-          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{pomodoro.mode === 'focus' ? 'Study Session' : 'Break'}</span>
-        </div>
-        <button onClick={() => setShowPomodoroSettings(!showPomodoroSettings)} className="text-gray-500 hover:text-indigo-400 transition-colors">
-          <Settings size={14} />
-        </button>
-      </div>
+    <div className="flex flex-col h-full space-y-6">
+      <div className="glass-card rounded-[2.5rem] sm:rounded-[3.5rem] p-8 sm:p-12 border border-white/5 shadow-2xl relative overflow-hidden group flex flex-col items-center">
+        {/* Background Ambient Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
 
-      {showPomodoroSettings ? (
-        <div className="space-y-4 py-4 animate-in fade-in slide-in-from-bottom-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block mb-1">Focus (Min)</label>
-              <input type="number" defaultValue={pomodoro.focusDuration} onBlur={(e) => handleUpdatePomodoroSettings(parseInt(e.target.value), pomodoro.breakDuration)} className="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-white text-xs outline-none focus:border-indigo-500" />
+        <div className="relative z-10 w-full flex flex-col items-center">
+          {/* Header */}
+          <div className="w-full flex items-center justify-between mb-10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                <Timer size={20} />
+              </div>
+              <div className="flex flex-col">
+                <h2 className="text-sm font-black text-white italic tracking-tighter uppercase leading-none">Focus Terminal</h2>
+              </div>
             </div>
-            <div>
-              <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest block mb-1">Break (Min)</label>
-              <input type="number" defaultValue={pomodoro.breakDuration} onBlur={(e) => handleUpdatePomodoroSettings(pomodoro.focusDuration, parseInt(e.target.value))} className="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-white text-xs outline-none focus:border-indigo-500" />
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={handleResetTimer}
+              className="p-3 rounded-xl bg-white/5 text-gray-500 hover:text-white transition-all border border-white/5"
+            >
+              <RotateCcw size={16} />
+            </motion.button>
+          </div>
+
+          {/* Large Center Timer */}
+          <div className="relative mb-12 group/timer">
+            <motion.div
+              initial={false}
+              animate={{ scale: pomodoro.isRunning ? 1.05 : 1 }}
+              className="text-6xl sm:text-9xl font-black text-white tracking-tighter tabular-nums italic leading-none drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+            >
+              {formatTimer(pomodoro.timeLeft)}
+            </motion.div>
+            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+              <div className={`w-1.5 h-1.5 rounded-full ${pomodoro.isRunning ? 'bg-indigo-500 animate-pulse' : 'bg-gray-600'}`} />
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">{pomodoro.isRunning ? 'Active' : 'Idle'}</span>
             </div>
           </div>
-          <button onClick={() => setShowPomodoroSettings(false)} className="w-full py-2 bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase rounded-xl hover:bg-indigo-500/20">Save Settings</button>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center">
-          <div className="text-6xl font-black text-white tracking-tighter mb-6 font-mono tabular-nums">
-            {formatTimer(pomodoro.timeLeft)}
-          </div>
 
-          <div className="flex items-center gap-4">
-            <button onClick={handleToggleTimer} className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all active:scale-90 ${pomodoro.isRunning ? 'bg-orange-500/10 text-orange-500' : 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'}`}>
-              {pomodoro.isRunning ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
-            </button>
-            <button onClick={handleResetTimer} className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all active:scale-90">
-              <RotateCcw size={24} />
-            </button>
+          {/* Primary Action Button */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleToggleTimer}
+            className={`w-full py-3 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] flex items-center justify-center gap-4 transition-all shadow-2xl mb-8 ${pomodoro.isRunning
+              ? 'bg-white/5 text-white border border-white/10'
+              : 'bg-indigo-600 text-white shadow-indigo-500/30'
+              }`}
+          >
+            {pomodoro.isRunning ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
+            <span>{pomodoro.isRunning ? 'Pause' : 'Start'}</span>
+          </motion.button>
+
+          {/* Time Management UI */}
+          <div className="w-full">
+            {!isCustomPomodoro ? (
+              <div className="flex gap-2 p-1 bg-white/5 rounded-2xl border border-white/10">
+                {['25', '50'].map((mins) => (
+                  <motion.button
+                    key={mins}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      dispatch(updatePomodoro({ timeLeft: parseInt(mins) * 60, isRunning: false }));
+                      setCustomPomodoroMins(mins);
+                    }}
+                    className={`flex-1 py-2 rounded-xl text-[12px] font-black uppercase transition-all ${pomodoro.timeLeft / 60 === parseInt(mins) ? 'bg-indigo-500 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                  >
+                    {mins}m
+                  </motion.button>
+                ))}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsCustomPomodoro(true)}
+                  className="flex-1 py-2 rounded-xl text-[12px] font-black uppercase text-gray-500 hover:text-white transition-all hover:bg-white/5"
+                >
+                  Custom
+                </motion.button>
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center w-full gap-2 bg-indigo-500/10 p-2 rounded-2xl border border-indigo-500/20"
+              >
+                <div className="flex-1 flex items-center px-4">
+                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mr-2">Mins:</span>
+                  <input
+                    type="number"
+                    value={customPomodoroMins}
+                    onChange={(e) => setCustomPomodoroMins(e.target.value)}
+                    className="bg-transparent border-none text-sm font-black text-white w-full outline-none"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex gap-1">
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      const mins = parseInt(customPomodoroMins);
+                      if (mins > 0) {
+                        dispatch(updatePomodoro({ timeLeft: mins * 60, isRunning: false }));
+                        setIsCustomPomodoro(false);
+                      }
+                    }}
+                    className="h-10 px-4 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest"
+                  >
+                    Set
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setIsCustomPomodoro(false)}
+                    className="h-10 w-10 flex items-center justify-center bg-white/10 text-gray-400 rounded-xl"
+                  >
+                    <RotateCcw size={14} className="rotate-45" />
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
           </div>
         </div>
-      )}
-
-      {/* Background Decor */}
-      <div className="absolute -bottom-6 -right-6 text-indigo-500/5 pointer-events-none group-hover:scale-110 transition-transform">
-        <Timer size={100} />
       </div>
     </div>
   );
 
   const renderDailyTasks = () => (
-    <div className="glass-card rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-8 border border-white/5 shadow-2xl h-full flex flex-col">
+    <div className="glass-card rounded-[2rem] sm:rounded-[3rem] p-3 pt-6 sm:p-8 border border-white/5 shadow-2xl h-full flex flex-col">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl sm:rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><CheckSquare size={18} className="sm:w-5 sm:h-5" /></div>
@@ -941,7 +1134,7 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        <div className="space-y-3 mb-6 flex-1 overflow-y-auto max-h-[350px] pr-2 custom-scrollbar ${!isInLibrary && taskView === 'today' ? 'opacity-20 pointer-events-none grayscale' : ''}">
+        <div className={`space-y-3 mb-10 flex-1 overflow-y-auto custom-scrollbar`}>
 
           {tasks.length === 0 && (
             <div className="text-center py-8 opacity-20">
@@ -951,7 +1144,7 @@ export default function StudentDashboard() {
           )}
           <AnimatePresence>
             {tasks.map((task) => (
-              <motion.div key={task.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className={`flex flex-col gap-3 p-4 rounded-2xl bg-white/[0.02] border group transition-all ${task.priority === 'high' ? 'border-orange-500/20' : 'border-white/5'}`}>
+              <motion.div key={task.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className={`flex flex-col gap-3 p-2 rounded-2xl bg-white/[0.02] border group transition-all ${task.priority === 'high' ? 'border-orange-500/20' : 'border-white/5'}`}>
                 <div className="flex items-center gap-4">
                   <button onClick={() => handleToggleTask(task.id, task.isCompleted)} className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.isCompleted ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-white/10 hover:border-indigo-500/50'}`}>
                     {task.isCompleted && <CheckSquare size={14} />}
@@ -976,19 +1169,25 @@ export default function StudentDashboard() {
                       <>
                         <span className={`text-sm font-bold block transition-all ${task.isCompleted ? 'text-gray-600 line-through' : 'text-gray-300'}`}>{task.title}</span>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{formatDuration(task.estimatedMinutes)}</span>
+                          <span className="text-[12px] text-gray-500 font-bold uppercase tracking-widest">{formatDuration(task.estimatedMinutes)}</span>
                           <div className={`w-1 h-1 rounded-full ${task.priority === 'high' ? 'bg-orange-500' : task.priority === 'medium' ? 'bg-blue-500' : 'bg-gray-600'}`} />
                         </div>
                       </>
                     )}
                   </div>
                   {!editingTask && (
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => handleEditTask(task)} className="p-2 text-gray-500 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all">
-                        <PenLine size={14} />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleEditTask(task)}
+                        className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center hover:bg-blue-500/20 transition-all border border-blue-500/10"
+                      >
+                        <PenLine size={16} />
                       </button>
-                      <button onClick={() => handleDeleteTask(task.id)} className="p-2 text-red-500/20 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                        <Trash2 size={16} />
+                      <button
+                        onClick={() => handleDeleteTask(task.id)}
+                        className="w-10 h-10 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center hover:bg-red-500/20 transition-all border border-red-500/10"
+                      >
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   )}
@@ -996,14 +1195,14 @@ export default function StudentDashboard() {
 
                 {/* Task Timer Integration */}
                 {!task.isCompleted && taskView === 'today' && !editingTask && (
-                  <div className={`mt-2 p-3 rounded-xl flex items-center justify-between transition-all ${activeTaskTimer?.id === task.id ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-black/20'}`}>
+                  <div className={`mt-2 p-2 rounded-xl flex items-center justify-between transition-all ${activeTaskTimer?.id === task.id ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-black/20'}`}>
                     <div className="flex items-center gap-3">
                       <button onClick={() => handleStartTaskTimer(task)} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${activeTaskTimer?.id === task.id && activeTaskTimer.isRunning ? 'bg-orange-500 text-white' : 'bg-indigo-600 text-white'}`}>
                         {activeTaskTimer?.id === task.id && activeTaskTimer.isRunning ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
                       </button>
                       <div className="flex flex-col">
-                        <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Timer</span>
-                        <span className={`text-xs font-mono font-bold ${activeTaskTimer?.id === task.id && activeTaskTimer.isRunning ? 'text-orange-500' : 'text-gray-400'}`}>
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Timer</span>
+                        <span className={`text-[15px] font-mono font-bold ${activeTaskTimer?.id === task.id && activeTaskTimer.isRunning ? 'text-orange-500' : 'text-gray-400'}`}>
                           {activeTaskTimer?.id === task.id ? formatTimer(activeTaskTimer.timeLeft) : formatTimer((task.estimatedMinutes || 0) * 60)}
                         </span>
                       </div>
@@ -1030,19 +1229,26 @@ export default function StudentDashboard() {
               disabled={!isInLibrary}
               className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-bold text-white outline-none focus:border-indigo-500/50 transition-all shadow-inner ${!isInLibrary ? 'cursor-not-allowed opacity-50' : ''}`}
             />
-            <div className={`flex flex-wrap gap-2 ${!isInLibrary ? 'opacity-50 pointer-events-none' : ''}`}>
-              <div className="flex bg-white/5 rounded-xl border border-white/10 p-1 flex-1">
-                <input type="number" placeholder="Hrs" value={newTaskHrs} onChange={(e) => setNewTaskHrs(e.target.value)} className="w-14 bg-transparent text-[10px] font-bold text-white outline-none px-2 text-center" />
-                <div className="w-[1px] bg-white/10 h-4 self-center" />
-                <input type="number" placeholder="Min" value={newTaskMin} onChange={(e) => setNewTaskMin(e.target.value)} className="w-14 bg-transparent text-[10px] font-bold text-white outline-none px-2 text-center" />
+            <div className={`flex flex-col gap-3 ${!isInLibrary ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="flex gap-2">
+                <div className="flex bg-white/5 rounded-xl border border-white/10 p-1.5 flex-1">
+                  <input type="number" placeholder="Hrs" value={newTaskHrs} onChange={(e) => setNewTaskHrs(e.target.value)} className="w-16 bg-transparent text-[12px] font-bold text-white outline-none px-2 text-center" />
+                  <div className="w-[1px] bg-white/10 h-5 self-center" />
+                  <input type="number" placeholder="Min" value={newTaskMin} onChange={(e) => setNewTaskMin(e.target.value)} className="w-16 bg-transparent text-[12px] font-bold text-white outline-none px-2 text-center" />
+                </div>
+                <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs font-bold text-gray-500 outline-none flex-1 min-w-[120px]">
+                  <option value="low">Low Priority</option>
+                  <option value="medium">Medium Priority</option>
+                  <option value="high">High Priority</option>
+                </select>
               </div>
-              <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-[10px] font-bold text-gray-500 outline-none flex-1 min-w-[100px]">
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-              <button type="submit" disabled={actionLoading || !isInLibrary} className={`p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-500/10 transition-all active:scale-90 ${actionLoading || !isInLibrary ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                {actionLoading ? <Loader2 size={20} className="animate-spin" /> : <PlusCircle size={20} />}
+              <button
+                type="submit"
+                disabled={actionLoading || !isInLibrary}
+                className={`w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.3em] hover:bg-indigo-500 shadow-xl shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-3 ${actionLoading || !isInLibrary ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {actionLoading ? <Loader2 size={18} className="animate-spin" /> : <PlusCircle size={18} />}
+                <span>{actionLoading ? 'Processing...' : 'Add Task'}</span>
               </button>
             </div>
           </form>
@@ -1182,9 +1388,6 @@ export default function StudentDashboard() {
                 <span className="text-xl font-black text-white tracking-tighter">{metrics?.currentStreak || 0} DAYS</span>
               </div>
             </div>
-            <button onClick={() => setActiveView('rank')} className="p-3 rounded-2xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all">
-              <Trophy size={20} />
-            </button>
           </div>
 
           <div className="glass-card p-8 rounded-[3rem] bg-gradient-to-br from-blue-600/5 to-transparent border border-white/5 relative overflow-hidden shadow-2xl">
@@ -1233,17 +1436,12 @@ export default function StudentDashboard() {
               </div>
             </div>
           </div>
-          {renderStudyHub()}
         </div>
 
-        {/* Right Analytics & Tasks */}
+        {/* Right Analytics */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-8">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            <div className="xl:col-span-1">
-              {renderDailyTasks()}
-            </div>
-
-            <div className="xl:col-span-1">
+          <div className="grid grid-cols-1 gap-8">
+            <div className="w-full">
               <div className="glass-card p-6 rounded-[2.5rem] bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
@@ -1305,22 +1503,20 @@ export default function StudentDashboard() {
     </motion.div>
   );
 
-  const renderRank = () => (
-    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-8 sm:space-y-12 max-w-4xl mx-auto pb-32">
-      <div>
-        <h2 className="text-3xl sm:text-4xl font-black text-white italic tracking-tighter uppercase leading-tight text-center sm:text-left">Institutional <span className="text-blue-500">Leaderboard</span></h2>
-        <p className="text-zinc-500 text-xs sm:text-sm mt-3 font-medium text-center sm:text-left">Real-time study performance across the campus ecosystem.</p>
+  const renderTasksView = () => (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="space-y-10 pb-32 max-w-4xl mx-auto">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Daily <span className="text-blue-500">Protocol</span></h2>
+        <p className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.3em]">Managed Study Sessions & Tasks</p>
       </div>
 
-      <div className="space-y-4 sm:space-y-5">
-        {rankData.map((item, index) => (
-          <div key={item.id} className={`flex items-center gap-4 sm:gap-5 p-4 sm:p-6 rounded-2xl sm:rounded-[2.5rem] border transition-all ${index < 1 ? 'bg-blue-600/10 border-blue-500/20' : 'bg-white/[0.02] border-white/5'}`}>
-            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-lg sm:text-xl italic ${index === 0 ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-white/5 text-gray-400'}`}>
-              {index + 1}
-            </div>
-            {index < 3 && <Award size={32} className={index === 0 ? 'text-orange-400' : index === 1 ? 'text-slate-300' : 'text-amber-500'} />}
-          </div>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-8">
+          {renderStudyHub()}
+        </div>
+        <div className="space-y-8">
+          {renderDailyTasks()}
+        </div>
       </div>
     </motion.div>
   );
@@ -1633,14 +1829,14 @@ export default function StudentDashboard() {
           ) : loading ? (
             <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {activeView === 'hub' && <HubSkeleton />}
-              {activeView === 'rank' && <RankSkeleton />}
+              {activeView === 'tasks' && <HubSkeleton />}
               {activeView === 'routine' && <RoutineSkeleton />}
               {activeView === 'history' && <HistorySkeleton />}
             </motion.div>
           ) : (
             <>
               {activeView === 'hub' && renderHub()}
-              {activeView === 'rank' && renderRank()}
+              {activeView === 'tasks' && renderTasksView()}
               {activeView === 'journal' && renderJournal()}
               {activeView === 'routine' && renderRoutineBuilder()}
               {activeView === 'history' && renderHistory()}
@@ -1686,9 +1882,9 @@ export default function StudentDashboard() {
               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Hub</span>
             </button>
 
-            <button onClick={() => setActiveView('rank')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'rank' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
-              <Trophy size={24} />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Rank</span>
+            <button onClick={() => setActiveView('tasks')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'tasks' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
+              <Zap size={24} />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Tasks</span>
             </button>
 
             <div className="flex-1 flex justify-center h-10 items-end">

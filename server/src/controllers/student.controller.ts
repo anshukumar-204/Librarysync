@@ -424,8 +424,11 @@ export const toggleTaskStatus = async (req: Request, res: Response) => {
 export const deleteTask = async (req: Request, res: Response) => {
   try {
     const taskId = Number(req.params.id);
+    if (isNaN(taskId)) {
+      return res.status(400).json({ success: false, message: "Invalid Task ID format" });
+    }
+
     const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
-    
     if (!student) return res.status(404).json({ success: false, message: "Student not found" });
 
     const task = await prisma.task.findUnique({ where: { id: taskId } });
@@ -434,9 +437,9 @@ export const deleteTask = async (req: Request, res: Response) => {
     }
 
     await prisma.task.delete({ where: { id: taskId } });
-
     return res.json({ success: true, message: "Task has been successfully removed." });
   } catch (error) {
+    console.error("TASK DELETION ERROR:", error);
     return res.status(500).json({ success: false, message: "Task deletion failure" });
   }
 };
@@ -444,9 +447,12 @@ export const deleteTask = async (req: Request, res: Response) => {
 export const updateTask = async (req: Request, res: Response) => {
   try {
     const taskId = Number(req.params.id);
+    if (isNaN(taskId)) {
+      return res.status(400).json({ success: false, message: "Invalid Task ID format" });
+    }
+
     const { title, estimatedMinutes, priority } = req.body;
     const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
-    
     if (!student) return res.status(404).json({ success: false, message: "Student not found" });
 
     const task = await prisma.task.findUnique({ where: { id: taskId } });
@@ -458,13 +464,14 @@ export const updateTask = async (req: Request, res: Response) => {
       where: { id: taskId },
       data: {
         ...(title && { title }),
-        ...(estimatedMinutes !== undefined && { estimatedMinutes: estimatedMinutes ? parseInt(estimatedMinutes) : null }),
+        ...(estimatedMinutes !== undefined && { estimatedMinutes: estimatedMinutes ? parseInt(estimatedMinutes as any) : null }),
         ...(priority && { priority })
       }
     });
 
     return res.json({ success: true, data: updatedTask });
   } catch (error) {
+    console.error("TASK UPDATE ERROR:", error);
     return res.status(500).json({ success: false, message: "Task update failure" });
   }
 };
