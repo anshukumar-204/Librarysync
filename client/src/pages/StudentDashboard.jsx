@@ -113,7 +113,8 @@ export default function StudentDashboard() {
 
   // Sync Profile Form Data when metrics are loaded
   useEffect(() => {
-    if (metrics?.student && !isProfileSynced) {
+    // Only target sync if we haven't synced yet OR if we have metrics but the form is still empty
+    if (metrics?.student && (!isProfileSynced || Object.keys(profileFormData).length === 0)) {
       const s = metrics.student;
       setProfileFormData({
         fullName: s.fullName || user?.name || '',
@@ -129,7 +130,7 @@ export default function StudentDashboard() {
       });
       setIsProfileSynced(true);
     }
-  }, [metrics, user, isProfileSynced]);
+  }, [metrics, user?.name, isProfileSynced, profileFormData]);
   const [logFormData, setLogFormData] = React.useState({
     subject: '',
     topicsCovered: '',
@@ -307,7 +308,7 @@ export default function StudentDashboard() {
       await dispatch(syncRoutine()).unwrap();
       toast.success("Study schedule updated.");
     } catch (err) {
-      toast.error(err || "Schedule sync failed");
+      toast.error(typeof err === 'string' ? err : (err?.message || "Schedule sync failed"));
     }
   };
 
@@ -329,7 +330,7 @@ export default function StudentDashboard() {
       setNewRoutineSubject('');
       toast.success("Schedule updated.");
     } catch (err) {
-      toast.error(err || "Failed to update schedule");
+      toast.error(typeof err === 'string' ? err : (err?.message || "Failed to update schedule"));
     }
   };
 
@@ -425,31 +426,42 @@ export default function StudentDashboard() {
     }
   };
 
-  const handleCreateLog = async (e) => {
+  const handleManualJournalSubmit = async (e) => {
     e.preventDefault();
     if (actionLoading) return;
     try {
       await dispatch(createStudyLog(logFormData)).unwrap();
-      toast.success("Log saved.");
+      toast.success("Study log saved.");
       setLogFormData({
         subject: '',
         topicsCovered: '',
         hoursSpent: todayStatus?.studyHours?.toFixed(1) || 0,
         productivityRating: 5
       });
-      setActiveView('journal'); // Stay on journal view to see the new log
+      setActiveView('history'); 
     } catch (err) {
-      toast.error(err || "Failed to save log");
+      const errorMsg = typeof err === 'string' ? err : (err?.message || "Failed to save log");
+      toast.error(errorMsg);
     }
   };
 
-  const handleDeleteLog = async (id) => {
-    if (!window.confirm("Delete this log from history?")) return;
+  const handleAutoTaskLogSync = async (logData) => {
     try {
-      await dispatch(deleteTask(id)).unwrap();
-      toast.success("Subject removed.");
+      const result = await dispatch(createStudyLog(logData)).unwrap();
+      setTodayTasks(prev => prev.map(t => t.id === activeTaskTimer.id ? { ...t, isCompleted: true } : t));
+      toast.success("Study log synchronized.");
+      setLogFormData({ subject: '', topicsCovered: '', hoursSpent: '', productivityRating: 5 });
     } catch (err) {
-      toast.error(err || "Removal failed");
+      toast.error(typeof err === 'string' ? err : (err?.message || "Failed to save log"));
+    }
+  };
+
+  const handleRemoveLog = async (id) => {
+    try {
+      await dispatch(deleteStudyLog(id)).unwrap();
+      toast.success("Log removed.");
+    } catch (err) {
+      toast.error(typeof err === 'string' ? err : (err?.message || "Removal failed"));
     }
   };
 
@@ -467,14 +479,11 @@ export default function StudentDashboard() {
     return `${Math.floor(diff / 60)}H ${diff % 60}M`;
   };
 
-  const handleLogout = async () => {
-    try {
-      await dispatch(logoutAdmin()).unwrap();
-      toast.success("Logged out.");
-      navigate('/login');
-    } catch (err) {
-      toast.error("Logout Failed");
-    }
+  const handleLogout = () => {
+    localStorage.removeItem('studentToken');
+    localStorage.removeItem('studentUser');
+    navigate('/login');
+    toast.success("Logged out successfully.");
   };
 
   const handleScanSuccess = async (result) => {
@@ -689,7 +698,8 @@ export default function StudentDashboard() {
         toast.success('A verification code has been sent to your email.');
         setActiveModal('profile_otp');
       } catch (err) {
-        toast.error(err || 'Failed to send verification code');
+        const errorMsg = typeof err === 'string' ? err : (err?.message || 'Failed to send verification code');
+        toast.error(errorMsg);
       } finally {
         setOtpRequestPending(false);
       }
@@ -705,7 +715,8 @@ export default function StudentDashboard() {
         dispatch(fetchMetrics()); // Refresh data
         setIsProfileSynced(false); // Reforce sync on next metrics load
       } catch (err) {
-        toast.error(err || 'Failed to update profile');
+        const errorMsg = typeof err === 'string' ? err : (err?.message || 'Failed to update profile');
+        toast.error(errorMsg);
       }
     };
 
