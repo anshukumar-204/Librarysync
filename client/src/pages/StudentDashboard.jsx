@@ -129,23 +129,23 @@ export default function StudentDashboard() {
       const s = metrics.student;
       setProfileFormData({
         fullName: s.fullName || user?.name || '',
-        fatherName: s.fatherName || '',
-        address: s.address || '',
-        village: s.village || '',
-        post: s.post || '',
-        district: s.district || '',
-        city: s.city || '',
-        state: s.state || '',
-        pincode: s.pincode || '',
-        bio: s.bio || ''
+        fatherName: s.fatherName || user?.fatherName || '',
+        address: s.address || user?.address || '',
+        village: s.village || user?.village || '',
+        post: s.post || user?.post || '',
+        district: s.district || user?.district || '',
+        city: s.city || user?.city || '',
+        state: s.state || user?.state || '',
+        pincode: s.pincode || user?.pincode || '',
+        bio: s.bio || user?.bio || ''
       });
       setIsProfileSynced(true);
     } else if (user && !isProfileSynced) {
-       // Fallback to basic session info while registry is loading
-       setProfileFormData(prev => ({
-         ...prev,
-         fullName: prev.fullName || user.name || ''
-       }));
+      // Fallback to basic session info while registry is loading
+      setProfileFormData(prev => ({
+        ...prev,
+        fullName: prev.fullName || user.name || ''
+      }));
     }
   }, [metrics?.student, user?.name, isProfileSynced]);
   const [logFormData, setLogFormData] = React.useState({
@@ -164,7 +164,7 @@ export default function StudentDashboard() {
   const [activeTaskTimer, setActiveTaskTimer] = React.useState(null); // { id, timeLeft, isRunning }
   const [isAlarmActive, setIsAlarmActive] = React.useState(false);
   const vibrationInterval = React.useRef(null);
-  
+
   const [routineDay, setRoutineDay] = React.useState(new Date().getDay());
   const [newRoutineSubject, setNewRoutineSubject] = React.useState('');
   const [newRoutineHrs, setNewRoutineHrs] = React.useState('');
@@ -208,12 +208,12 @@ export default function StudentDashboard() {
     } else if (activeTaskTimer?.timeLeft === 0 && activeTaskTimer.isRunning) {
       const targetTask = tasks.find(t => t.id === activeTaskTimer.id);
       handleTimerComplete(`Task: ${targetTask?.title || 'Task'}`);
-      
+
       // Auto-complete the task if not already completed
       if (targetTask && !targetTask.isCompleted) {
         handleToggleTask(targetTask.id, false); // Toggle from false to true
       }
-      
+
       // KILL TIMER STATE TO PREVENT LOOP
       setActiveTaskTimer(null);
     }
@@ -230,7 +230,7 @@ export default function StudentDashboard() {
   const triggerAlarm = (source) => {
     setIsAlarmActive(true);
     toast.error(`TERMINAL ALERT: ${source} Completed!`, { duration: 6000 });
-    
+
     // Recursive vibration for persistence
     const startVibration = () => {
       if (navigator.vibrate) {
@@ -258,10 +258,10 @@ export default function StudentDashboard() {
     const isFocus = pomodoro.mode === 'focus';
     const nextMode = isFocus ? 'break' : 'focus';
     const nextTime = nextMode === 'focus' ? 25 * 60 : 5 * 60;
-    
-    dispatch(updatePomodoro({ 
-      isRunning: false, 
-      mode: nextMode, 
+
+    dispatch(updatePomodoro({
+      isRunning: false,
+      mode: nextMode,
       timeLeft: nextTime,
       sessionsCompleted: isFocus ? pomodoro.sessionsCompleted + 1 : pomodoro.sessionsCompleted
     }));
@@ -269,8 +269,8 @@ export default function StudentDashboard() {
     if (isFocus) {
       toast.success("Focus Session Synchronized! Time for a short recharge.");
       const focusedHours = (pomodoro.focusDuration / 60).toFixed(1);
-      setLogFormData(prev => ({ 
-        ...prev, 
+      setLogFormData(prev => ({
+        ...prev,
         hoursSpent: ((parseFloat(prev.hoursSpent) || 0) + parseFloat(focusedHours)).toFixed(1),
         topicsCovered: prev.topicsCovered + `\n- Focus session: ${pomodoro.focusDuration}m completed`
       }));
@@ -280,8 +280,8 @@ export default function StudentDashboard() {
   };
 
   const handleUpdatePomodoroSettings = (focus, breakTime) => {
-    dispatch(updatePomodoro({ 
-      focusDuration: focus, 
+    dispatch(updatePomodoro({
+      focusDuration: focus,
       breakDuration: breakTime,
       timeLeft: pomodoro.mode === 'focus' ? focus * 60 : breakTime * 60,
       isRunning: false
@@ -305,10 +305,10 @@ export default function StudentDashboard() {
     if (!newTaskTitle.trim()) return;
     try {
       const estimatedMinutes = (parseInt(newTaskHrs) || 0) * 60 + (parseInt(newTaskMin) || 0);
-      await dispatch(createTask({ 
-        title: newTaskTitle, 
-        estimatedMinutes: estimatedMinutes || null, 
-        priority: newTaskPriority 
+      await dispatch(createTask({
+        title: newTaskTitle,
+        estimatedMinutes: estimatedMinutes || null,
+        priority: newTaskPriority
       })).unwrap();
       setNewTaskTitle('');
       setNewTaskHrs('');
@@ -455,7 +455,7 @@ export default function StudentDashboard() {
         hoursSpent: todayStatus?.studyHours?.toFixed(1) || 0,
         productivityRating: 5
       });
-      setActiveView('history'); 
+      setActiveView('history');
     } catch (err) {
       const errorMsg = typeof err === 'string' ? err : (err?.message || "Failed to save log");
       toast.error(errorMsg);
@@ -513,11 +513,11 @@ export default function StudentDashboard() {
     try {
       await dispatch(autoMarkAttendance(qrValue)).unwrap();
       toast.success("Attendance Marked Successfully!");
-      
+
       // AUTO-SYNC WORKFLOW
       await dispatch(syncRoutine()).unwrap();
       dispatch(fetchTasks());
-      
+
       dispatch(fetchTodayStatus());
       dispatch(fetchMetrics());
       dispatch(fetchHistory());
@@ -584,7 +584,7 @@ export default function StudentDashboard() {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    
+
     if (hrs > 0) {
       return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
@@ -637,30 +637,30 @@ export default function StudentDashboard() {
 
   const RankSkeleton = () => (
     <div className="space-y-8 pb-32">
-       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <Skeleton className="h-12 w-64" />
-          <Skeleton className="h-10 w-32" />
-       </div>
-       <div className="glass-card rounded-[3rem] p-8 border border-white/5 space-y-4">
-          {[1,2,3,4,5].map(i => (
-            <Skeleton key={i} className="h-20 w-full rounded-2xl" />
-          ))}
-       </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <Skeleton className="h-12 w-64" />
+        <Skeleton className="h-10 w-32" />
+      </div>
+      <div className="glass-card rounded-[3rem] p-8 border border-white/5 space-y-4">
+        {[1, 2, 3, 4, 5].map(i => (
+          <Skeleton key={i} className="h-20 w-full rounded-2xl" />
+        ))}
+      </div>
     </div>
   );
 
   const RoutineSkeleton = () => (
     <div className="space-y-8 pb-32">
-       <div className="flex items-center gap-4">
-          <Skeleton className="h-12 w-48" />
-          <div className="flex gap-2">
-            {[1,2,3].map(i => <Skeleton key={i} className="h-10 w-12" />)}
-          </div>
-       </div>
-       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Skeleton className="h-[400px] w-full rounded-[3rem]" />
-          <Skeleton className="h-[400px] w-full rounded-[3rem]" />
-       </div>
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-12 w-48" />
+        <div className="flex gap-2">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-12" />)}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Skeleton className="h-[400px] w-full rounded-[3rem]" />
+        <Skeleton className="h-[400px] w-full rounded-[3rem]" />
+      </div>
     </div>
   );
 
@@ -669,7 +669,7 @@ export default function StudentDashboard() {
       <Skeleton className="h-12 w-64" />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-1 space-y-4">
-           {[1,2,3,4].map(i => <Skeleton key={i} className="h-16 w-full rounded-2xl" />)}
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-16 w-full rounded-2xl" />)}
         </div>
         <div className="md:col-span-2">
           <Skeleton className="h-[500px] w-full rounded-[3rem]" />
@@ -703,7 +703,7 @@ export default function StudentDashboard() {
 
   const renderProfileSettings = () => {
     const student = metrics?.student || {};
-    
+
     const handleProfileChange = (e) => {
       const { name, value } = e.target;
       setProfileFormData(prev => ({ ...prev, [name]: value }));
@@ -747,43 +747,43 @@ export default function StudentDashboard() {
 
         <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[3rem] border border-white/5 p-8 sm:p-12 space-y-10 shadow-2xl">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-              <div className="space-y-3">
-                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Full Name</label>
-                <input name="fullName" value={profileFormData.fullName || ''} onChange={handleProfileChange} placeholder="Enter your full name" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
-              </div>
-              <div className="space-y-3">
-                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Father/Guardian Name</label>
-                <input name="fatherName" value={profileFormData.fatherName || ''} onChange={handleProfileChange} placeholder="Enter guardian name" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
-              </div>
-              <div className="space-y-3">
-                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Village/Locality</label>
-                <input name="village" value={profileFormData.village || ''} onChange={handleProfileChange} placeholder="e.g. Rampur" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
-              </div>
-              <div className="space-y-3">
-                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Post Office</label>
-                <input name="post" value={profileFormData.post || ''} onChange={handleProfileChange} placeholder="Enter post office" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
-              </div>
-              <div className="space-y-3">
-                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">District</label>
-                <input name="district" value={profileFormData.district || ''} onChange={handleProfileChange} placeholder="Enter district" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
-              </div>
-              <div className="space-y-3">
-                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Pincode</label>
-                <input name="pincode" value={profileFormData.pincode || ''} onChange={handleProfileChange} placeholder="6-digit PIN" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
-              </div>
-              <div className="col-span-1 sm:col-span-2 space-y-3">
-                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Permanent Address</label>
-                <textarea name="address" value={profileFormData.address || ''} onChange={handleProfileChange} placeholder="Enter your full permanent address details..." className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none placeholder:text-white/10" />
-              </div>
-              <div className="col-span-1 sm:col-span-2 space-y-3">
-                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Personal Bio/Note</label>
-               <textarea name="bio" value={profileFormData.bio || ''} onChange={handleProfileChange} placeholder="Add a short bio or notes about your study goals..." className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none placeholder:text-white/10" />
-             </div>
+            <div className="space-y-3">
+              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Full Name</label>
+              <input name="fullName" value={profileFormData.fullName || ''} onChange={handleProfileChange} placeholder="Enter your full name" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
+            </div>
+            <div className="space-y-3">
+              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Father/Guardian Name</label>
+              <input name="fatherName" value={profileFormData.fatherName || ''} onChange={handleProfileChange} placeholder="Enter guardian name" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
+            </div>
+            <div className="space-y-3">
+              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Village/Locality</label>
+              <input name="village" value={profileFormData.village || ''} onChange={handleProfileChange} placeholder="e.g. Rampur" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
+            </div>
+            <div className="space-y-3">
+              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Post Office</label>
+              <input name="post" value={profileFormData.post || ''} onChange={handleProfileChange} placeholder="Enter post office" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
+            </div>
+            <div className="space-y-3">
+              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">District</label>
+              <input name="district" value={profileFormData.district || ''} onChange={handleProfileChange} placeholder="Enter district" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
+            </div>
+            <div className="space-y-3">
+              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Pincode</label>
+              <input name="pincode" value={profileFormData.pincode || ''} onChange={handleProfileChange} placeholder="6-digit PIN" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
+            </div>
+            <div className="col-span-1 sm:col-span-2 space-y-3">
+              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Permanent Address</label>
+              <textarea name="address" value={profileFormData.address || ''} onChange={handleProfileChange} placeholder="Enter your full permanent address details..." className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none placeholder:text-white/10" />
+            </div>
+            <div className="col-span-1 sm:col-span-2 space-y-3">
+              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Personal Bio/Note</label>
+              <textarea name="bio" value={profileFormData.bio || ''} onChange={handleProfileChange} placeholder="Add a short bio or notes about your study goals..." className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none placeholder:text-white/10" />
+            </div>
           </div>
 
-          <button 
-            onClick={handleRequestOtp} 
-            disabled={otpRequestPending || actionLoading} 
+          <button
+            onClick={handleRequestOtp}
+            disabled={otpRequestPending || actionLoading}
             className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50"
           >
             {otpRequestPending ? 'Sending Code...' : 'Update Profile Details'}
@@ -826,7 +826,7 @@ export default function StudentDashboard() {
           <div className="text-6xl font-black text-white tracking-tighter mb-6 font-mono tabular-nums">
             {formatTimer(pomodoro.timeLeft)}
           </div>
-          
+
           <div className="flex items-center gap-4">
             <button onClick={handleToggleTimer} className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all active:scale-90 ${pomodoro.isRunning ? 'bg-orange-500/10 text-orange-500' : 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'}`}>
               {pomodoro.isRunning ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
@@ -860,8 +860,8 @@ export default function StudentDashboard() {
         </div>
         <div className="flex items-center gap-4">
           {taskView === 'today' && (
-            <button 
-              onClick={handleSyncRoutine} 
+            <button
+              onClick={handleSyncRoutine}
               disabled={actionLoading || !isInLibrary}
               className={`p-2 rounded-xl bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600/20 transition-all ${actionLoading || !isInLibrary ? 'opacity-30 cursor-not-allowed' : ''}`}
               title={isInLibrary ? "Sync Schedule" : "Check in to sync"}
@@ -882,116 +882,116 @@ export default function StudentDashboard() {
               <Camera size={32} className="animate-pulse" />
             </div>
             <h3 className="text-sm font-black text-white uppercase tracking-tighter mb-1">Locked</h3>
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">Scan QR at the library<br/>to activate your plan.</p>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">Scan QR at the library<br />to activate your plan.</p>
           </div>
         )}
 
         <div className="space-y-3 mb-6 flex-1 overflow-y-auto max-h-[350px] pr-2 custom-scrollbar ${!isInLibrary && taskView === 'today' ? 'opacity-20 pointer-events-none grayscale' : ''}">
 
-        {tasks.length === 0 && (
-          <div className="text-center py-8 opacity-20">
-            <CheckSquare size={40} className="mx-auto mb-2" />
-            <p className="text-[10px] font-black uppercase tracking-widest">No tasks</p>
-          </div>
-        )}
-        <AnimatePresence>
-          {tasks.map((task) => (
-            <motion.div key={task.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className={`flex flex-col gap-3 p-4 rounded-2xl bg-white/[0.02] border group transition-all ${task.priority === 'high' ? 'border-orange-500/20' : 'border-white/5'}`}>
-              <div className="flex items-center gap-4">
-                <button onClick={() => handleToggleTask(task.id, task.isCompleted)} className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.isCompleted ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-white/10 hover:border-indigo-500/50'}`}>
-                  {task.isCompleted && <CheckSquare size={14} />}
-                </button>
-                <div className="flex-1">
-                  {editingTask?.id === task.id ? (
-                    <div className="space-y-3 bg-white/5 p-3 rounded-xl border border-white/10">
-                       <input type="text" value={editingTask.title} onChange={(e) => setEditingTask({...editingTask, title: e.target.value})} className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-xs text-white outline-none" placeholder="Task Title" />
-                       <div className="flex flex-wrap gap-2">
+          {tasks.length === 0 && (
+            <div className="text-center py-8 opacity-20">
+              <CheckSquare size={40} className="mx-auto mb-2" />
+              <p className="text-[10px] font-black uppercase tracking-widest">No tasks</p>
+            </div>
+          )}
+          <AnimatePresence>
+            {tasks.map((task) => (
+              <motion.div key={task.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className={`flex flex-col gap-3 p-4 rounded-2xl bg-white/[0.02] border group transition-all ${task.priority === 'high' ? 'border-orange-500/20' : 'border-white/5'}`}>
+                <div className="flex items-center gap-4">
+                  <button onClick={() => handleToggleTask(task.id, task.isCompleted)} className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.isCompleted ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-white/10 hover:border-indigo-500/50'}`}>
+                    {task.isCompleted && <CheckSquare size={14} />}
+                  </button>
+                  <div className="flex-1">
+                    {editingTask?.id === task.id ? (
+                      <div className="space-y-3 bg-white/5 p-3 rounded-xl border border-white/10">
+                        <input type="text" value={editingTask.title} onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })} className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-xs text-white outline-none" placeholder="Task Title" />
+                        <div className="flex flex-wrap gap-2">
                           <div className="flex bg-white/10 rounded-lg border border-white/20 p-1 flex-1">
-                            <input type="number" value={editingTask.editHrs} onChange={(e) => setEditingTask({...editingTask, editHrs: e.target.value})} className="w-12 bg-transparent text-[10px] font-bold text-white outline-none px-1 text-center" placeholder="H" title="Hours" />
+                            <input type="number" value={editingTask.editHrs} onChange={(e) => setEditingTask({ ...editingTask, editHrs: e.target.value })} className="w-12 bg-transparent text-[10px] font-bold text-white outline-none px-1 text-center" placeholder="H" title="Hours" />
                             <div className="w-[1px] bg-white/20 h-3 self-center" />
-                            <input type="number" value={editingTask.editMin} onChange={(e) => setEditingTask({...editingTask, editMin: e.target.value})} className="w-12 bg-transparent text-[10px] font-bold text-white outline-none px-1 text-center" placeholder="M" title="Minutes" />
+                            <input type="number" value={editingTask.editMin} onChange={(e) => setEditingTask({ ...editingTask, editMin: e.target.value })} className="w-12 bg-transparent text-[10px] font-bold text-white outline-none px-1 text-center" placeholder="M" title="Minutes" />
                           </div>
                           <button onClick={handleUpdateTask} disabled={actionLoading} className={`bg-blue-600 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest ${actionLoading ? 'opacity-50' : ''}`}>
                             {actionLoading ? 'SAVING...' : 'SAVE'}
                           </button>
                           <button onClick={() => setEditingTask(null)} disabled={actionLoading} className="bg-white/10 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest">CANCEL</button>
-                       </div>
-                    </div>
-                  ) : (
-                    <>
-                      <span className={`text-sm font-bold block transition-all ${task.isCompleted ? 'text-gray-600 line-through' : 'text-gray-300'}`}>{task.title}</span>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{formatDuration(task.estimatedMinutes)}</span>
-                        <div className={`w-1 h-1 rounded-full ${task.priority === 'high' ? 'bg-orange-500' : task.priority === 'medium' ? 'bg-blue-500' : 'bg-gray-600'}`} />
+                        </div>
                       </div>
-                    </>
+                    ) : (
+                      <>
+                        <span className={`text-sm font-bold block transition-all ${task.isCompleted ? 'text-gray-600 line-through' : 'text-gray-300'}`}>{task.title}</span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{formatDuration(task.estimatedMinutes)}</span>
+                          <div className={`w-1 h-1 rounded-full ${task.priority === 'high' ? 'bg-orange-500' : task.priority === 'medium' ? 'bg-blue-500' : 'bg-gray-600'}`} />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {!editingTask && (
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => handleEditTask(task)} className="p-2 text-gray-500 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all">
+                        <PenLine size={14} />
+                      </button>
+                      <button onClick={() => handleDeleteTask(task.id)} className="p-2 text-red-500/20 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   )}
                 </div>
-                {!editingTask && (
-                  <div className="flex items-center gap-1.5">
-                    <button onClick={() => handleEditTask(task)} className="p-2 text-gray-500 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all">
-                      <PenLine size={14} />
-                    </button>
-                    <button onClick={() => handleDeleteTask(task.id)} className="p-2 text-red-500/20 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                      <Trash2 size={16} />
-                    </button>
+
+                {/* Task Timer Integration */}
+                {!task.isCompleted && taskView === 'today' && !editingTask && (
+                  <div className={`mt-2 p-3 rounded-xl flex items-center justify-between transition-all ${activeTaskTimer?.id === task.id ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-black/20'}`}>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => handleStartTaskTimer(task)} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${activeTaskTimer?.id === task.id && activeTaskTimer.isRunning ? 'bg-orange-500 text-white' : 'bg-indigo-600 text-white'}`}>
+                        {activeTaskTimer?.id === task.id && activeTaskTimer.isRunning ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
+                      </button>
+                      <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Timer</span>
+                        <span className={`text-xs font-mono font-bold ${activeTaskTimer?.id === task.id && activeTaskTimer.isRunning ? 'text-orange-500' : 'text-gray-400'}`}>
+                          {activeTaskTimer?.id === task.id ? formatTimer(activeTaskTimer.timeLeft) : formatTimer((task.estimatedMinutes || 0) * 60)}
+                        </span>
+                      </div>
+                    </div>
+                    {activeTaskTimer?.id === task.id && (
+                      <button onClick={() => setActiveTaskTimer(null)} className="p-2 text-gray-600 hover:text-white">
+                        <RotateCcw size={12} />
+                      </button>
+                    )}
                   </div>
                 )}
-              </div>
-              
-              {/* Task Timer Integration */}
-              {!task.isCompleted && taskView === 'today' && !editingTask && (
-                <div className={`mt-2 p-3 rounded-xl flex items-center justify-between transition-all ${activeTaskTimer?.id === task.id ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-black/20'}`}>
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => handleStartTaskTimer(task)} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${activeTaskTimer?.id === task.id && activeTaskTimer.isRunning ? 'bg-orange-500 text-white' : 'bg-indigo-600 text-white'}`}>
-                      {activeTaskTimer?.id === task.id && activeTaskTimer.isRunning ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
-                    </button>
-                    <div className="flex flex-col">
-                      <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Timer</span>
-                      <span className={`text-xs font-mono font-bold ${activeTaskTimer?.id === task.id && activeTaskTimer.isRunning ? 'text-orange-500' : 'text-gray-400'}`}>
-                        {activeTaskTimer?.id === task.id ? formatTimer(activeTaskTimer.timeLeft) : formatTimer((task.estimatedMinutes || 0) * 60)}
-                      </span>
-                    </div>
-                  </div>
-                  {activeTaskTimer?.id === task.id && (
-                    <button onClick={() => setActiveTaskTimer(null)} className="p-2 text-gray-600 hover:text-white">
-                      <RotateCcw size={12} />
-                    </button>
-                  )}
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
 
-      {taskView === 'today' && (
-        <form onSubmit={handleAddTask} className="relative mt-auto space-y-3">
-          <input 
-            type="text" 
-            placeholder={isInLibrary ? "Add task..." : "Check in to add tasks..."} 
-            value={newTaskTitle} 
-            onChange={(e) => setNewTaskTitle(e.target.value)} 
-            disabled={!isInLibrary}
-            className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-bold text-white outline-none focus:border-indigo-500/50 transition-all shadow-inner ${!isInLibrary ? 'cursor-not-allowed opacity-50' : ''}`} 
-          />
-          <div className={`flex flex-wrap gap-2 ${!isInLibrary ? 'opacity-50 pointer-events-none' : ''}`}>
-            <div className="flex bg-white/5 rounded-xl border border-white/10 p-1 flex-1">
-              <input type="number" placeholder="Hrs" value={newTaskHrs} onChange={(e) => setNewTaskHrs(e.target.value)} className="w-14 bg-transparent text-[10px] font-bold text-white outline-none px-2 text-center" />
-              <div className="w-[1px] bg-white/10 h-4 self-center" />
-              <input type="number" placeholder="Min" value={newTaskMin} onChange={(e) => setNewTaskMin(e.target.value)} className="w-14 bg-transparent text-[10px] font-bold text-white outline-none px-2 text-center" />
+        {taskView === 'today' && (
+          <form onSubmit={handleAddTask} className="relative mt-auto space-y-3">
+            <input
+              type="text"
+              placeholder={isInLibrary ? "Add task..." : "Check in to add tasks..."}
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              disabled={!isInLibrary}
+              className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-5 pr-12 text-sm font-bold text-white outline-none focus:border-indigo-500/50 transition-all shadow-inner ${!isInLibrary ? 'cursor-not-allowed opacity-50' : ''}`}
+            />
+            <div className={`flex flex-wrap gap-2 ${!isInLibrary ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="flex bg-white/5 rounded-xl border border-white/10 p-1 flex-1">
+                <input type="number" placeholder="Hrs" value={newTaskHrs} onChange={(e) => setNewTaskHrs(e.target.value)} className="w-14 bg-transparent text-[10px] font-bold text-white outline-none px-2 text-center" />
+                <div className="w-[1px] bg-white/10 h-4 self-center" />
+                <input type="number" placeholder="Min" value={newTaskMin} onChange={(e) => setNewTaskMin(e.target.value)} className="w-14 bg-transparent text-[10px] font-bold text-white outline-none px-2 text-center" />
+              </div>
+              <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-[10px] font-bold text-gray-500 outline-none flex-1 min-w-[100px]">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+              <button type="submit" disabled={actionLoading || !isInLibrary} className={`p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-500/10 transition-all active:scale-90 ${actionLoading || !isInLibrary ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                {actionLoading ? <Loader2 size={20} className="animate-spin" /> : <PlusCircle size={20} />}
+              </button>
             </div>
-            <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-[10px] font-bold text-gray-500 outline-none flex-1 min-w-[100px]">
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-            <button type="submit" disabled={actionLoading || !isInLibrary} className={`p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-500/10 transition-all active:scale-90 ${actionLoading || !isInLibrary ? 'opacity-50 cursor-not-allowed' : ''}`}>
-              {actionLoading ? <Loader2 size={20} className="animate-spin" /> : <PlusCircle size={20} />}
-            </button>
-          </div>
-        </form>
-      )}
+          </form>
+        )}
       </div>
     </div>
   );
@@ -1112,7 +1112,7 @@ export default function StudentDashboard() {
             <div className="xl:col-span-1">
               {renderDailyTasks()}
             </div>
-            
+
             <div className="xl:col-span-1">
               <div className="glass-card p-6 rounded-[2.5rem] bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -1125,51 +1125,51 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-              <div className="glass-card rounded-[3rem] p-5 sm:p-8 border border-white/5 shadow-2xl">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500"><TrendingUp size={20} /></div>
-                  <h2 className="text-xl font-black text-white uppercase tracking-tight">Velocity</h2>
-                </div>
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={getProcessedChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                      <XAxis dataKey={chartRange === 'year' ? 'label' : 'date'} axisLine={false} tickLine={false} tick={{ fill: '#4B5563', fontSize: 10, fontWeight: '800' }} tickFormatter={getRangeLabel} />
-                      <YAxis hide domain={[0, 'auto']} />
-                      <ReTooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={{ backgroundColor: '#0c0c0e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', fontSize: '10px' }} />
-                      <Bar dataKey="studyHours" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={24} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+            <div className="glass-card rounded-[3rem] p-5 sm:p-8 border border-white/5 shadow-2xl">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500"><TrendingUp size={20} /></div>
+                <h2 className="text-xl font-black text-white uppercase tracking-tight">Velocity</h2>
               </div>
-
-              <div className="glass-card rounded-[3rem] p-5 sm:p-8 border border-white/5 shadow-2xl">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><LayoutGrid size={20} /></div>
-                  <h2 className="text-xl font-black text-white uppercase tracking-tight">Subjects</h2>
-                </div>
-                <div className="h-[250px]">
-                   {subjectAnalytics.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={subjectAnalytics} dataKey="hours" nameKey="subject" cx="50%" cy="50%" innerRadius={60} outerRadius={80} fill="#8884d8" paddingAngle={5}>
-                            {subjectAnalytics.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981'][index % 5]} />
-                            ))}
-                          </Pie>
-                          <ReTooltip contentStyle={{ backgroundColor: '#0c0c0e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', fontSize: '10px' }} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                   ) : (
-                      <div className="flex flex-col items-center justify-center h-full opacity-20">
-                        <Activity size={40} className="mb-2" />
-                        <p className="text-[10px] font-black uppercase tracking-widest">No Data</p>
-                      </div>
-                   )}
-                </div>
+              <div className="h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={getProcessedChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                    <XAxis dataKey={chartRange === 'year' ? 'label' : 'date'} axisLine={false} tickLine={false} tick={{ fill: '#4B5563', fontSize: 10, fontWeight: '800' }} tickFormatter={getRangeLabel} />
+                    <YAxis hide domain={[0, 'auto']} />
+                    <ReTooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={{ backgroundColor: '#0c0c0e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', fontSize: '10px' }} />
+                    <Bar dataKey="studyHours" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={24} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
+
+            <div className="glass-card rounded-[3rem] p-5 sm:p-8 border border-white/5 shadow-2xl">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><LayoutGrid size={20} /></div>
+                <h2 className="text-xl font-black text-white uppercase tracking-tight">Subjects</h2>
+              </div>
+              <div className="h-[250px]">
+                {subjectAnalytics.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={subjectAnalytics} dataKey="hours" nameKey="subject" cx="50%" cy="50%" innerRadius={60} outerRadius={80} fill="#8884d8" paddingAngle={5}>
+                        {subjectAnalytics.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981'][index % 5]} />
+                        ))}
+                      </Pie>
+                      <ReTooltip contentStyle={{ backgroundColor: '#0c0c0e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', fontSize: '10px' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full opacity-20">
+                    <Activity size={40} className="mb-2" />
+                    <p className="text-[10px] font-black uppercase tracking-widest">No Data</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -1226,13 +1226,13 @@ export default function StudentDashboard() {
             <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><PenLine size={20} /></div>
             <h3 className="text-lg font-black text-white uppercase tracking-tight">Plan Subject</h3>
           </div>
-          
+
           <form onSubmit={handleAddScheduleItem} className="glass-card p-8 rounded-[3rem] bg-white/[0.03] border border-white/5 space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Subject</label>
               <input type="text" placeholder="e.g., Mathematics" value={newRoutineSubject} onChange={(e) => setNewRoutineSubject(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-bold text-white focus:border-indigo-500 outline-none transition-all" />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Hours</label>
@@ -1293,55 +1293,55 @@ export default function StudentDashboard() {
         <form onSubmit={handleManualJournalSubmit} className="space-y-8">
           <div className="space-y-3">
             <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Core Subject</label>
-            <input 
+            <input
               type="text"
               required
               placeholder="e.g. Physics, Advanced Mathematics"
               className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10"
               value={logFormData.subject}
-              onChange={(e) => setLogFormData({...logFormData, subject: e.target.value})}
+              onChange={(e) => setLogFormData({ ...logFormData, subject: e.target.value })}
             />
           </div>
 
           <div className="space-y-3">
             <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Topics Accomplished</label>
-            <textarea 
+            <textarea
               required
               placeholder="What specifically did you achieve in this session?"
               className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-32 focus:border-blue-500/50 outline-none transition-all resize-none placeholder:text-white/10"
               value={logFormData.topicsCovered}
-              onChange={(e) => setLogFormData({...logFormData, topicsCovered: e.target.value})}
+              onChange={(e) => setLogFormData({ ...logFormData, topicsCovered: e.target.value })}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-8">
             <div className="space-y-3">
               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Duration (Hours)</label>
-              <input 
+              <input
                 type="number"
                 step="0.1"
                 required
                 className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all"
                 value={logFormData.hoursSpent}
-                onChange={(e) => setLogFormData({...logFormData, hoursSpent: e.target.value})}
+                onChange={(e) => setLogFormData({ ...logFormData, hoursSpent: e.target.value })}
               />
             </div>
             <div className="space-y-3">
               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Productivity Rating (1-10)</label>
-              <select 
+              <select
                 className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all appearance-none"
                 value={logFormData.productivityRating}
-                onChange={(e) => setLogFormData({...logFormData, productivityRating: parseInt(e.target.value)})}
+                onChange={(e) => setLogFormData({ ...logFormData, productivityRating: parseInt(e.target.value) })}
               >
                 {[...Array(10)].map((_, i) => (
-                  <option key={i+1} value={i+1} className="bg-zinc-900">{i+1} - {i < 3 ? 'low' : i < 7 ? 'medium' : 'peak'}</option>
+                  <option key={i + 1} value={i + 1} className="bg-zinc-900">{i + 1} - {i < 3 ? 'low' : i < 7 ? 'medium' : 'peak'}</option>
                 ))}
               </select>
             </div>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={actionLoading}
             className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50 mt-4"
           >
@@ -1366,19 +1366,19 @@ export default function StudentDashboard() {
           <div className="md:col-span-1 space-y-8">
             <div className="space-y-4 mb-6 px-2">
               <div className="relative group">
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   value={selectedHistoryDate ? selectedHistoryDate.split('T')[0] : ''}
                   onChange={(e) => handleSelectHistoryDate(e.target.value)}
                   className="w-full h-full absolute inset-0 opacity-0 z-20 cursor-pointer"
                 />
                 <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between text-[10px] font-black uppercase text-white group-hover:border-emerald-500/50 transition-all">
-                   <span className={selectedHistoryDate ? 'text-white' : 'text-gray-500'}>
-                     {selectedHistoryDate 
-                       ? new Date(selectedHistoryDate).toLocaleDateString('en-GB').replace(/\//g, '-') 
-                       : 'DD-MM-YYYY'}
-                   </span>
-                   <Calendar size={14} className="text-emerald-500" />
+                  <span className={selectedHistoryDate ? 'text-white' : 'text-gray-500'}>
+                    {selectedHistoryDate
+                      ? new Date(selectedHistoryDate).toLocaleDateString('en-GB').replace(/\//g, '-')
+                      : 'DD-MM-YYYY'}
+                  </span>
+                  <Calendar size={14} className="text-emerald-500" />
                 </div>
               </div>
             </div>
@@ -1424,13 +1424,13 @@ export default function StudentDashboard() {
                         {selectedRecord?.studyHours?.toFixed(1) || 0} <span className="text-lg">HOURS</span>
                       </span>
                     </div>
-                    
+
                     <div className="p-8 rounded-[3rem] bg-indigo-500/5 border border-white/5">
                       <div className="flex items-center gap-3 mb-6">
                         <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><PenLine size={16} /></div>
                         <h4 className="text-sm font-black text-white uppercase tracking-tight">Tasks</h4>
                       </div>
-                      
+
                       <div className="space-y-3">
                         {historyTasks.length === 0 ? (
                           <p className="text-[10px] text-gray-400 font-bold italic text-center py-4 uppercase tracking-widest opacity-40">No entries</p>
@@ -1452,10 +1452,10 @@ export default function StudentDashboard() {
                         )}
                       </div>
                       <div className="space-y-4 pt-4 border-t border-white/5">
-                    <p className="text-[10px] text-gray-500 font-bold text-center mt-4 italic">"Study records are verified and finalized."</p>
+                        <p className="text-[10px] text-gray-500 font-bold text-center mt-4 italic">"Study records are verified and finalized."</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                </div>
                 </div>
               </div>
             ) : (
@@ -1490,7 +1490,7 @@ export default function StudentDashboard() {
 
           <div className="flex items-center gap-3">
             {!isRestricted && (
-              <button 
+              <button
                 onClick={() => setActiveView('profile')}
                 className={`p-3 rounded-2xl transition-all ${activeView === 'profile' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-white/5 text-gray-500 hover:text-white'}`}
               >
@@ -1507,9 +1507,9 @@ export default function StudentDashboard() {
       <main className="relative z-10 max-w-7xl mx-auto px-6 pt-8 pb-20">
         <AnimatePresence mode="wait">
           {isRestricted ? (
-             <motion.div key="restricted" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
-               {renderRestrictedAccess()}
-             </motion.div>
+            <motion.div key="restricted" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
+              {renderRestrictedAccess()}
+            </motion.div>
           ) : loading ? (
             <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {activeView === 'hub' && <HubSkeleton />}
@@ -1536,12 +1536,12 @@ export default function StudentDashboard() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-[#0B0D17]/80 backdrop-blur-md">
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="w-full max-w-sm bg-red-600 rounded-[2.5rem] p-8 shadow-[0_0_80px_rgba(239,68,68,0.5)] flex flex-col items-center gap-6 border border-red-500/50 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-white/20 animate-pulse" />
-              
+
               <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center text-white relative">
                 <div className="absolute inset-0 bg-white/5 rounded-full animate-ping" />
                 <Timer size={40} className="animate-bounce" />
               </div>
-              
+
               <div className="text-center space-y-2">
                 <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none">Goal Reached</h3>
                 <p className="text-[11px] text-white/70 font-black uppercase tracking-[0.2em]">Study Session Completed</p>
@@ -1638,33 +1638,33 @@ export default function StudentDashboard() {
           <div className="fixed inset-0 z-[400] flex items-center justify-center p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="absolute inset-0 bg-black/95 backdrop-blur-xl" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-[#0c0c0e] border border-white/10 p-10 rounded-[3rem] w-full max-w-sm text-center">
-               <div className="w-20 h-20 rounded-[28px] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-8">
-                 <ShieldCheck size={40} className="text-emerald-500" />
-               </div>
-               <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2">Authorize Sync</h3>
-               <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-10 leading-loose">
-                 Institutional security protocol in effect.<br />Enter the 6-digit sync cipher sent to {user?.email}
-               </p>
-               
-               <input 
-                 type="text" 
-                 maxLength={6} 
-                 value={otpValue} 
-                 onChange={(e) => setOtpValue(e.target.value)} 
-                 placeholder="000000"
-                 className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 text-4xl font-black text-center text-white tracking-[0.5em] focus:border-emerald-500 outline-none mb-10"
-               />
+              <div className="w-20 h-20 rounded-[28px] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-8">
+                <ShieldCheck size={40} className="text-emerald-500" />
+              </div>
+              <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2">Authorize Sync</h3>
+              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-10 leading-loose">
+                Institutional security protocol in effect.<br />Enter the 6-digit sync cipher sent to {user?.email}
+              </p>
 
-               <div className="flex gap-4">
-                 <button onClick={() => setActiveModal(null)} className="flex-1 py-5 bg-white/5 text-zinc-500 font-bold rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancel</button>
-                 <button 
-                  onClick={typeof handleVerifyAndUpdate === 'undefined' ? () => {} : handleVerifyAndUpdate} 
-                  disabled={actionLoading} 
+              <input
+                type="text"
+                maxLength={6}
+                value={otpValue}
+                onChange={(e) => setOtpValue(e.target.value)}
+                placeholder="000000"
+                className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 text-4xl font-black text-center text-white tracking-[0.5em] focus:border-emerald-500 outline-none mb-10"
+              />
+
+              <div className="flex gap-4">
+                <button onClick={() => setActiveModal(null)} className="flex-1 py-5 bg-white/5 text-zinc-500 font-bold rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancel</button>
+                <button
+                  onClick={typeof handleVerifyAndUpdate === 'undefined' ? () => { } : handleVerifyAndUpdate}
+                  disabled={actionLoading}
                   className="flex-2 px-10 py-5 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/20 text-[10px] uppercase tracking-[0.2em] transition-all disabled:opacity-50"
-                 >
-                   {actionLoading ? 'SYNCING...' : 'Verify & Update'}
-                 </button>
-               </div>
+                >
+                  {actionLoading ? 'SYNCING...' : 'Verify & Update'}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
