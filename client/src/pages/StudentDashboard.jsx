@@ -556,11 +556,21 @@ export default function StudentDashboard() {
     return `${Math.floor(diff / 60)}H ${diff % 60}M`;
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('studentToken');
-    localStorage.removeItem('studentUser');
-    navigate('/login');
-    toast.success("Logged out successfully.");
+  const handleLogout = async () => {
+    if (window.confirm("Are you sure you want to logout?")) {
+      try {
+        await dispatch(logoutAdmin()).unwrap();
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+        toast.success("Security session terminated.");
+      } catch (err) {
+        // Fallback for network issues
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+      }
+    }
   };
 
   const handleScanSuccess = async (result) => {

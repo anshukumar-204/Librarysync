@@ -6,7 +6,7 @@ import {
   Loader2, Camera, Check, ChevronRight, AlertCircle,
   GraduationCap, Mail, MapPin, Home
 } from "lucide-react";
-import { registerStudent, modifyStudent } from './studentSlice';
+import { registerStudent, modifyStudent, closeEditModal } from './studentSlice';
 import StudentProfileView from './StudentProfileView';
 import { uploadImageToCloudinary } from '../../services/cloudinary';
 import { checkAvailability } from '../../services/studentApi';
