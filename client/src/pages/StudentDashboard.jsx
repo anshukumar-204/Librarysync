@@ -452,7 +452,8 @@ export default function StudentDashboard() {
       toast.success("Study log synchronized.");
       setLogFormData({ subject: '', topicsCovered: '', hoursSpent: '', productivityRating: 5 });
     } catch (err) {
-      toast.error(typeof err === 'string' ? err : (err?.message || "Failed to save log"));
+      const errorMsg = typeof err === 'string' ? err : (err?.message || "Failed to save log");
+      toast.error(errorMsg);
     }
   };
 
@@ -1263,6 +1264,76 @@ export default function StudentDashboard() {
       </div>
     </motion.div>
   );
+
+  const renderJournal = () => (
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-10 pb-32 max-w-2xl mx-auto">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Study <span className="text-blue-500">Journal</span></h2>
+        <p className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.3em]">Log your productivity metrics</p>
+      </div>
+
+      <div className="bg-zinc-900/40 backdrop-blur-3xl rounded-[3rem] border border-white/5 p-8 sm:p-12 shadow-2xl">
+        <form onSubmit={handleManualJournalSubmit} className="space-y-8">
+          <div className="space-y-3">
+            <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Core Subject</label>
+            <input 
+              type="text"
+              required
+              placeholder="e.g. Physics, Advanced Mathematics"
+              className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10"
+              value={logFormData.subject}
+              onChange={(e) => setLogFormData({...logFormData, subject: e.target.value})}
+            />
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Topics Accomplished</label>
+            <textarea 
+              required
+              placeholder="What specifically did you achieve in this session?"
+              className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-32 focus:border-blue-500/50 outline-none transition-all resize-none placeholder:text-white/10"
+              value={logFormData.topicsCovered}
+              onChange={(e) => setLogFormData({...logFormData, topicsCovered: e.target.value})}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-3">
+              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Duration (Hours)</label>
+              <input 
+                type="number"
+                step="0.1"
+                required
+                className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all"
+                value={logFormData.hoursSpent}
+                onChange={(e) => setLogFormData({...logFormData, hoursSpent: e.target.value})}
+              />
+            </div>
+            <div className="space-y-3">
+              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Productivity Rating (1-10)</label>
+              <select 
+                className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all appearance-none"
+                value={logFormData.productivityRating}
+                onChange={(e) => setLogFormData({...logFormData, productivityRating: parseInt(e.target.value)})}
+              >
+                {[...Array(10)].map((_, i) => (
+                  <option key={i+1} value={i+1} className="bg-zinc-900">{i+1} - {i < 3 ? 'low' : i < 7 ? 'medium' : 'peak'}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={actionLoading}
+            className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50 mt-4"
+          >
+            {actionLoading ? 'Synchronizing...' : 'Finalize Entry'}
+          </button>
+        </form>
+      </div>
+    </motion.div>
+  );
   const renderHistory = () => {
     const selectedRecord = selectedHistoryDate ? history.find(h => h.date?.split('T')[0] === selectedHistoryDate?.split('T')[0]) : null;
 
@@ -1433,6 +1504,7 @@ export default function StudentDashboard() {
             <>
               {activeView === 'hub' && renderHub()}
               {activeView === 'rank' && renderRank()}
+              {activeView === 'journal' && renderJournal()}
               {activeView === 'routine' && renderRoutineBuilder()}
               {activeView === 'history' && renderHistory()}
               {activeView === 'profile' && renderProfileSettings()}
