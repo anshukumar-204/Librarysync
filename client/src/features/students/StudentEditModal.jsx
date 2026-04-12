@@ -98,7 +98,7 @@ export default function StudentEditModal() {
         });
         setAvailability(prev => ({ 
           ...prev, 
-          [type]: { loading: false, available: res.available, message: res.available ? '' : res.message } 
+          [type]: { loading: false, available: res.available, message: res.message } 
         }));
       } catch (err) {
         setAvailability(prev => ({ ...prev, [type]: { loading: false, available: true, message: '' } }));
@@ -113,6 +113,25 @@ export default function StudentEditModal() {
       clearTimeout(emailTimer);
     };
   }, [formData.mobile, formData.email, isEditModalOpen, editModalMode, editingStudent?.id]);
+
+  const forceCheck = (type) => {
+    const value = formData[type];
+    
+    const runCheck = async () => {
+      if (!value || value.trim().length < 5) return;
+      setAvailability(prev => ({ ...prev, [type]: { ...prev[type], loading: true, message: '' } }));
+      try {
+        const res = await checkAvailability({ type, value, excludeId: editingStudent?.id });
+        setAvailability(prev => ({ 
+          ...prev, 
+          [type]: { loading: false, available: res.available, message: res.message } 
+        }));
+      } catch (err) {
+        setAvailability(prev => ({ ...prev, [type]: { loading: false, available: true, message: '' } }));
+      }
+    };
+    runCheck();
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -308,6 +327,7 @@ export default function StudentEditModal() {
                             error={errors.mobile || availability.mobile.message} 
                             isLarge 
                             status={availability.mobile}
+                            onCheckNow={() => runCheck('mobile', formData.mobile)}
                           />
                         </div>
                         <div className="col-span-2">
@@ -320,6 +340,7 @@ export default function StudentEditModal() {
                             error={errors.email || availability.email.message} 
                             isLarge 
                             status={availability.email}
+                            onCheckNow={() => runCheck('email', formData.email)}
                           />
                         </div>
                       </div>
@@ -420,7 +441,7 @@ export default function StudentEditModal() {
 }
 
 // Internal Styled Sub-components
-const Field = ({ label, error, isTextArea, isLarge, ...props }) => (
+const Field = ({ label, error, isTextArea, isLarge, status, onCheckNow, ...props }) => (
   <div className="space-y-2 text-left">
     <label className="text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest block">
       {label}
@@ -438,21 +459,21 @@ const Field = ({ label, error, isTextArea, isLarge, ...props }) => (
         />
       )}
       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-        {props.status?.loading && (
+        {status?.loading && (
           <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg">
             <Loader2 size={12} className="text-blue-500 animate-spin" />
             <span className="text-[8px] font-black text-blue-400 uppercase tracking-tighter">Verifying</span>
           </div>
         )}
         
-        {!props.status?.loading && props.status?.available === false && (
+        {!status?.loading && status?.available === false && (
           <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-lg">
             <AlertCircle size={12} className="text-rose-500" />
             <span className="text-[8px] font-black text-rose-400 uppercase tracking-tighter">Failed</span>
           </div>
         )}
 
-        {!props.status?.loading && props.status?.available === true && props.value && props.value.length > 5 && (
+        {!status?.loading && status?.available === true && props.value && props.value.length > 5 && (
           <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg animate-in zoom-in-50 duration-300">
             <Check size={12} className="text-emerald-500" strokeWidth={3} />
             <span className="text-[8px] font-black text-emerald-400 uppercase tracking-tighter">Verified</span>
@@ -460,9 +481,10 @@ const Field = ({ label, error, isTextArea, isLarge, ...props }) => (
         )}
 
         {/* Manual Verify Action if not checked */}
-        {props.status && !props.status.loading && !props.status.message && props.value && props.value.length > 5 && (
+        {status && !status.loading && !status.message && props.value && props.value.length > 5 && (
           <button 
             type="button"
+            onClick={onCheckNow}
             className="text-[8px] font-black uppercase tracking-tighter px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all text-zinc-400"
           >
             Check Now

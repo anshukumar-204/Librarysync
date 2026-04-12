@@ -7,7 +7,13 @@ import { prisma } from "../db/prisma.js";
  */
 export const normalizeMobile = (phone: string): string => {
   if (!phone) return "";
-  // Keep only digits
+  
+  // If it starts with +, treat as global E.164
+  if (phone.startsWith("+")) {
+    return "+" + phone.replace(/\D/g, "");
+  }
+
+  // Keep only digits for internal processing
   const digits = phone.replace(/\D/g, "");
   
   // If 12 digits and starts with 91, it's an Indian number with prefix
@@ -15,7 +21,6 @@ export const normalizeMobile = (phone: string): string => {
     return digits.slice(2);
   }
   
-  // Return the raw digits (validation will happen later)
   return digits;
 };
 
@@ -118,10 +123,11 @@ export const checkAvailability = async (req: Request, res: Response) => {
     let normalizedValue = value.trim();
     if (type === "mobile") {
       normalizedValue = normalizeMobile(value);
-      if (normalizedValue.length !== 10) {
+      // Strict 10-digit check ONLY if it's not a global + number
+      if (!normalizedValue.startsWith("+") && normalizedValue.length !== 10) {
         return res.json({ 
           available: false, 
-          message: "Institutional mobile must be exactly 10 digits after normalization",
+          message: "Institutional mobile must be exactly 10 digits",
           normalizedValue 
         });
       }

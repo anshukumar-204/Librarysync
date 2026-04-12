@@ -44,6 +44,9 @@ export default function StudentRegisterPage() {
 
   const [step, setStep] = useState(1);
   const dispatch = useDispatch();
+    runCheck();
+  };
+
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.adminAuth);
 
@@ -82,6 +85,25 @@ export default function StudentRegisterPage() {
       clearTimeout(emailTimer);
     };
   }, [formData.mobile, formData.email, isVerified, step]);
+
+  const forceCheck = (type) => {
+    const value = formData[type];
+    if (!value || value.trim().length < 5) return;
+    
+    const runCheck = async () => {
+      setAvailability(prev => ({ ...prev, [type]: { ...prev[type], loading: true, message: '' } }));
+      try {
+        const res = await authApi.checkAvailability({ type, value });
+        setAvailability(prev => ({ 
+          ...prev, 
+          [type]: { loading: false, available: res.available, message: res.message } 
+        }));
+      } catch (err) {
+        setAvailability(prev => ({ ...prev, [type]: { loading: false, available: true, message: '' } }));
+      }
+    };
+    runCheck();
+  };
 
   const handleVerify = async (e) => {
     e.preventDefault();
@@ -373,6 +395,7 @@ export default function StudentRegisterPage() {
                     readOnly 
                     icon={Phone} 
                     status={availability.mobile}
+                    onCheckNow={() => forceCheck('mobile')}
                     className="opacity-50 blur-[0.5px] cursor-not-allowed" 
                   />
                   <Input 
@@ -394,6 +417,7 @@ export default function StudentRegisterPage() {
                     icon={Mail} 
                     required={editableFields.includes('email')}
                     status={availability.email}
+                    onCheckNow={() => forceCheck('email')}
                     className={!editableFields.includes('email') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <div className="md:col-span-2">
