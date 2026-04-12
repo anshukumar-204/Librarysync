@@ -22,6 +22,10 @@ export default function StudentRegisterPage() {
   const [editableFields, setEditableFields] = useState([]);
   const [profileImageBase64, setProfileImageBase64] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
+  const [availability, setAvailability] = useState({
+    mobile: { loading: false, available: true, message: '' },
+    email: { loading: false, available: true, message: '' }
+  });
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -42,6 +46,42 @@ export default function StudentRegisterPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.adminAuth);
+
+  // --- LIVE AVAILABILITY TRIGGER ---
+  React.useEffect(() => {
+    if (!isVerified || step !== 1) return;
+
+    const checkValue = async (type, value) => {
+      // Basic validation before API call
+      if (!value || value.trim().length < 5) {
+        setAvailability(prev => ({ ...prev, [type]: { loading: false, available: true, message: '' } }));
+        return;
+      }
+
+      setAvailability(prev => ({ ...prev, [type]: { ...prev[type], loading: true, message: '' } }));
+      try {
+        const res = await authApi.checkAvailability({ type, value });
+        setAvailability(prev => ({ 
+          ...prev, 
+          [type]: { 
+            loading: false, 
+            available: res.available, 
+            message: res.message 
+          } 
+        }));
+      } catch (err) {
+        setAvailability(prev => ({ ...prev, [type]: { loading: false, available: true, message: '' } }));
+      }
+    };
+
+    const mobileTimer = setTimeout(() => checkValue('mobile', formData.mobile), 600);
+    const emailTimer = setTimeout(() => checkValue('email', formData.email), 600);
+
+    return () => {
+      clearTimeout(mobileTimer);
+      clearTimeout(emailTimer);
+    };
+  }, [formData.mobile, formData.email, isVerified, step]);
 
   const handleVerify = async (e) => {
     e.preventDefault();
@@ -329,11 +369,10 @@ export default function StudentRegisterPage() {
                     className={!editableFields.includes('fullName') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
-                    label="Mobile Number" 
-                    name="mobile"
                     value={formData.mobile} 
                     readOnly 
                     icon={Phone} 
+                    status={availability.mobile}
                     className="opacity-50 blur-[0.5px] cursor-not-allowed" 
                   />
                   <Input 
@@ -354,6 +393,7 @@ export default function StudentRegisterPage() {
                     onChange={handleInputChange}
                     icon={Mail} 
                     required={editableFields.includes('email')}
+                    status={availability.email}
                     className={!editableFields.includes('email') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <div className="md:col-span-2">
@@ -448,7 +488,7 @@ export default function StudentRegisterPage() {
   );
 }
 
-function Input({ label, icon: Icon, className, type, ...props }) {
+function Input({ label, icon: Icon, className, type, status, ...props }) {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === 'password';
   const effectiveType = isPassword ? (showPassword ? 'text' : 'password') : type;
@@ -467,16 +507,39 @@ function Input({ label, icon: Icon, className, type, ...props }) {
           type={effectiveType}
           className={`w-full bg-[#161B22]/50 border border-white/5 rounded-xl py-3.5 ${Icon ? 'pl-11' : 'px-4'} ${isPassword ? 'pr-12' : 'pr-4'} text-white text-sm focus:outline-none focus:border-blue-500/50 focus:bg-[#161B22] transition-all ${className}`}
         />
-        {isPassword && (
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-4 flex items-center text-gray-500 hover:text-blue-400 transition-colors"
-          >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        )}
+        
+        {/* Status Badges inside input */}
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+          {status?.loading && <Loader2 size={12} className="text-blue-500 animate-spin" />}
+          {!status?.loading && status?.available === false && <AlertCircle size={14} className="text-rose-500" />}
+          {!status?.loading && status?.available === true && props.value && props.value.length > 5 && (
+            <CheckCircle2 size={14} className="text-emerald-500" />
+          )}
+          {isPassword && (
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="text-gray-500 hover:text-blue-400 transition-colors"
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Detailed Success Metadata below input */}
+      {!isPassword && status?.available && status?.message && (
+        <motion.div 
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-center gap-2 ml-1"
+        >
+          <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+          <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+            {status.message}
+          </p>
+        </motion.div>
+      )}
     </div>
   );
 }
