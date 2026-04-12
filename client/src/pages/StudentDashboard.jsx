@@ -39,7 +39,8 @@ import {
   Shield,
   Power,
   IndianRupee,
-  CreditCard
+  CreditCard,
+  Lock
 } from 'lucide-react';
 import { logoutAdmin } from '../store/slices/authSlice';
 import { getFeeStatus } from '../store/slices/feeSlice';
@@ -134,6 +135,7 @@ export default function StudentDashboard() {
   const [otpValue, setOtpValue] = React.useState('');
   const [otpRequestPending, setOtpRequestPending] = React.useState(false);
   const [isProfileSynced, setIsProfileSynced] = React.useState(false);
+  const [tempGoal, setTempGoal] = React.useState(8);
 
   // Sync Profile Form Data when metrics are loaded
   useEffect(() => {
@@ -789,7 +791,7 @@ export default function StudentDashboard() {
           </div>
           <div className="text-center">
             <h2 className="text-2xl sm:text-3xl font-black text-white italic tracking-tighter uppercase leading-none">{user?.fullName}</h2>
-            <p className="text-[10px] sm:text-xs text-blue-500 font-bold uppercase tracking-[0.2em] mt-3">Elite Scholar • {student?.id?.slice(-6).toUpperCase()}</p>
+            <p className="text-[10px] sm:text-xs text-blue-500 font-bold uppercase tracking-[0.2em] mt-3">Elite Scholar • {user?.id?.slice(-6).toUpperCase() || 'EXTERNAL NODE'}</p>
           </div>
         </div>
 
@@ -804,7 +806,7 @@ export default function StudentDashboard() {
                 <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Institutional security protocols apply</p>
               </div>
               <button
-                onClick={handleSendOTP}
+                onClick={handleRequestOtp}
                 disabled={actionLoading}
                 className="w-full sm:w-auto px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest rounded-xl border border-white/5 transition-all"
               >
@@ -832,7 +834,7 @@ export default function StudentDashboard() {
           </div>
 
           <button
-            onClick={() => dispatch(logout())}
+            onClick={handleLogout}
             className="w-full py-5 sm:py-6 bg-rose-600/10 border border-rose-500/20 text-rose-500 font-extrabold text-[10px] sm:text-xs uppercase tracking-[0.5em] rounded-[1.5rem] sm:rounded-[2rem] hover:bg-rose-600 hover:text-white transition-all shadow-xl active:scale-95"
           >
             Terminal Shutdown
@@ -1057,7 +1059,7 @@ export default function StudentDashboard() {
 
     return (
       <div className="glass-card p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] bg-indigo-500/5 border border-indigo-500/10 relative overflow-hidden group shadow-2xl">
-        <div className="flex items-center flex-col md:flex-row justify-between relative z-10 flex-wrap gap-4">
+        <div className="flex flex-col items-center justify-between relative z-10 flex-wrap gap-6 sm:flex-row sm:items-start">
           <div className="flex items-center gap-4 sm:gap-5">
             <div className={cn(
               "w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-[2rem] flex items-center justify-center border shadow-xl transition-transform group-hover:scale-110",
@@ -1188,7 +1190,7 @@ export default function StudentDashboard() {
           <div className="glass-card p-8 rounded-[3rem] bg-gradient-to-br from-blue-600/5 to-transparent border border-white/5 relative overflow-hidden shadow-2xl">
             <div className="flex flex-col items-center">
               <div className="w-48 h-48 relative mb-8">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" aspect={1}>
                   <PieChart>
                     <Pie
                       data={[
@@ -1279,7 +1281,7 @@ export default function StudentDashboard() {
               </div>
               <div className="h-[200px] sm:h-[250px] min-h-[200px] sm:min-h-[250px]">
                 {subjectAnalytics.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} aspect={1}>
                     <PieChart>
                       <Pie data={subjectAnalytics} dataKey="hours" nameKey="subject" cx="50%" cy="50%" innerRadius={50} outerRadius={70} fill="#8884d8" paddingAngle={5}>
                         {subjectAnalytics.map((entry, index) => (
