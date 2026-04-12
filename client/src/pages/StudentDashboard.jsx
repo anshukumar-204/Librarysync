@@ -94,6 +94,7 @@ export default function StudentDashboard() {
   } = useSelector((state) => state.studentDashboard);
 
   const isRestricted = user?.status?.toLowerCase() === 'inactive' || user?.status?.toLowerCase() === 'hold';
+  const isInLibrary = todayStatus?.status === 'In Library';
 
   useEffect(() => {
     if (isRestricted) {
