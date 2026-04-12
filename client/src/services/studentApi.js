@@ -109,3 +109,8 @@ export const updateProfileSelf = async (profileData) => {
   const response = await API.patch('/students/profile', profileData);
   return response.data;
 };
+
+export const checkAvailability = async (availabilityData) => {
+  const response = await API.post('/students/check-availability', availabilityData);
+  return response.data;
+};

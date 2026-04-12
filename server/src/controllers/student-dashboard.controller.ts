@@ -65,7 +65,10 @@ export const getHistory = async (req: Request, res: Response) => {
 
 export const getConsistencyMetrics = async (req: Request, res: Response) => {
   try {
-    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+    const student = await prisma.student.findUnique({ 
+      where: { userId: req.user!.id },
+      include: { user: { select: { email: true, mobile: true } } }
+    });
     if (!student) return res.status(404).json({ success: false, message: "Not a student" });
 
     // Fetch all history chronologically
@@ -115,8 +118,10 @@ export const getConsistencyMetrics = async (req: Request, res: Response) => {
         totalStudyHours: Number(totalStudyHours.toFixed(2)),
         currentStreak,
         student: {
+          id: student.id,
           fullName: student.fullName,
           fatherName: student.fatherName,
+          profileImage: student.profileImage,
           address: student.address,
           village: student.village,
           post: student.post,
@@ -124,7 +129,9 @@ export const getConsistencyMetrics = async (req: Request, res: Response) => {
           city: student.city,
           state: student.state,
           pincode: student.pincode,
-          bio: student.bio
+          bio: student.bio,
+          email: student.user?.email,
+          mobile: student.user?.mobile
         }
       }
     });

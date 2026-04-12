@@ -12,15 +12,11 @@ import {
   createTask,
   toggleTaskStatus,
   deleteTask,
-  updateTask,
-  getWeeklyRoutine,
-  createRoutineNode,
-  deleteRoutineNode,
-  getSubjectAnalytics,
-  requestProfileUpdateOtp,
   updateStudentProfileSelf,
+  updateDailyGoal,
   syncRoutineTasks
 } from "../controllers/student.controller.js";
+import { checkAvailability } from "../controllers/student-validation.controller.js";
 import { authenticate, requireVerified } from "../middlewares/auth.middleware.js";
 
 const router = Router();
@@ -52,6 +48,7 @@ router.patch("/tasks/:id", updateTask);
 router.delete("/tasks/:id", deleteTask);
 
 // Registry Management (Admin usually)
+router.post("/check-availability", checkAvailability);
 router.post("/", createStudent); 
 router.get("/", getStudents);
 router.put("/:id", updateStudent);

@@ -100,7 +100,24 @@ export const getConsistencyMetrics = async (req, res) => {
             data: {
                 totalDaysAttended,
                 totalStudyHours: Number(totalStudyHours.toFixed(2)),
-                currentStreak
+                currentStreak,
+                student: {
+                    ...student,
+                    id: student.id,
+                    fullName: student.fullName,
+                    fatherName: student.fatherName,
+                    profileImage: student.profileImage,
+                    address: student.address,
+                    village: student.village,
+                    post: student.post,
+                    district: student.district,
+                    city: student.city,
+                    state: student.state,
+                    pincode: student.pincode,
+                    bio: student.bio,
+                    email: student.user?.email,
+                    mobile: student.user?.mobile
+                }
             }
         });
     }

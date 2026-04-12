@@ -32,7 +32,12 @@ import {
   RefreshCcw,
   Zap,
   AlertCircle,
-  ShieldCheck
+  ShieldCheck,
+  MapPin,
+  Mail,
+  Phone,
+  Shield,
+  Power
 } from 'lucide-react';
 import { logoutAdmin } from '../store/slices/authSlice';
 import { Scanner } from '@yudiel/react-qr-scanner';
@@ -117,7 +122,8 @@ export default function StudentDashboard() {
     city: '',
     state: '',
     pincode: '',
-    bio: ''
+    bio: '',
+    profileImage: ''
   });
 
   const [otpValue, setOtpValue] = React.useState('');
@@ -139,7 +145,10 @@ export default function StudentDashboard() {
         city: s.city || user?.city || '',
         state: s.state || user?.state || '',
         pincode: s.pincode || user?.pincode || '',
-        bio: s.bio || user?.bio || ''
+        bio: s.bio || user?.bio || '',
+        profileImage: s.profileImage || user?.profileImage || '',
+        email: s.email || user?.email || '',
+        mobile: s.mobile || user?.mobile || ''
       });
       setIsProfileSynced(true);
     } else if (user && !isProfileSynced) {
@@ -472,10 +481,24 @@ export default function StudentDashboard() {
       setActiveModal(null);
       setOtpValue('');
       dispatch(fetchMetrics()); // Refresh data
-      setIsProfileSynced(false); // Reforce sync on next metrics load
+      setIsProfileSynced(false); // Refocus sync on next metrics load
     } catch (err) {
       const errorMsg = typeof err === 'string' ? err : (err?.message || 'Failed to update profile');
       toast.error(errorMsg);
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 1024 * 1024) { // 1MB limit for Base64 efficiency
+        return toast.error("File is too large. Please select an image under 1MB.");
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileFormData(prev => ({ ...prev, profileImage: reader.result }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -738,59 +761,185 @@ export default function StudentDashboard() {
   );
 
   const renderProfileSettings = () => {
-    const student = metrics?.student || {};
-
     return (
-      <div className="space-y-10 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-2xl mx-auto">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Your Profile</h2>
-          <p className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.3em]">Manage your personal library records</p>
+      <div className="space-y-6 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-2xl mx-auto px-4 sm:px-0">
+        {/* Premium Profile Header */}
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[3rem] blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
+          <div className="relative bg-[#0c0c0e] rounded-[2.8rem] p-8 border border-white/5 flex flex-col items-center text-center shadow-2xl">
+            <div className="relative mb-6">
+              <input type="file" id="profile-upload" hidden accept="image/*" onChange={handleImageChange} />
+              <label htmlFor="profile-upload" className="cursor-pointer block relative group/avatar">
+                <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-600/20 to-indigo-600/20 flex items-center justify-center border-2 border-white/5 p-1 transition-all group-hover/avatar:border-blue-500/50">
+                  <div className="w-full h-full rounded-full bg-[#111113] flex items-center justify-center text-blue-500 shadow-inner overflow-hidden">
+                    {profileFormData.profileImage ? (
+                      <img src={profileFormData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={48} strokeWidth={1.5} />
+                    )}
+                  </div>
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-2xl bg-blue-600 hover:bg-blue-500 flex items-center justify-center border-4 border-[#0c0c0e] text-white shadow-lg transition-transform group-hover/avatar:scale-110">
+                  <Camera size={14} />
+                </div>
+              </label>
+            </div>
+            
+            <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none mb-2">
+              {profileFormData.fullName || user?.name || 'SYNC IDENTITY'}
+            </h2>
+            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10">
+              <GraduationCap size={14} className="text-zinc-500" />
+              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+                ID: {user?.id?.toString().padStart(4, '0') || '0000'} • STUDENT PORTAL
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[3rem] border border-white/5 p-8 sm:p-12 space-y-10 shadow-2xl">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            <div className="space-y-3">
-              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Full Name</label>
-              <input name="fullName" value={profileFormData.fullName || ''} onChange={handleProfileChange} placeholder="Enter your full name" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
+        {/* Categorized Info Cards */}
+        <div className="space-y-6">
+          {/* Section: Security & Access (Admin Managed) */}
+          <div className="bg-[#1a1a1c]/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden group/card">
+            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover/card:opacity-[0.07] transition-opacity">
+              <Shield size={140} />
             </div>
-            <div className="space-y-3">
-              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Father/Guardian Name</label>
-              <input name="fatherName" value={profileFormData.fatherName || ''} onChange={handleProfileChange} placeholder="Enter guardian name" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-zinc-500/10 flex items-center justify-center text-zinc-400 group-hover/card:bg-zinc-500/20 transition-all">
+                  <Shield size={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest italic">Security & Access</h3>
+                  <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">Managed by administration</p>
+                </div>
+              </div>
+              <div className="px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center gap-1.5">
+                <ShieldCheck size={10} className="text-blue-400" />
+                <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest leading-none">Verified</span>
+              </div>
             </div>
-            <div className="space-y-3">
-              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Village/Locality</label>
-              <input name="village" value={profileFormData.village || ''} onChange={handleProfileChange} placeholder="e.g. Rampur" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
-            </div>
-            <div className="space-y-3">
-              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Post Office</label>
-              <input name="post" value={profileFormData.post || ''} onChange={handleProfileChange} placeholder="Enter post office" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
-            </div>
-            <div className="space-y-3">
-              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">District</label>
-              <input name="district" value={profileFormData.district || ''} onChange={handleProfileChange} placeholder="Enter district" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
-            </div>
-            <div className="space-y-3">
-              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Pincode</label>
-              <input name="pincode" value={profileFormData.pincode || ''} onChange={handleProfileChange} placeholder="6-digit PIN" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white focus:border-blue-500/50 outline-none transition-all placeholder:text-white/10" />
-            </div>
-            <div className="col-span-1 sm:col-span-2 space-y-3">
-              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Permanent Address</label>
-              <textarea name="address" value={profileFormData.address || ''} onChange={handleProfileChange} placeholder="Enter your full permanent address details..." className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none placeholder:text-white/10" />
-            </div>
-            <div className="col-span-1 sm:col-span-2 space-y-3">
-              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Personal Bio/Note</label>
-              <textarea name="bio" value={profileFormData.bio || ''} onChange={handleProfileChange} placeholder="Add a short bio or notes about your study goals..." className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white h-24 focus:border-blue-500/50 outline-none transition-all resize-none placeholder:text-white/10" />
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 relative z-10">
+              <div className="space-y-2 opacity-60">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Official Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
+                  <input readOnly value={profileFormData.email || ''} className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold text-zinc-400 outline-none cursor-not-allowed" />
+                </div>
+              </div>
+              <div className="space-y-2 opacity-60">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Registered Mobile</label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
+                  <input readOnly value={profileFormData.mobile || ''} className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold text-zinc-400 outline-none cursor-not-allowed" />
+                </div>
+              </div>
             </div>
           </div>
 
-          <button
-            onClick={handleRequestOtp}
-            disabled={otpRequestPending || actionLoading}
-            className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50"
-          >
-            {otpRequestPending ? 'Sending Code...' : 'Update Profile Details'}
-          </button>
+          {/* Section: Personal Profile */}
+          <div className="bg-zinc-900/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl group/card">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover/card:bg-blue-500/20 transition-all">
+                <User size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-white uppercase tracking-widest italic">Personal Profile</h3>
+                <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">Identification details</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Your Full Name</label>
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-blue-500 transition-colors" size={14} />
+                  <input name="fullName" value={profileFormData.fullName || ''} onChange={handleProfileChange} placeholder="Enter full name" className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold text-white focus:border-blue-500/50 outline-none transition-all shadow-inner" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Guardian Name</label>
+                <div className="relative group">
+                  <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-blue-500 transition-colors" size={14} />
+                  <input name="fatherName" value={profileFormData.fatherName || ''} onChange={handleProfileChange} placeholder="Father/Guardian Name" className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold text-white focus:border-blue-500/50 outline-none transition-all shadow-inner" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Residential Details */}
+          <div className="bg-zinc-900/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl group/card">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover/card:bg-indigo-500/20 transition-all">
+                <MapPin size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-white uppercase tracking-widest italic">Residential Details</h3>
+                <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">Current address info</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+               <div className="col-span-2 space-y-2">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Village/Locality</label>
+                <input name="village" value={profileFormData.village || ''} onChange={handleProfileChange} placeholder="Village name" className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-xs font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Post Office</label>
+                <input name="post" value={profileFormData.post || ''} onChange={handleProfileChange} placeholder="P.O. Name" className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-xs font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+              </div>
+              <div className="col-span-1 space-y-2">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">District</label>
+                <input name="district" value={profileFormData.district || ''} onChange={handleProfileChange} placeholder="District" className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-[10px] font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+              </div>
+              <div className="col-span-1 space-y-2">
+                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">PIN Code</label>
+                <input name="pincode" value={profileFormData.pincode || ''} onChange={handleProfileChange} placeholder="6-digit" className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-[10px] font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
+              </div>
+              <div className="col-span-2 space-y-2">
+                 <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Full Address</label>
+                 <textarea name="address" value={profileFormData.address || ''} onChange={handleProfileChange} placeholder="Building, Street, Landmark..." className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-xs font-bold text-white h-20 focus:border-blue-500/50 outline-none transition-all resize-none" />
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Professional Bio */}
+          <div className="bg-zinc-900/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-4 shadow-xl group/card">
+             <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-2xl bg-violet-500/10 flex items-center justify-center text-violet-400 group-hover/card:bg-violet-500/20 transition-all">
+                <PenLine size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-white uppercase tracking-widest italic">Aspiration & Bio</h3>
+                <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">Share your study goals</p>
+              </div>
+            </div>
+            <textarea name="bio" value={profileFormData.bio || ''} onChange={handleProfileChange} placeholder="Tell us about your preparation or goals..." className="w-full bg-black/40 border border-white/5 rounded-2xl p-6 text-sm font-medium text-white h-32 focus:border-blue-500/50 outline-none transition-all resize-none leading-relaxed" />
+          </div>
+
+          {/* Action Footer */}
+          <div className="pt-8 space-y-4">
+            <button
+              onClick={handleRequestOtp}
+              disabled={otpRequestPending || actionLoading}
+              className="group relative w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-[11px] uppercase tracking-[0.4em] shadow-2xl shadow-blue-500/40 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-4 overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+              {otpRequestPending ? <Loader2 size={18} className="animate-spin" /> : <RefreshCcw size={18} />}
+              {otpRequestPending ? 'Verifying...' : 'Save & Sync Profile'}
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="w-full py-6 bg-red-500/5 hover:bg-red-500/10 text-red-500 border border-white/5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.4em] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+            >
+              <Power size={14} strokeWidth={3} />
+              Exit Portal
+            </button>
+          </div>
         </div>
+
       </div>
     );
   };
@@ -1499,9 +1648,6 @@ export default function StudentDashboard() {
                 <Settings size={18} />
               </button>
             )}
-            <button onClick={handleLogout} className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-all active:scale-90">
-              <LogOut size={18} />
-            </button>
           </div>
         </div>
       </nav>

@@ -6,9 +6,10 @@ import {
   Loader2, Camera, Check, ChevronRight, AlertCircle,
   GraduationCap, Mail, MapPin, Home
 } from "lucide-react";
-import { closeEditModal, registerStudent, modifyStudent } from './studentSlice';
+import { registerStudent, modifyStudent } from './studentSlice';
 import StudentProfileView from './StudentProfileView';
 import { uploadImageToCloudinary } from '../../services/cloudinary';
+import { checkAvailability } from '../../services/studentApi';
 import toast from "react-hot-toast";
 
 export default function StudentEditModal() {
@@ -20,6 +21,10 @@ export default function StudentEditModal() {
   const [uploading, setUploading] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [errors, setErrors] = useState({});
+  const [availability, setAvailability] = useState({
+    mobile: { loading: false, available: true, message: '' },
+    email: { loading: false, available: true, message: '' }
+  });
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -67,8 +72,47 @@ export default function StudentEditModal() {
       setErrors({});
       setImageFile(null);
       setActiveSection("personal");
+      setAvailability({
+        mobile: { loading: false, available: true, message: '' },
+        email: { loading: false, available: true, message: '' }
+      });
     }
   }, [editingStudent, isEditModalOpen]);
+
+  // --- LIVE AVAILABILITY TRIGGER ---
+  useEffect(() => {
+    if (!isEditModalOpen || editModalMode === 'view') return;
+
+    const checkValue = async (type, value) => {
+      if (!value || value.trim().length < 5) {
+        setAvailability(prev => ({ ...prev, [type]: { loading: false, available: true, message: '' } }));
+        return;
+      }
+
+      setAvailability(prev => ({ ...prev, [type]: { ...prev[type], loading: true, message: '' } }));
+      try {
+        const res = await checkAvailability({ 
+          type, 
+          value, 
+          excludeId: editingStudent?.id 
+        });
+        setAvailability(prev => ({ 
+          ...prev, 
+          [type]: { loading: false, available: res.available, message: res.available ? '' : res.message } 
+        }));
+      } catch (err) {
+        setAvailability(prev => ({ ...prev, [type]: { loading: false, available: true, message: '' } }));
+      }
+    };
+
+    const mobileTimer = setTimeout(() => checkValue('mobile', formData.mobile), 600);
+    const emailTimer = setTimeout(() => checkValue('email', formData.email), 600);
+
+    return () => {
+      clearTimeout(mobileTimer);
+      clearTimeout(emailTimer);
+    };
+  }, [formData.mobile, formData.email, isEditModalOpen, editModalMode, editingStudent?.id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -82,6 +126,10 @@ export default function StudentEditModal() {
     let newErrors = {};
     if (!formData.mobile.trim()) newErrors.mobile = "Primary contact node required";
     if (!formData.email.trim()) newErrors.email = "Access dispatch email mandatory";
+    
+    // Block if live availability check failed
+    if (!availability.mobile.available) newErrors.mobile = availability.mobile.message;
+    if (!availability.email.available) newErrors.email = availability.email.message;
 
     setErrors(newErrors);
     if (newErrors.mobile || newErrors.email) setActiveSection("personal");
@@ -251,10 +299,28 @@ export default function StudentEditModal() {
                           <Field label="Guardian Name / Relationship" name="fatherName" value={formData.fatherName} onChange={handleChange} placeholder="David Smith" error={errors.fatherName} isLarge />
                         </div>
                         <div className="col-span-2">
-                          <Field label="Primary Contact Number *" name="mobile" value={formData.mobile} onChange={handleChange} placeholder="+1 (555) 000-0000" error={errors.mobile} isLarge />
+                          <Field 
+                            label="Primary Contact Number *" 
+                            name="mobile" 
+                            value={formData.mobile} 
+                            onChange={handleChange} 
+                            placeholder="+1 (555) 000-0000" 
+                            error={errors.mobile || availability.mobile.message} 
+                            isLarge 
+                            status={availability.mobile}
+                          />
                         </div>
                         <div className="col-span-2">
-                          <Field label="Official Email *" name="email" value={formData.email} onChange={handleChange} placeholder="alex@institute.edu" error={errors.email} isLarge />
+                          <Field 
+                            label="Official Email *" 
+                            name="email" 
+                            value={formData.email} 
+                            onChange={handleChange} 
+                            placeholder="alex@institute.edu" 
+                            error={errors.email || availability.email.message} 
+                            isLarge 
+                            status={availability.email}
+                          />
                         </div>
                       </div>
                     </motion.div>
@@ -371,8 +437,18 @@ const Field = ({ label, error, isTextArea, isLarge, ...props }) => (
           className={`w-full bg-zinc-900 border ${error ? 'border-rose-500' : 'border-white/5 focus:border-emerald-500/30'} ${isLarge ? 'p-4 text-base tracking-tight' : 'p-4.5 text-sm'} rounded-2xl font-bold text-white outline-none transition-all placeholder:text-zinc-800 shadow-inner`}
         />
       )}
-      {error && <AlertCircle className="absolute right-4 top-1/2 -translate-y-1/2 text-rose-500" size={16} />}
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+        {props.status?.loading && <Loader2 size={16} className="text-blue-500 animate-spin" />}
+        {!props.status?.loading && props.status?.available === false && <AlertCircle size={16} className="text-rose-500" />}
+        {!props.status?.loading && props.status?.available === true && props.value && props.value.length > 5 && <Check size={16} className="text-emerald-500" />}
+        {error && !props.status && <AlertCircle className="text-rose-500" size={16} />}
+      </div>
     </div>
     {error && <p className="text-[9px] text-rose-500 font-bold ml-1 uppercase">{error}</p>}
+    {!error && props.status?.available && props.status?.message && (
+      <p className="text-[9px] text-emerald-500 font-black ml-1 uppercase tracking-wider animate-in fade-in slide-in-from-left-2 duration-500">
+        {props.status.message}
+      </p>
+    )}
   </div>
 );

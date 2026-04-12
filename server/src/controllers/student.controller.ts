@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { prisma } from "../db/prisma.js";
 import { generateSecureOTP, hashPassword } from "../utils/security.js";
 import { sendMail } from "../utils/mailer.js";
+import { normalizeMobile, isValidEmail } from "./student-validation.controller.js";
 
 // Basic Student creation handler (Admin feature)
 export const createStudent = async (req: Request, res: Response) => {
@@ -16,9 +17,21 @@ export const createStudent = async (req: Request, res: Response) => {
       address, village, post, district, city, state, pincode 
     } = req.body;
 
-    // MANDATORY CHANGE: Only Mobile and Email are strictly required for Admin
-    if (!mobile || !email) {
-      return res.status(400).json({ success: false, message: "Registration requires both a mobile number and a valid email address." });
+    // MANDATORY CHANGE: At least one primary identifier is required
+    if (!mobile && !email) {
+      return res.status(400).json({ success: false, message: "Registration requires at least one primary identifier (Mobile or Email address)." });
+    }
+
+    let cleanMobile = null;
+    if (mobile) {
+      cleanMobile = normalizeMobile(mobile);
+      if (cleanMobile.length !== 10) {
+        return res.status(400).json({ success: false, message: "Institutional mobile must be exactly 10 digits after normalization" });
+      }
+    }
+
+    if (email && !isValidEmail(email)) {
+      return res.status(400).json({ success: false, message: "Access dispatch email format is invalid" });
     }
 
     // Default password as mobile number
@@ -28,7 +41,7 @@ export const createStudent = async (req: Request, res: Response) => {
     const newStudent = await prisma.user.create({
       data: {
         name: fullName || "New Student",
-        mobile,
+        mobile: cleanMobile,
         email: email || null,
         passwordHash: defaultPassword,
         role: "student",
@@ -118,9 +131,21 @@ export const updateStudent = async (req: Request, res: Response) => {
       address, village, post, district, city, state, pincode, status 
     } = req.body;
 
-    // MANDATORY CHANGE: Only Mobile and Email are strictly required for Admin
-    if (!mobile || !email) {
-      return res.status(400).json({ success: false, message: "Update aborted: Mobile and email addresses are mandatory for all students." });
+    // MANDATORY CHANGE: At least one primary identifier is required
+    if (!mobile && !email) {
+      return res.status(400).json({ success: false, message: "Update aborted: At least one primary identifier (Mobile or Email) is mandatory." });
+    }
+
+    let cleanMobile = null;
+    if (mobile) {
+      cleanMobile = normalizeMobile(mobile);
+      if (cleanMobile.length !== 10) {
+        return res.status(400).json({ success: false, message: "Institutional mobile must be exactly 10 digits after normalization" });
+      }
+    }
+
+    if (email && !isValidEmail(email)) {
+      return res.status(400).json({ success: false, message: "Access dispatch email format is invalid" });
     }
 
     // Check if student exists
@@ -134,9 +159,9 @@ export const updateStudent = async (req: Request, res: Response) => {
       where: { id: existingStudent.userId },
       data: {
         name: fullName,
-        ...(mobile && { mobile }),
-        ...(email !== undefined && { email }),
-        ...(status && { status }),
+        mobile: cleanMobile,
+        email: email,
+        status: status,
         student: {
           update: {
             fullName,
@@ -649,7 +674,7 @@ export const requestProfileUpdateOtp = async (req: Request, res: Response) => {
 export const updateStudentProfileSelf = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    const { otp, fullName, fatherName, address, village, post, district, city, state, pincode, bio } = req.body;
+    const { otp, fullName, fatherName, address, village, post, district, city, state, pincode, bio, profileImage } = req.body;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -679,7 +704,8 @@ export const updateStudentProfileSelf = async (req: Request, res: Response) => {
               city: city || '',
               state: state || '',
               pincode: pincode || '',
-              bio: bio || ''
+              bio: bio || '',
+              profileImage: profileImage || ''
             },
             update: {
               fullName: fullName || undefined,
@@ -691,7 +717,8 @@ export const updateStudentProfileSelf = async (req: Request, res: Response) => {
               city: city || undefined,
               state: state || undefined,
               pincode: pincode || undefined,
-              bio: bio || undefined
+              bio: bio || undefined,
+              profileImage: profileImage || undefined
             }
           }
         }
