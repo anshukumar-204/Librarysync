@@ -804,159 +804,71 @@ export default function StudentDashboard() {
             <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none mb-2">
               {profileFormData.fullName || user?.name || 'SYNC IDENTITY'}
             </h2>
-            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10">
-              <GraduationCap size={14} className="text-zinc-500" />
-              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                ID: {user?.id?.toString().padStart(4, '0') || '0000'} • STUDENT PORTAL
-              </span>
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="max-w-2xl mx-auto space-y-8 sm:space-y-12 pb-32">
+        {/* Profile Header */}
+        <div className="flex flex-col items-center gap-6">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-blue-600/20 blur-2xl rounded-full group-hover:bg-blue-600/40 transition-all opacity-0 group-hover:opacity-100" />
+            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-3xl sm:text-4xl font-black italic shadow-2xl relative z-10 border-4 border-white/10 group-hover:scale-105 transition-transform">
+              {user?.fullName?.split(' ').map(n => n[0]).join('')}
             </div>
+          </div>
+          <div className="text-center">
+            <h2 className="text-2xl sm:text-3xl font-black text-white italic tracking-tighter uppercase leading-none">{user?.fullName}</h2>
+            <p className="text-[10px] sm:text-xs text-blue-500 font-bold uppercase tracking-[0.2em] mt-3">Elite Scholar • {student?.id?.slice(-6).toUpperCase()}</p>
           </div>
         </div>
 
-        {/* Categorized Info Cards */}
-        <div className="space-y-6">
-          {/* Section: Security & Access (Admin Managed) */}
-          <div className="bg-[#1a1a1c]/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden group/card">
-            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover/card:opacity-[0.07] transition-opacity">
-              <Shield size={140} />
+        {/* Action Tabs */}
+        <div className="space-y-6 sm:space-y-8">
+          {/* Security Node */}
+          <div className="bg-[#1a1a1c]/40 backdrop-blur-3xl rounded-[2rem] sm:rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden group/card text-center sm:text-left">
+             <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-500"><Lock size={20} /></div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Credential Sync</h3>
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Institutional security protocols apply</p>
+                </div>
+                <button
+                  onClick={handleSendOTP}
+                  disabled={actionLoading}
+                  className="w-full sm:w-auto px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest rounded-xl border border-white/5 transition-all"
+                >
+                  {actionLoading ? 'DISPATCHING...' : 'Update Sync'}
+                </button>
+             </div>
+          </div>
+
+          {/* Personal Node */}
+          <div className="bg-[#1a1a1c]/40 backdrop-blur-3xl rounded-[2rem] sm:rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden group/card">
+            <div className="flex items-center gap-4 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center text-blue-500"><User size={20} /></div>
+              <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Internal Records</h3>
             </div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-zinc-500/10 flex items-center justify-center text-zinc-400 group-hover/card:bg-zinc-500/20 transition-all">
-                  <Shield size={20} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-white uppercase tracking-widest italic">Security & Access</h3>
-                  <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">Managed by administration</p>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="space-y-2 text-center sm:text-left">
+                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] ml-2">Mobile Identifier</label>
+                <div className="bg-black/40 border border-white/5 rounded-xl sm:rounded-2xl p-4 text-sm font-black text-zinc-400 select-all tracking-wider">{user?.mobile}</div>
               </div>
-              <div className="px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center gap-1.5">
-                <ShieldCheck size={10} className="text-blue-400" />
-                <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest leading-none">Verified</span>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 relative z-10">
-              <div className="space-y-2 opacity-60">
-                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Official Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
-                  <input readOnly value={profileFormData.email || ''} className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold text-zinc-400 outline-none cursor-not-allowed" />
-                </div>
-              </div>
-              <div className="space-y-2 opacity-60">
-                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Registered Mobile</label>
-                <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
-                  <input readOnly value={profileFormData.mobile || ''} className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold text-zinc-400 outline-none cursor-not-allowed" />
-                </div>
+              <div className="space-y-2 text-center sm:text-left">
+                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] ml-2">Communication Hub</label>
+                <div className="bg-black/40 border border-white/5 rounded-xl sm:rounded-2xl p-4 text-sm font-black text-zinc-400 select-all truncate tracking-tight">{user?.email}</div>
               </div>
             </div>
           </div>
 
-          {/* Section: Personal Profile */}
-          <div className="bg-zinc-900/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl group/card">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover/card:bg-blue-500/20 transition-all">
-                <User size={20} />
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-white uppercase tracking-widest italic">Personal Profile</h3>
-                <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">Identification details</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Your Full Name</label>
-                <div className="relative group">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-blue-500 transition-colors" size={14} />
-                  <input name="fullName" value={profileFormData.fullName || ''} onChange={handleProfileChange} placeholder="Enter full name" className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold text-white focus:border-blue-500/50 outline-none transition-all shadow-inner" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Guardian Name</label>
-                <div className="relative group">
-                  <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-blue-500 transition-colors" size={14} />
-                  <input name="fatherName" value={profileFormData.fatherName || ''} onChange={handleProfileChange} placeholder="Father/Guardian Name" className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold text-white focus:border-blue-500/50 outline-none transition-all shadow-inner" />
-                </div>
-              </div>
-            </div>
-          </div>
+          <button
+            onClick={() => dispatch(logout())}
+            className="w-full py-5 sm:py-6 bg-rose-600/10 border border-rose-500/20 text-rose-500 font-extrabold text-[10px] sm:text-xs uppercase tracking-[0.5em] rounded-[1.5rem] sm:rounded-[2rem] hover:bg-rose-600 hover:text-white transition-all shadow-xl active:scale-95"
+          >
+            Terminal Shutdown
+          </button>
 
-          {/* Section: Residential Details */}
-          <div className="bg-zinc-900/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl group/card">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover/card:bg-indigo-500/20 transition-all">
-                <MapPin size={20} />
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-white uppercase tracking-widest italic">Residential Details</h3>
-                <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">Current address info</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-               <div className="col-span-2 space-y-2">
-                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Village/Locality</label>
-                <input name="village" value={profileFormData.village || ''} onChange={handleProfileChange} placeholder="Village name" className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-xs font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
-              </div>
-              <div className="col-span-2 space-y-2">
-                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Post Office</label>
-                <input name="post" value={profileFormData.post || ''} onChange={handleProfileChange} placeholder="P.O. Name" className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-xs font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
-              </div>
-              <div className="col-span-1 space-y-2">
-                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">District</label>
-                <input name="district" value={profileFormData.district || ''} onChange={handleProfileChange} placeholder="District" className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-[10px] font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
-              </div>
-              <div className="col-span-1 space-y-2">
-                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">PIN Code</label>
-                <input name="pincode" value={profileFormData.pincode || ''} onChange={handleProfileChange} placeholder="6-digit" className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-[10px] font-bold text-white focus:border-blue-500/50 outline-none transition-all" />
-              </div>
-              <div className="col-span-2 space-y-2">
-                 <label className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Full Address</label>
-                 <textarea name="address" value={profileFormData.address || ''} onChange={handleProfileChange} placeholder="Building, Street, Landmark..." className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-xs font-bold text-white h-20 focus:border-blue-500/50 outline-none transition-all resize-none" />
-              </div>
-            </div>
-          </div>
-
-          {/* Section: Professional Bio */}
-          <div className="bg-zinc-900/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-4 shadow-xl group/card">
-             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-2xl bg-violet-500/10 flex items-center justify-center text-violet-400 group-hover/card:bg-violet-500/20 transition-all">
-                <PenLine size={20} />
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-white uppercase tracking-widest italic">Aspiration & Bio</h3>
-                <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">Share your study goals</p>
-              </div>
-            </div>
-            <textarea name="bio" value={profileFormData.bio || ''} onChange={handleProfileChange} placeholder="Tell us about your preparation or goals..." className="w-full bg-black/40 border border-white/5 rounded-2xl p-6 text-sm font-medium text-white h-32 focus:border-blue-500/50 outline-none transition-all resize-none leading-relaxed" />
-          </div>
-
-          {/* Action Footer */}
-          <div className="pt-8 space-y-4">
-            <button
-              onClick={handleRequestOtp}
-              disabled={otpRequestPending || actionLoading}
-              className="group relative w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-[11px] uppercase tracking-[0.4em] shadow-2xl shadow-blue-500/40 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-4 overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-              {otpRequestPending ? <Loader2 size={18} className="animate-spin" /> : <RefreshCcw size={18} />}
-              {otpRequestPending ? 'Verifying...' : 'Save & Sync Profile'}
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className="w-full py-6 bg-red-500/5 hover:bg-red-500/10 text-red-500 border border-white/5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.4em] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-            >
-              <Power size={14} strokeWidth={3} />
-              Exit Portal
-            </button>
-          </div>
+          <p className="text-center text-[9px] text-zinc-700 font-black uppercase tracking-[0.3em]">
+            Vault Build 2.4.0 • Institutional Access only
+          </p>
         </div>
-
-      </div>
+      </motion.div>
     );
   };
 
@@ -1162,9 +1074,6 @@ export default function StudentDashboard() {
       </div>
     </div>
   );
-
-    );
-  };
 
   const renderFeeStatusCard = () => {
     if (!feeStatus) return null;
@@ -1421,24 +1330,17 @@ export default function StudentDashboard() {
   );
 
   const renderRank = () => (
-    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-8 pb-32 max-w-2xl mx-auto">
-      <div className="text-center">
-        <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">Global <span className="text-zinc-600">Rankings</span></h2>
-        <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em] mt-2">Current Leaderboard</p>
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-8 sm:space-y-12 max-w-4xl mx-auto pb-32">
+       <div>
+        <h2 className="text-3xl sm:text-4xl font-black text-white italic tracking-tighter uppercase leading-tight text-center sm:text-left">Institutional <span className="text-blue-500">Leaderboard</span></h2>
+        <p className="text-zinc-500 text-xs sm:text-sm mt-3 font-medium text-center sm:text-left">Real-time study performance across the campus ecosystem.</p>
       </div>
 
-      <div className="space-y-4">
-        {leaderboard.map((item, index) => (
-          <div key={item.id} className={`flex items-center gap-5 p-6 rounded-[2.5rem] border transition-all ${index < 1 ? 'bg-blue-600/10 border-blue-500/20' : 'bg-white/[0.02] border-white/5'}`}>
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 font-black text-2xl ${index === 0 ? 'bg-orange-500 text-white' : index === 1 ? 'bg-slate-400 text-white' : index === 2 ? 'bg-amber-600 text-white' : 'bg-white/10 text-gray-600'}`}>
+      <div className="space-y-4 sm:space-y-5">
+        {rankData.map((item, index) => (
+          <div key={item.id} className={`flex items-center gap-4 sm:gap-5 p-4 sm:p-6 rounded-2xl sm:rounded-[2.5rem] border transition-all ${index < 1 ? 'bg-blue-600/10 border-blue-500/20' : 'bg-white/[0.02] border-white/5'}`}>
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-lg sm:text-xl italic ${index === 0 ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-white/5 text-gray-400'}`}>
               {index + 1}
-            </div>
-            <div className="flex-1">
-              <div className="text-xl font-black text-white tracking-tight leading-none">{item.fullName}</div>
-              <div className="flex items-center gap-2 mt-2">
-                <Flame size={14} className="text-orange-500" />
-                <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest">{item.currentStreak} Day Streak</span>
-              </div>
             </div>
             {index < 3 && <Award size={32} className={index === 0 ? 'text-orange-400' : index === 1 ? 'text-slate-300' : 'text-amber-500'} />}
           </div>
