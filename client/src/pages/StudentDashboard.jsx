@@ -109,6 +109,25 @@ export default function StudentDashboard() {
   const [profileFormData, setProfileFormData] = React.useState({});
   const [otpValue, setOtpValue] = React.useState('');
   const [otpRequestPending, setOtpRequestPending] = React.useState(false);
+
+  // Sync Profile Form Data when metrics are loaded
+  useEffect(() => {
+    if (metrics?.student && Object.keys(profileFormData).length === 0) {
+      const s = metrics.student;
+      setProfileFormData({
+        fullName: s.fullName || user?.name || '',
+        fatherName: s.fatherName || '',
+        address: s.address || '',
+        village: s.village || '',
+        post: s.post || '',
+        district: s.district || '',
+        city: s.city || '',
+        state: s.state || '',
+        pincode: s.pincode || '',
+        bio: s.bio || ''
+      });
+    }
+  }, [metrics, user, profileFormData]);
   const [logFormData, setLogFormData] = React.useState({
     subject: '',
     topicsCovered: '',
@@ -656,22 +675,6 @@ export default function StudentDashboard() {
   const renderProfileSettings = () => {
     const student = metrics?.student || {};
     
-    // Initialize form data if empty
-    if ((!profileFormData || Object.keys(profileFormData).length === 0) && user) {
-      setProfileFormData({
-        fullName: student.fullName || user.name || '',
-        fatherName: student.fatherName || '',
-        address: student.address || '',
-        village: student.village || '',
-        post: student.post || '',
-        district: student.district || '',
-        city: student.city || '',
-        state: student.state || '',
-        pincode: student.pincode || '',
-        bio: student.bio || ''
-      });
-    }
-
     const handleProfileChange = (e) => {
       const { name, value } = e.target;
       setProfileFormData(prev => ({ ...prev, [name]: value }));
