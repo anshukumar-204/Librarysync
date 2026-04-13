@@ -20,6 +20,7 @@ export default function StudentFeeSection({ studentId }) {
   const dispatch = useDispatch();
   const { summary, loading } = useSelector(state => state.fees);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [viewMode, setViewMode] = useState('cycles'); // 'cycles' or 'journal'
   const [paymentData, setPaymentData] = useState({
     amount: '',
     month: new Date().getMonth() + 1,
@@ -98,16 +99,32 @@ export default function StudentFeeSection({ studentId }) {
 
       {/* QUICK ACTIONS */}
       <div className="flex items-center justify-between">
-        <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em] flex items-center gap-2">
-            <History size={14} className="text-blue-500" />
-            Payment Ledger
-        </h3>
+        <div className="flex items-center gap-1 bg-zinc-900/50 p-1 rounded-xl border border-white/5">
+          <button 
+            onClick={() => setViewMode('cycles')}
+            className={cn(
+              "px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
+              viewMode === 'cycles' ? "bg-blue-600 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"
+            )}
+          >
+            Billing Cycles
+          </button>
+          <button 
+            onClick={() => setViewMode('journal')}
+            className={cn(
+              "px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
+              viewMode === 'journal' ? "bg-blue-600 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"
+            )}
+          >
+            Payment Journal
+          </button>
+        </div>
         <button 
             onClick={() => setShowPaymentForm(!showPaymentForm)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-blue-500/10"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-500/10"
         >
             <Plus size={14} strokeWidth={3} />
-            {showPaymentForm ? 'Cancel Entry' : 'New Payment'}
+            {showPaymentForm ? 'Cancel Entry' : 'Manual Receipt'}
         </button>
       </div>
 
@@ -177,55 +194,88 @@ export default function StudentFeeSection({ studentId }) {
         )}
       </AnimatePresence>
 
-      {/* HISTORY TABLE */}
+      {/* DATA VIEW */}
       <div className="space-y-3">
-        {summary?.history?.map((cycle, idx) => (
-            <div key={idx} className="bg-zinc-900/30 border border-white/[0.03] p-5 rounded-[24px] flex items-center justify-between group hover:bg-zinc-900/50 transition-all">
-                <div className="flex items-center gap-4">
-                    <div className={cn(
-                        "w-12 h-12 rounded-2xl flex items-center justify-center border font-black text-lg",
-                        cycle.status === 'PAID' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
-                        cycle.status === 'PARTIAL' ? "bg-blue-500/10 border-blue-500/20 text-blue-500" :
-                        "bg-rose-500/10 border-rose-500/20 text-rose-500"
-                    )}>
-                        {cycle.month}
+        {viewMode === 'cycles' ? (
+          <>
+            {summary?.history?.map((cycle, idx) => (
+                <div key={idx} className="bg-zinc-900/30 border border-white/[0.03] p-5 rounded-[24px] flex items-center justify-between group hover:bg-zinc-900/50 transition-all">
+                    <div className="flex items-center gap-4">
+                        <div className={cn(
+                            "w-12 h-12 rounded-2xl flex items-center justify-center border font-black text-lg",
+                            cycle.status === 'PAID' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
+                            cycle.status === 'PARTIAL' ? "bg-blue-500/10 border-blue-500/20 text-blue-500" :
+                            "bg-rose-500/10 border-rose-500/20 text-rose-500"
+                        )}>
+                            {cycle.month}
+                        </div>
+                        <div>
+                            <h4 className="text-[11px] font-black text-white uppercase tracking-tight italic">
+                                {new Date(0, cycle.month - 1).toLocaleString('en-US', { month: 'long' })} {cycle.year}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[9px] font-black text-zinc-500 tracking-widest uppercase">Due: ₹{cycle.expected}</span>
+                                <span className="w-1 h-1 bg-zinc-800 rounded-full" />
+                                <span className={cn(
+                                    "text-[9px] font-black tracking-widest uppercase",
+                                    cycle.status === 'PAID' ? "text-emerald-500" : "text-rose-500"
+                                )}>Paid: ₹{cycle.paid}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <h4 className="text-[11px] font-black text-white uppercase tracking-tight italic">
-                            {new Date(0, cycle.month - 1).toLocaleString('en-US', { month: 'long' })} {cycle.year}
-                        </h4>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[9px] font-black text-zinc-500 tracking-widest uppercase">Due: ₹{cycle.expected}</span>
-                            <span className="w-1 h-1 bg-zinc-800 rounded-full" />
-                            <span className={cn(
-                                "text-[9px] font-black tracking-widest uppercase",
-                                cycle.status === 'PAID' ? "text-emerald-500" : "text-rose-500"
-                            )}>Paid: ₹{cycle.paid}</span>
+
+                    <div className="text-right">
+                        <span className={cn(
+                            "px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border",
+                            cycle.status === 'PAID' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                            cycle.status === 'PARTIAL' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
+                            "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                        )}>
+                            {cycle.status}
+                        </span>
+                        {cycle.isOverdue && (
+                            <p className="text-[7px] font-black text-rose-500 uppercase tracking-tighter mt-1 animate-pulse">Overdue Threshold Crossed</p>
+                        )}
+                    </div>
+                </div>
+            ))}
+            {!summary?.history?.length && (
+                <div className="h-32 flex flex-col items-center justify-center text-zinc-700 bg-zinc-900/20 rounded-[32px] border border-dashed border-white/5">
+                    <CalendarDays className="w-8 h-8 opacity-20 mb-2" />
+                    <p className="text-[8px] font-black uppercase tracking-[0.3em]">No billing cycles found</p>
+                </div>
+            )}
+          </>
+        ) : (
+          <>
+            {summary?.payments?.map((payment, idx) => (
+                <div key={payment.id || idx} className="bg-zinc-900/30 border border-emerald-500/5 p-5 rounded-[24px] flex items-center justify-between group hover:bg-zinc-900/50 transition-all">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                            <CheckCircle2 size={20} strokeWidth={3} />
+                        </div>
+                        <div>
+                            <h4 className="text-[12px] font-black text-emerald-500 italic">₹{payment.amount} Receipt</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">
+                                    {new Date(payment.paymentDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </span>
+                                <span className="w-1 h-1 bg-zinc-800 rounded-full" />
+                                <span className="text-[9px] font-bold text-zinc-600 text-zinc-500 truncate max-w-[150px]">
+                                    {payment.remarks || `Monthly sub for ${new Date(0, payment.month - 1).toLocaleString('en-US', { month: 'short' })}`}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <div className="text-right">
-                    <span className={cn(
-                        "px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border",
-                        cycle.status === 'PAID' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                        cycle.status === 'PARTIAL' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
-                        "bg-rose-500/10 text-rose-500 border-rose-500/20"
-                    )}>
-                        {cycle.status}
-                    </span>
-                    {cycle.isOverdue && (
-                        <p className="text-[7px] font-black text-rose-500 uppercase tracking-tighter mt-1 animate-pulse">Overdue Threshold Crossed</p>
-                    )}
+            ))}
+            {!summary?.payments?.length && (
+                <div className="h-32 flex flex-col items-center justify-center text-zinc-700 bg-zinc-900/20 rounded-[32px] border border-dashed border-white/5">
+                    <History className="w-8 h-8 opacity-20 mb-2" />
+                    <p className="text-[8px] font-black uppercase tracking-[0.3em]">No payment records found</p>
                 </div>
-            </div>
-        ))}
-
-        {!summary?.history?.length && (
-            <div className="h-32 flex flex-col items-center justify-center text-zinc-700 bg-zinc-900/20 rounded-[32px] border border-dashed border-white/5">
-                <CalendarDays className="w-8 h-8 opacity-20 mb-2" />
-                <p className="text-[8px] font-black uppercase tracking-[0.3em]">No billing cycles found</p>
-            </div>
+            )}
+          </>
         )}
       </div>
     </div>

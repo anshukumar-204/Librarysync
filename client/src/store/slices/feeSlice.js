@@ -53,6 +53,9 @@ const initialState = {
   status: null,
   summary: null,
   registry: [],
+  stats: {
+    monthlyStats: []
+  },
   loading: false,
   error: null,
 };
@@ -90,7 +93,13 @@ const feeSlice = createSlice({
       })
       .addCase(getFeesRegistry.fulfilled, (state, action) => {
         state.loading = false;
-        state.registry = action.payload.data;
+        // Handle new structure: { registry, stats }
+        if (action.payload.data?.registry) {
+          state.registry = action.payload.data.registry;
+          state.stats = action.payload.data.stats || { monthlyStats: [] };
+        } else {
+          state.registry = action.payload.data;
+        }
       })
       .addCase(getFeesRegistry.rejected, (state, action) => {
         state.loading = false;

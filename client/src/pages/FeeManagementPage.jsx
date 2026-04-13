@@ -18,9 +18,13 @@ import StudentFeeSection from '../features/students/StudentFeeSection';
 
 export default function FeeManagementPage() {
   const dispatch = useDispatch();
-  const { registry, loading, error } = useSelector(state => state.fees);
+  const { registry, stats, loading, error } = useSelector(state => state.fees);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPeriod, setSelectedPeriod] = useState({
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear()
+  });
 
   useEffect(() => {
     dispatch(getFeesRegistry());
@@ -69,12 +73,60 @@ export default function FeeManagementPage() {
         </div>
       </div>
 
-      {/* QUICK STATS CLOUD */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatTile label="Subscription Growth" value="12.4%" icon={PieChart} color="blue" />
         <StatTile label="Recovery Rate" value={`${Math.round((totalCollected / (totalCollected + totalPending || 1)) * 100)}%`} icon={Target} color="emerald" />
         <StatTile label="Critical Defaulters" value={totalDefaulters} icon={AlertCircle} color="rose" />
+        <StatTile label="Registry Students" value={registry.length} icon={Users} color="blue" />
       </div>
+
+      {/* MONTHLY TREASURY BREAKDOWN */}
+      {!selectedStudent && stats?.monthlyStats && (
+        <div className="bg-zinc-900/40 border border-white/5 rounded-[40px] p-8 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex items-center gap-6">
+             <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
+                <PieChart size={24} />
+             </div>
+             <div>
+                <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-1">Monthly Yield Focus</h3>
+                <div className="flex items-center gap-3">
+                  <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter">
+                    {new Date(0, selectedPeriod.month - 1).toLocaleString('en-US', { month: 'long' })} {selectedPeriod.year}
+                  </h4>
+                  <div className="relative">
+                    <select 
+                      value={`${selectedPeriod.month}-${selectedPeriod.year}`}
+                      onChange={(e) => {
+                        const [m, y] = e.target.value.split('-');
+                        setSelectedPeriod({ month: Number(m), year: Number(y) });
+                      }}
+                      className="bg-zinc-800 border border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-black text-zinc-400 uppercase tracking-widest outline-none cursor-pointer hover:border-blue-500/30 transition-all appearance-none pr-8"
+                    >
+                      {/* Show current month even if no stats yet, plus all months with stats */}
+                      <option value={`${new Date().getMonth() + 1}-${new Date().getFullYear()}`}>
+                        Current: {new Date().toLocaleString('en-US', { month: 'short' })} {new Date().getFullYear()}
+                      </option>
+                      {stats.monthlyStats
+                        .filter(s => !(s.month === new Date().getMonth()+1 && s.year === new Date().getFullYear()))
+                        .map(s => (
+                          <option key={`${s.month}-${s.year}`} value={`${s.month}-${s.year}`}>
+                            {new Date(0, s.month-1).toLocaleString('en-US', { month: 'short' })} {s.year}
+                          </option>
+                      ))}
+                    </select>
+                    <ChevronRight size={12} className="absolute right-2 top-1/2 -translate-y-1/2 rotate-90 text-zinc-600 pointer-events-none" />
+                  </div>
+                </div>
+             </div>
+          </div>
+
+          <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 min-w-[200px] text-right">
+            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1.5">Collection Aggregate</p>
+            <div className="text-3xl font-black text-white italic tracking-tighter">
+              ₹{(stats.monthlyStats?.find(s => s.month === selectedPeriod.month && s.year === selectedPeriod.year)?.amount || 0).toLocaleString()}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="relative">
         <AnimatePresence mode="wait">

@@ -10,19 +10,25 @@ const calculateDetailedSummary = (student: any, payments: any[], monthlyFee: num
 
   const historicalCycles: any[] = [];
   let currentCycleDate = new Date(joinDate.getFullYear(), joinDate.getMonth(), joinDate.getDate());
+  let carryForward = 0;
 
   // Iterate through all months from joining until the current month to build the ledger
   while (currentCycleDate <= today || (currentCycleDate.getMonth() === today.getMonth() && currentCycleDate.getFullYear() === today.getFullYear())) {
     const monthLabel = currentCycleDate.getMonth() + 1;
     const yearLabel = currentCycleDate.getFullYear();
     
-    const paymentsForCycle = payments.filter(p => p.month === monthLabel && p.year === yearLabel);
-    const totalPaid = paymentsForCycle.reduce((sum, p) => sum + p.amount, 0);
+    const intrinsicPayments = payments.filter(p => p.month === monthLabel && p.year === yearLabel);
+    const intrinsicTotal = intrinsicPayments.reduce((sum, p) => sum + p.amount, 0);
+    
+    const effectiveFunds = intrinsicTotal + carryForward;
     
     let status: 'PAID' | 'PARTIAL' | 'PENDING' = "PENDING";
-    if (totalPaid >= monthlyFee) status = "PAID";
-    else if (totalPaid > 0) status = "PARTIAL";
+    if (effectiveFunds >= monthlyFee) status = "PAID";
+    else if (effectiveFunds > 0) status = "PARTIAL";
 
+    // Calculate carry forward for the next cycle
+    const surplus = Math.max(0, effectiveFunds - monthlyFee);
+    
     const isPastCycleDay = today.getDate() > cycleDay;
     const isPastMonth = (today.getFullYear() > yearLabel) || (today.getFullYear() === yearLabel && today.getMonth() + 1 > monthLabel);
     const isCurrentMonth = today.getMonth() + 1 === monthLabel && today.getFullYear() === yearLabel;
@@ -33,14 +39,15 @@ const calculateDetailedSummary = (student: any, payments: any[], monthlyFee: num
       month: monthLabel,
       year: yearLabel,
       expected: monthlyFee,
-      paid: totalPaid,
-      balance: Math.max(0, monthlyFee - totalPaid),
+      paid: effectiveFunds, 
+      balance: Math.max(0, monthlyFee - effectiveFunds),
       status,
       cycleDate: new Date(yearLabel, monthLabel - 1, cycleDay),
       isOverdue: shouldNotify,
-      payments: paymentsForCycle
+      payments: intrinsicPayments
     });
 
+    carryForward = surplus; // Pass surplus to next cycle
     currentCycleDate = new Date(currentCycleDate.getFullYear(), currentCycleDate.getMonth() + 1, cycleDay);
     if (historicalCycles.length > 240) break; 
   }
@@ -103,7 +110,8 @@ export const getStudentFeeSummary = async (req: Request, res: Response) => {
             year: lastP.year
           } : null
         },
-        history: historicalCycles.reverse() 
+        history: historicalCycles.reverse(),
+        payments: student.feePayments // Detailed payment journal
       }
     });
 
@@ -155,9 +163,28 @@ export const getFeesRegistry = async (req: Request, res: Response) => {
       };
     });
 
+    // Calculate Global Monthly Stats for Registry
+    const allPayments = students.flatMap(s => s.feePayments);
+    const monthlyStatsMap: Record<string, number> = {};
+    allPayments.forEach(p => {
+      const key = `${p.month}-${p.year}`;
+      monthlyStatsMap[key] = (monthlyStatsMap[key] || 0) + p.amount;
+    });
+
+    // Convert map to a sorted array (recent months first)
+    const monthlyStats = Object.entries(monthlyStatsMap).map(([key, amount]) => {
+      const [m, y] = key.split('-');
+      return { month: Number(m), year: Number(y), amount };
+    }).sort((a,b) => b.year !== a.year ? b.year - a.year : b.month - a.month);
+
     return res.json({
       success: true,
-      data: registry
+      data: {
+        registry,
+        stats: {
+          monthlyStats
+        }
+      }
     });
 
   } catch (error) {
