@@ -101,9 +101,13 @@ const verifyRealEmail = async (email: string): Promise<{ valid: boolean; provide
       };
     }
 
+    const provider = data.email_sender?.email_provider_name || 
+                     data.email_domain?.domain?.split('.')[0] || 
+                     'Verified';
+
     return {
       valid: true,
-      provider: data.email_sender?.email_provider_name || 'Verified',
+      provider: provider.charAt(0).toUpperCase() + provider.slice(1),
       message: 'Verified'
     };
   } catch (error) {
@@ -194,10 +198,12 @@ export const checkAvailability = async (req: Request, res: Response) => {
         });
       }
 
+      const cleanProvider = emailCheck.provider === 'Verified' ? 'Email' : emailCheck.provider;
+      
       return res.json({
         success: true,
         available: true,
-        message: `${emailCheck.provider} Account - Verified`,
+        message: `${cleanProvider} Account - Verified`,
         normalizedValue,
         details: {
           provider: emailCheck.provider

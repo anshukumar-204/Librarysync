@@ -94,14 +94,14 @@ export default function StudentEditModal() {
 
       setAvailability(prev => ({ ...prev, [type]: { ...prev[type], loading: true, message: '' } }));
       try {
-        const res = await checkAvailability({ 
-          type, 
-          value, 
-          excludeId: editingStudent?.id 
+        const res = await checkAvailability({
+          type,
+          value,
+          excludeId: editingStudent?.id
         });
-        setAvailability(prev => ({ 
-          ...prev, 
-          [type]: { loading: false, available: res.available, message: res.message } 
+        setAvailability(prev => ({
+          ...prev,
+          [type]: { loading: false, available: res.available, message: res.message }
         }));
       } catch (err) {
         setAvailability(prev => ({ ...prev, [type]: { loading: false, available: true, message: '' } }));
@@ -119,15 +119,15 @@ export default function StudentEditModal() {
 
   const forceCheck = (type) => {
     const value = formData[type];
-    
+
     const runCheck = async () => {
       if (!value || value.trim().length < 5) return;
       setAvailability(prev => ({ ...prev, [type]: { ...prev[type], loading: true, message: '' } }));
       try {
         const res = await checkAvailability({ type, value, excludeId: editingStudent?.id });
-        setAvailability(prev => ({ 
-          ...prev, 
-          [type]: { loading: false, available: res.available, message: res.message } 
+        setAvailability(prev => ({
+          ...prev,
+          [type]: { loading: false, available: res.available, message: res.message }
         }));
       } catch (err) {
         setAvailability(prev => ({ ...prev, [type]: { loading: false, available: true, message: '' } }));
@@ -147,8 +147,8 @@ export default function StudentEditModal() {
   const validate = () => {
     let newErrors = {};
     if (!formData.mobile.trim()) newErrors.mobile = "Primary contact node required";
-    if (!formData.email.trim()) newErrors.email = "Access dispatch email mandatory";
-    
+    // Email is now optional for admin student management
+
     // Block if live availability check failed
     if (!availability.mobile.available) newErrors.mobile = availability.mobile.message;
     if (!availability.email.available) newErrors.email = availability.email.message;
@@ -322,27 +322,27 @@ export default function StudentEditModal() {
                           <Field label="Guardian Name / Relationship" name="fatherName" value={formData.fatherName} onChange={handleChange} placeholder="David Smith" error={errors.fatherName} isLarge />
                         </div>
                         <div className="col-span-2">
-                          <Field 
-                            label="Primary Contact Number *" 
-                            name="mobile" 
-                            value={formData.mobile} 
-                            onChange={handleChange} 
-                            placeholder="+1 (555) 000-0000" 
-                            error={errors.mobile || (availability.mobile.available === false ? availability.mobile.message : '')} 
-                            isLarge 
+                          <Field
+                            label="Primary Contact Number *"
+                            name="mobile"
+                            value={formData.mobile}
+                            onChange={handleChange}
+                            placeholder="+1 (555) 000-0000"
+                            error={errors.mobile || (availability.mobile.available === false ? availability.mobile.message : '')}
+                            isLarge
                             status={availability.mobile}
                             onCheckNow={() => forceCheck('mobile')}
                           />
                         </div>
                         <div className="col-span-2">
-                          <Field 
-                            label="Official Email *" 
-                            name="email" 
-                            value={formData.email} 
-                            onChange={handleChange} 
-                            placeholder="alex@institute.edu" 
-                            error={errors.email || (availability.email.available === false ? availability.email.message : '')} 
-                            isLarge 
+                          <Field
+                            label="Official Email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            placeholder="alex@institute.edu"
+                            error={errors.email || (availability.email.available === false ? availability.email.message : '')}
+                            isLarge
                             status={availability.email}
                             onCheckNow={() => forceCheck('email')}
                           />
@@ -404,7 +404,7 @@ export default function StudentEditModal() {
                         <div className="space-y-2 col-span-2">
                           <label className="text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest block">Official Joining Date</label>
                           <div className="relative">
-                            <input 
+                            <input
                               type="date"
                               name="joinDate"
                               value={formData.joinDate}
@@ -442,7 +442,7 @@ export default function StudentEditModal() {
                   Back
                 </button>
                 <button
-                  onClick={activeSection === 'personal' ? () => setActiveSection('residence') : activeSection === 'residence' ? () => setActiveSection('academic') : activeSection === 'academic' ? handleSubmit : () => {}}
+                  onClick={activeSection === 'personal' ? () => setActiveSection('residence') : activeSection === 'residence' ? () => setActiveSection('academic') : activeSection === 'academic' ? handleSubmit : () => { }}
                   disabled={isSubmitting || uploading}
                   className={`flex items-center gap-3 px-10 py-5 bg-emerald-600 text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/20 active:scale-95 transition-all disabled:opacity-50 ${activeSection === 'financials' ? 'hidden' : ''}`}
                 >
@@ -487,7 +487,7 @@ const Field = ({ label, error, isTextArea, isLarge, status, onCheckNow, ...props
             <span className="text-[8px] font-black text-blue-400 uppercase tracking-tighter">Verifying</span>
           </div>
         )}
-        
+
         {!status?.loading && status?.available === false && (
           <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-lg">
             <AlertCircle size={12} className="text-rose-500" />
@@ -504,7 +504,7 @@ const Field = ({ label, error, isTextArea, isLarge, status, onCheckNow, ...props
 
         {/* Manual Verify Action - Persistent so users can re-check if needed */}
         {status && !status.loading && props.value && props.value.length > 5 && (
-          <button 
+          <button
             type="button"
             onClick={onCheckNow}
             className="text-[8px] font-black uppercase tracking-tighter px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all text-zinc-400"
@@ -517,11 +517,11 @@ const Field = ({ label, error, isTextArea, isLarge, status, onCheckNow, ...props
       </div>
     </div>
     {error && <p className="text-[9px] text-rose-500 font-bold ml-1 uppercase">{error}</p>}
-    {!error && props.status?.available && props.status?.message && (
-      <div className="mt-2 ml-1 flex items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-700">
-        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-        <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
-          {props.status.message}
+    {!error && status?.available && status?.message && (
+      <div className="mt-2 ml-1 flex items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-500">
+        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+        <p className="text-[10px] text-emerald-400 font-bold tracking-wide">
+          {status.message}
         </p>
       </div>
     )}

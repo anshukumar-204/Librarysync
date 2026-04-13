@@ -428,7 +428,7 @@ export const register = async (req: Request, res: Response) => {
     // Determine target email for activation (MUST NOT BE MASKED)
     const targetEmail = (email && !isMasked(email)) ? email : existingUser.email;
     if (!targetEmail) {
-      return res.status(400).json({ success: false, message: "Account activation requires a valid email address." });
+      return res.status(400).json({ success: false, message: "Account activation requires a valid email address for secure verification. Please provide your email." });
     }
 
     console.log("[REGISTRY] Synchronizing profile components...");

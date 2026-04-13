@@ -17,9 +17,9 @@ export const createStudent = async (req: Request, res: Response) => {
       address, village, post, district, city, state, pincode, joinDate 
     } = req.body;
 
-    // MANDATORY CHANGE: At least one primary identifier is required
-    if (!mobile && !email) {
-      return res.status(400).json({ success: false, message: "Registration requires at least one primary identifier (Mobile or Email address)." });
+    // MANDATORY: Mobile is the primary identifier for institutional registry
+    if (!mobile) {
+      return res.status(400).json({ success: false, message: "Registration requires an institutional mobile number." });
     }
 
     let cleanMobile = null;
@@ -134,9 +134,9 @@ export const updateStudent = async (req: Request, res: Response) => {
       status, bio, joinDate
     } = req.body;
 
-    // MANDATORY CHANGE: At least one primary identifier is required
-    if (!mobile && !email) {
-      return res.status(400).json({ success: false, message: "Update aborted: At least one primary identifier (Mobile or Email) is mandatory." });
+    // MANDATORY: Mobile identifier is required for registry updates
+    if (!mobile) {
+      return res.status(400).json({ success: false, message: "Update aborted: Primary mobile identifier is mandatory." });
     }
 
     let cleanMobile = null;
