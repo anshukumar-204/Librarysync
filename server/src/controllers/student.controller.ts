@@ -12,9 +12,9 @@ export const createStudent = async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: "Forbidden: Admin access required" });
     } */
 
-    const { 
-      fullName, fatherName, profileImage, mobile, email, 
-      address, village, post, district, city, state, pincode, joinDate 
+    const {
+      fullName, fatherName, profileImage, mobile, email,
+      address, village, post, district, city, state, pincode, joinDate
     } = req.body;
 
     // MANDATORY: Mobile is the primary identifier for institutional registry
@@ -40,14 +40,15 @@ export const createStudent = async (req: Request, res: Response) => {
     // Create the User profile AND attached Student profile transactionally
     const newStudent = await prisma.user.create({
       data: {
-        name: fullName || "New Student",
+        name: fullName,
         mobile: cleanMobile,
         email: email || null,
         passwordHash: defaultPassword,
         role: "student",
+        status: "pending",
         student: {
           create: {
-            fullName: fullName || "New Student",
+            fullName: fullName,
             fatherName: fatherName || null,
             profileImage: profileImage || null,
             address: address || null,
@@ -85,12 +86,12 @@ export const createStudent = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "Duplicate Entity: Mobile number or Email already exists in the registry" });
     }
     // Return the specific error message in development for faster debugging
-    return res.status(500).json({ 
-      success: false, 
-      message: "Internal registry error. Please contact technical support.", 
+    return res.status(500).json({
+      success: false,
+      message: "Internal registry error. Please contact technical support.",
       error: error.message,
       code: error.code,
-      meta: error.meta 
+      meta: error.meta
     });
   }
 };
@@ -128,7 +129,7 @@ export const updateStudent = async (req: Request, res: Response) => {
     } */
 
     const studentId = Number(req.params.id);
-    const { 
+    const {
       fullName, fatherName, profileImage, mobile, email,
       address, village, post, district, city, state, pincode,
       status, bio, joinDate
@@ -147,7 +148,9 @@ export const updateStudent = async (req: Request, res: Response) => {
       }
     }
 
-    if (email && !isValidEmail(email)) {
+    const cleanEmail = (email && typeof email === 'string' && email.trim() !== "") ? email.trim() : null;
+
+    if (cleanEmail && !isValidEmail(cleanEmail)) {
       return res.status(400).json({ success: false, message: "Access dispatch email format is invalid" });
     }
 
@@ -163,7 +166,7 @@ export const updateStudent = async (req: Request, res: Response) => {
       data: {
         name: fullName,
         mobile: cleanMobile,
-        email: email,
+        email: cleanEmail,
         status: status,
         student: {
           update: {
@@ -259,7 +262,7 @@ export const createStudyLog = async (req: Request, res: Response) => {
   try {
     const { subject, topicsCovered, hoursSpent, productivityRating } = req.body;
     const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
-    
+
     if (!student) return res.status(404).json({ success: false, message: "Student not found" });
 
     const log = await prisma.studyLog.create({
@@ -299,7 +302,7 @@ export const deleteStudyLog = async (req: Request, res: Response) => {
   try {
     const logId = Number(req.params.id);
     const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
-    
+
     if (!student) return res.status(404).json({ success: false, message: "Student not found" });
 
     const log = await prisma.studyLog.findUnique({ where: { id: logId } });
@@ -353,7 +356,7 @@ export const getTasks = async (req: Request, res: Response) => {
 
       if (routines.length > 0) {
         // Bulk create tasks for today from routines
-        const createdTasks = await Promise.all(routines.map(r => 
+        const createdTasks = await Promise.all(routines.map(r =>
           prisma.task.create({
             data: {
               studentId: student.id,
@@ -399,7 +402,7 @@ export const toggleTaskStatus = async (req: Request, res: Response) => {
     const taskId = Number(req.params.id);
     const { isCompleted } = req.body;
     const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
-    
+
     if (!student) return res.status(404).json({ success: false, message: "Student not found" });
 
     const task = await prisma.task.findUnique({ where: { id: taskId } });
@@ -409,7 +412,7 @@ export const toggleTaskStatus = async (req: Request, res: Response) => {
 
     const updatedTask = await prisma.task.update({
       where: { id: taskId },
-      data: { 
+      data: {
         isCompleted,
         completedAt: isCompleted ? new Date() : null
       }
@@ -500,7 +503,7 @@ export const syncRoutineTasks = async (req: Request, res: Response) => {
     if (!student) return res.status(404).json({ success: false, message: "Student not found" });
 
     const todayDay = new Date().getDay(); // 0 (Sun) to 6 (Sat)
-    
+
     // Get routine nodes for today
     const routines = await prisma.weeklyRoutine.findMany({
       where: { studentId: student.id, dayOfWeek: todayDay }
@@ -514,14 +517,14 @@ export const syncRoutineTasks = async (req: Request, res: Response) => {
     const today = new Date();
     const startOfToday = new Date(today.setHours(0, 0, 0, 0));
     const existingTasks = await prisma.task.findMany({
-      where: { 
-        studentId: student.id, 
+      where: {
+        studentId: student.id,
         createdAt: { gte: startOfToday }
       }
     });
 
     // Filter routines that haven't been added yet (by title)
-    const newRoutines = routines.filter(r => 
+    const newRoutines = routines.filter(r =>
       !existingTasks.some(t => t.title === r.subject)
     );
 
@@ -530,7 +533,7 @@ export const syncRoutineTasks = async (req: Request, res: Response) => {
     }
 
     // Bulk create new tasks
-    const createdTasks = await Promise.all(newRoutines.map(r => 
+    const createdTasks = await Promise.all(newRoutines.map(r =>
       prisma.task.create({
         data: {
           studentId: student.id,
@@ -541,10 +544,10 @@ export const syncRoutineTasks = async (req: Request, res: Response) => {
       })
     ));
 
-    return res.json({ 
-      success: true, 
-      data: createdTasks, 
-      message: `Successfully synchronized ${createdTasks.length} routine items for today.` 
+    return res.json({
+      success: true,
+      data: createdTasks,
+      message: `Successfully synchronized ${createdTasks.length} routine items for today.`
     });
 
   } catch (error) {

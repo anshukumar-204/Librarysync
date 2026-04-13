@@ -338,10 +338,10 @@ export const verifyRegistration = async (req: Request, res: Response) => {
       });
     }
 
-    if (user.status === "active") {
+    if (user.emailVerified) {
       return res.status(400).json({
         success: false,
-        message: "Account already active. Please proceed to the login page."
+        message: "This student portal is already fully activated. Please proceed to the login page."
       });
     }
 
@@ -423,6 +423,10 @@ export const register = async (req: Request, res: Response) => {
     if (!existingUser) {
       console.warn("[REGISTRY] Identity node not found during activation.");
       return res.status(404).json({ success: false, message: "Student record not found in the institute registry. Please register at the admin office." });
+    }
+
+    if (existingUser.emailVerified) {
+      return res.status(400).json({ success: false, message: "This student portal is already active." });
     }
 
     // Determine target email for activation (MUST NOT BE MASKED)
@@ -515,11 +519,11 @@ export const register = async (req: Request, res: Response) => {
         data: { verifyOtp: null, verifyOtpExpiresAt: null }
       });
       const isAuthErr = (mailSent.error as any)?.code === "unauthorized" || (mailSent.error as any)?.message?.includes("Key not found");
-      
+
       return res.status(500).json({
         success: false,
-        message: isAuthErr 
-          ? "System Configuration Error: The mailer API key (SMTP_PASS) in the .env file is invalid or unauthorized." 
+        message: isAuthErr
+          ? "System Configuration Error: The mailer API key (SMTP_PASS) in the .env file is invalid or unauthorized."
           : "Unable to send activation email. Please check your email address or contact support.",
         details: (mailSent.error as any)?.message || "Email Dispatch Failure",
         code: (mailSent.error as any)?.code || "MAIL_ERR"
