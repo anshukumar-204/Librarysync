@@ -133,7 +133,7 @@ export const updateStudent = async (req: Request, res: Response) => {
     const {
       fullName, fatherName, profileImage, mobile, email,
       address, village, post, district, city, state, pincode,
-      status, bio, joinDate
+      status, bio, joinDate, monthlyFee
     } = req.body;
 
     // MANDATORY: Mobile identifier is required for registry updates
