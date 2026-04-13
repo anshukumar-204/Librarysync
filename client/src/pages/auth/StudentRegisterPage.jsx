@@ -6,7 +6,7 @@ import {
   User, Mail, Lock, Phone, MapPin, 
   ArrowRight, ArrowLeft, Loader2, AlertCircle, 
   CheckCircle2, Sparkles, GraduationCap, Search,
-  ShieldCheck, KeyRound, RefreshCw, Eye, EyeOff, Camera
+  ShieldCheck, KeyRound, RefreshCw, Eye, EyeOff, Camera, Hash
 } from 'lucide-react';
 import { registerStudent, clearError } from '../../store/slices/authSlice';
 import authApi from '../../services/authApi';
@@ -76,11 +76,9 @@ export default function StudentRegisterPage() {
       }
     };
 
-    const mobileTimer = setTimeout(() => checkValue('mobile', formData.mobile), 600);
     const emailTimer = setTimeout(() => checkValue('email', formData.email), 600);
 
     return () => {
-      clearTimeout(mobileTimer);
       clearTimeout(emailTimer);
     };
   }, [formData.mobile, formData.email, isVerified, step]);
@@ -133,6 +131,8 @@ export default function StudentRegisterPage() {
         if (!student?.fatherName) editable.push('fatherName');
         if (!student?.address) editable.push('address');
         if (!student?.village) editable.push('village');
+        if (!student?.post) editable.push('post');
+        if (!student?.district) editable.push('district');
         if (!student?.city) editable.push('city');
         if (!student?.state) editable.push('state');
         if (!student?.pincode) editable.push('pincode');
@@ -161,7 +161,10 @@ export default function StudentRegisterPage() {
 
     // Validate current step
     if (step === 1) {
-      const requiredStep1 = ['fullName', 'fatherName', 'email', 'mobile', 'address', 'village', 'city'];
+      const requiredStep1 = [
+        'fullName', 'fatherName', 'email', 'mobile', 
+        'address', 'village', 'post', 'district', 'city', 'state', 'pincode'
+      ];
       requiredStep1.forEach(field => {
         // Only validate if field was supposed to be editable/provided
         if (editableFields.includes(field) && !formData[field]) {
@@ -170,8 +173,6 @@ export default function StudentRegisterPage() {
       });
     } else {
       if (!formData.password) newErrors.password = true;
-      if (editableFields.includes('state') && !formData.state) newErrors.state = true;
-      if (editableFields.includes('pincode') && !formData.pincode) newErrors.pincode = true;
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -423,10 +424,8 @@ export default function StudentRegisterPage() {
                     value={formData.mobile} 
                     readOnly 
                     icon={Phone} 
-                    status={availability.mobile}
                     error={errors.mobile}
-                    onCheckNow={() => forceCheck('mobile')}
-                    className={availability.mobile.available === false ? "border-rose-500/50" : "opacity-50 blur-[0.5px] cursor-not-allowed"} 
+                    className="opacity-50 blur-[0.5px] cursor-not-allowed"
                   />
                   <Input 
                     label="Father's Name"
@@ -454,7 +453,7 @@ export default function StudentRegisterPage() {
                   />
                   <div className="md:col-span-2">
                     <Input 
-                      label="Full Address"
+                      label="Full Address (House/Gali)"
                       name="address" 
                       value={formData.address} 
                       readOnly={!editableFields.includes('address')} 
@@ -477,7 +476,18 @@ export default function StudentRegisterPage() {
                     className={!editableFields.includes('village') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
-                    label="City/District"
+                    label="Post Office"
+                    name="post" 
+                    value={formData.post} 
+                    readOnly={!editableFields.includes('post')} 
+                    onChange={handleInputChange}
+                    icon={MapPin} 
+                    required={editableFields.includes('post')}
+                    error={errors.post}
+                    className={!editableFields.includes('post') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
+                  />
+                  <Input 
+                    label="City"
                     name="city" 
                     value={formData.city} 
                     readOnly={!editableFields.includes('city')} 
@@ -487,17 +497,18 @@ export default function StudentRegisterPage() {
                     error={errors.city}
                     className={!editableFields.includes('city') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
-                </>
-              ) : (
-                <>
-                  <div className="md:col-span-2 space-y-4">
-                    <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 text-blue-400/80 text-xs flex gap-3">
-                      <ShieldCheck size={18} className="flex-shrink-0" />
-                      <p>Details verified. Standard profile data is locked. Create a strong password (8+ chars) to activate your account.</p>
-                    </div>
-                    <Input label="Create Your Password" name="password" icon={Lock} placeholder="••••••••" value={formData.password} onChange={handleInputChange} type="password" required error={errors.password} />
-                  </div>
-                   <Input 
+                  <Input 
+                    label="District"
+                    name="district" 
+                    value={formData.district} 
+                    readOnly={!editableFields.includes('district')} 
+                    onChange={handleInputChange}
+                    icon={MapPin} 
+                    required={editableFields.includes('district')}
+                    error={errors.district}
+                    className={!editableFields.includes('district') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
+                  />
+                  <Input 
                     label="State"
                     name="state" 
                     value={formData.state} 
@@ -514,11 +525,21 @@ export default function StudentRegisterPage() {
                     value={formData.pincode} 
                     readOnly={!editableFields.includes('pincode')} 
                     onChange={handleInputChange}
-                    icon={MapPin} 
+                    icon={Hash} 
                     required={editableFields.includes('pincode')}
                     error={errors.pincode}
                     className={!editableFields.includes('pincode') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
+                </>
+              ) : (
+                <>
+                  <div className="md:col-span-2 space-y-4">
+                    <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 text-blue-400/80 text-xs flex gap-3">
+                      <ShieldCheck size={18} className="flex-shrink-0" />
+                      <p>Details verified. Standard profile data is locked. Create a strong password (8+ chars) to activate your account.</p>
+                    </div>
+                    <Input label="Create Your Password" name="password" icon={Lock} placeholder="••••••••" value={formData.password} onChange={handleInputChange} type="password" required error={errors.password} />
+                  </div>
                 </>
               )}
             </div>

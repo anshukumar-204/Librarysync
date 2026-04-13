@@ -44,6 +44,11 @@ const authApi = {
   logout: async () => {
     const response = await API.post('/auth/logout');
     return response.data;
+  },
+
+  checkAvailability: async (availabilityData) => {
+    const response = await API.post('/auth/check-availability', availabilityData);
+    return response.data;
   }
 };
 
