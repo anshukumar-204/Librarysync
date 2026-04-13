@@ -3,17 +3,22 @@ import { prisma } from "../db/prisma.js";
 import { generateSecureOTP, hashPassword, verifyPassword } from "../utils/security.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 import { sendMail } from "../utils/mailer.js";
+import { normalizeMobile } from "./student-validation.controller.js";
 
 export const login = async (req: Request, res: Response) => {
   const { credential, password } = req.body; // credential can be email or mobile
   if (!credential || !password) return res.status(400).json({ success: false, message: "Please provide both your identification and password." });
 
+  const searchCredential = String(credential).trim();
+  const normalizedMobile = normalizeMobile(searchCredential);
+
   try {
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: credential },
-          { mobile: credential }
+          { email: { equals: searchCredential, mode: "insensitive" } },
+          { mobile: normalizedMobile },
+          { mobile: searchCredential }
         ]
       }
     });
@@ -30,20 +35,20 @@ export const login = async (req: Request, res: Response) => {
       const attempts = user.failedLoginAttempts + 1;
       const lockedUntil = attempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000) : null;
       const attemptsLeft = Math.max(0, 5 - attempts);
-      
+
       await prisma.user.update({
         where: { id: user.id },
         data: { failedLoginAttempts: attempts, lockedUntil }
       });
 
-      const message = attempts >= 5 
+      const message = attempts >= 5
         ? "Account temporarily locked for 15 minutes due to multiple failed attempts."
         : `Incorrect credentials. Attempts remaining: ${attemptsLeft}`;
 
-      return res.status(401).json({ 
-        success: false, 
+      return res.status(401).json({
+        success: false,
         message,
-        attemptsLeft 
+        attemptsLeft
       });
     }
 
@@ -57,7 +62,7 @@ export const login = async (req: Request, res: Response) => {
     if (user.role === "admin") {
       const otp = generateSecureOTP();
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
-      
+
       await prisma.user.update({
         where: { id: user.id },
         data: {
@@ -85,8 +90,8 @@ export const login = async (req: Request, res: Response) => {
         );
 
         if (!mailSent.success) {
-          return res.status(500).json({ 
-            success: false, 
+          return res.status(500).json({
+            success: false,
             message: "Internal Security Error: Unable to send verification email. Please contact the administrator.",
             details: (mailSent.error as any)?.message || "SMTP Dispatch Failure",
             code: (mailSent.error as any)?.code || "MAIL_ERR"
@@ -100,7 +105,7 @@ export const login = async (req: Request, res: Response) => {
           loginId: user.id
         });
       } else {
-         return res.status(400).json({ success: false, message: "This admin account does not have a registered email. Please contact technical support." });
+        return res.status(400).json({ success: false, message: "This admin account does not have a registered email. Please contact technical support." });
       }
     }
 
@@ -134,7 +139,7 @@ export const verifyLoginOtp = async (req: Request, res: Response) => {
 
   try {
     const user = await prisma.user.findUnique({ where: { id: Number(loginId) } });
-    
+
     if (!user || user.verifyOtp !== otp || !user.verifyOtpExpiresAt || user.verifyOtpExpiresAt < new Date()) {
       return res.status(401).json({ success: false, message: "The verification code provided is invalid or has expired." });
     }
@@ -223,14 +228,14 @@ export const checkAccountExistence = async (req: Request, res: Response) => {
   try {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return res.json({ 
-        exists: false, 
-        message: "Registry Desync: This email address is not registered in our current student or administrator database." 
+      return res.json({
+        exists: false,
+        message: "Registry Desync: This email address is not registered in our current student or administrator database."
       });
     }
 
-    return res.json({ 
-      exists: true, 
+    return res.json({
+      exists: true,
       message: `Identity Sync Successful: We found a ${user.role} account registered to ${user.name}.`,
       name: user.name,
       role: user.role
@@ -290,38 +295,70 @@ export const verifyRegistration = async (req: Request, res: Response) => {
   const { credential } = req.body; // mobile or email
   if (!credential) return res.status(400).json({ success: false, message: "Identification is required to proceed." });
 
+  const searchCredential = String(credential).trim();
+  const normalizedMobile = normalizeMobile(searchCredential);
+
   try {
     const user = await prisma.user.findFirst({
       where: {
-        AND: [
-          { role: "student" },
-          { OR: [{ mobile: credential }, { email: credential }] }
+        role: "student",
+        OR: [
+          { mobile: searchCredential },
+          { mobile: normalizedMobile },
+          { email: { equals: searchCredential, mode: "insensitive" } }
         ]
       },
       include: { student: true }
     });
 
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "No student record found for this credential. Please contact the administration office." 
+      // DEBUG: Check if user exists at all with different role or status
+      const globalUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { mobile: searchCredential },
+            { mobile: normalizedMobile },
+            { email: { equals: searchCredential, mode: "insensitive" } }
+          ]
+        }
+      });
+
+      if (globalUser) {
+        if (globalUser.role !== "student") {
+          return res.status(403).json({
+            success: false,
+            message: `Account Found: This ${globalUser.role} account is not eligible for student self-registration.`
+          });
+        }
+      }
+
+      return res.status(404).json({
+        success: false,
+        message: "Registry Desync: No student record matches this identification. Please check for typos or contact the administration."
+      });
+    }
+
+    if (user.status === "active") {
+      return res.status(400).json({
+        success: false,
+        message: "Account already active. Please proceed to the login page."
       });
     }
 
     return res.json({
       success: true,
-      message: "Identity found",
+      message: "Identity found in institutional registry.",
       data: {
-        fullName: user.name,
-        // Mobile is always there as its the primary ID, we mask it
+        fullName: maskMobile(user.name).replace("@", ""),
+        // Mobile is the primary ID, we mask it for privacy
         mobile: maskMobile(user.mobile),
-        // If email is missing, return empty string so frontend can enable editing
+        // Email is masked unless missing
         email: user.email ? maskEmail(user.email) : "",
         student: {
           ...user.student,
-          // Mask fatherName only if it exists
+          // Mask fatherName as requested for privacy
           fatherName: user.student?.fatherName ? maskMobile(user.student.fatherName).replace("@", "") : "",
-          // Return other fields as is (they will be empty strings if null in DB)
+          // Return other fields as is
           address: user.student?.address || "",
           village: user.student?.village || "",
           post: user.student?.post || "",
@@ -342,33 +379,54 @@ export const verifyRegistration = async (req: Request, res: Response) => {
 export const register = async (req: Request, res: Response) => {
   console.log("[REGISTRY] Initializing zero-latency portal activation...");
   try {
-    const { 
-      credential, password, email, fullName, profileImage, fatherName, address, 
-      village, post, district, city, state, pincode 
+    const {
+      credential, password, email, fullName, profileImage, fatherName, address,
+      village, post, district, city, state, pincode
     } = req.body;
+
+    const isMasked = (val: string | null | undefined) => val && val.includes("****");
 
     if (!credential || !password) {
       return res.status(400).json({ success: false, message: "Identification and password are required for activation." });
     }
 
-    // Search for existing registry entry using the original credential
-    const existingUser = await prisma.user.findFirst({
+    const searchCredential = String(credential).trim();
+    const normalizedMobile = normalizeMobile(searchCredential);
+
+    // Stage 1: Absolute Robust Search (Standard)
+    let existingUser = await prisma.user.findFirst({
       where: {
-        AND: [
-          { role: "student" },
-          { OR: [{ mobile: credential }, { email: credential }] }
+        role: "student",
+        OR: [
+          { mobile: searchCredential },
+          { mobile: normalizedMobile },
+          { email: { equals: searchCredential, mode: "insensitive" } }
         ]
       },
       include: { student: true }
     });
 
+    // Stage 2: Super Search Fallback (Handles any formatting discrepancies)
     if (!existingUser) {
-      console.warn("[REGISTRY] Identity node not found.");
+      existingUser = await prisma.user.findFirst({
+        where: {
+          role: "student",
+          OR: [
+            { mobile: { contains: searchCredential } },
+            { email: { contains: searchCredential, mode: "insensitive" } }
+          ]
+        },
+        include: { student: true }
+      });
+    }
+
+    if (!existingUser) {
+      console.warn("[REGISTRY] Identity node not found during activation.");
       return res.status(404).json({ success: false, message: "Student record not found in the institute registry. Please register at the admin office." });
     }
 
-    // Determine target email for activation
-    const targetEmail = email || existingUser.email;
+    // Determine target email for activation (MUST NOT BE MASKED)
+    const targetEmail = (email && !isMasked(email)) ? email : existingUser.email;
     if (!targetEmail) {
       return res.status(400).json({ success: false, message: "Account activation requires a valid email address." });
     }
@@ -383,7 +441,7 @@ export const register = async (req: Request, res: Response) => {
     if (!fullName || !fatherName || !address || !village || !post || !district || !city || !state || !pincode) {
       // Check if we already have them in DB or if they are being provided now
       const isMissing = (val: string | null | undefined, provided: string | null | undefined) => (!val || val === "New Student") && !provided;
-      
+
       if (
         isMissing(existingUser.student?.fullName, fullName) ||
         isMissing(existingUser.student?.fatherName, fatherName) ||
@@ -405,24 +463,24 @@ export const register = async (req: Request, res: Response) => {
         passwordHash,
         verifyOtp: otp,
         verifyOtpExpiresAt: expiresAt,
-        // Update name if student provided a real one
-        ...(fullName && fullName !== "New Student" && { name: fullName }),
-        // Update email only if student provided a new one
-        ...(email && { email }),
+        // Update name if student provided a real one and it wasn't masked
+        ...(fullName && fullName !== "New Student" && !isMasked(fullName) && { name: fullName }),
+        // Update email only if student provided a new one and it wasn't masked
+        ...(email && !isMasked(email) && { email }),
         student: {
           update: {
             // Update profile image if provided
             ...(profileImage && { profileImage }),
-            // Update address nodes if provided
-            ...(fullName && fullName !== "New Student" && { fullName }),
-            ...(fatherName && { fatherName }),
-            ...(address && { address }),
-            ...(village && { village }),
-            ...(post && { post }),
-            ...(district && { district }),
-            ...(city && { city }),
-            ...(state && { state }),
-            ...(pincode && { pincode }),
+            // Update address nodes if provided AND NOT MASKED
+            ...(fullName && fullName !== "New Student" && !isMasked(fullName) && { fullName }),
+            ...(fatherName && !isMasked(fatherName) && { fatherName }),
+            ...(address && !isMasked(address) && { address }),
+            ...(village && !isMasked(village) && { village }),
+            ...(post && !isMasked(post) && { post }),
+            ...(district && !isMasked(district) && { district }),
+            ...(city && !isMasked(city) && { city }),
+            ...(state && !isMasked(state) && { state }),
+            ...(pincode && !isMasked(pincode) && { pincode }),
           }
         }
       }
@@ -456,15 +514,19 @@ export const register = async (req: Request, res: Response) => {
         where: { id: existingUser.id },
         data: { verifyOtp: null, verifyOtpExpiresAt: null }
       });
-      return res.status(500).json({ 
-        success: false, 
-        message: "Unable to send activation email. Please check your email address or contact support.",
+      const isAuthErr = (mailSent.error as any)?.code === "unauthorized" || (mailSent.error as any)?.message?.includes("Key not found");
+      
+      return res.status(500).json({
+        success: false,
+        message: isAuthErr 
+          ? "System Configuration Error: The mailer API key (SMTP_PASS) in the .env file is invalid or unauthorized." 
+          : "Unable to send activation email. Please check your email address or contact support.",
         details: (mailSent.error as any)?.message || "Email Dispatch Failure",
         code: (mailSent.error as any)?.code || "MAIL_ERR"
       });
     }
 
-    console.log("[REGISTRY] Response dispatched. Portal activating.");
+    console.log(`[REGISTRY] Response dispatched. Portal activating. Brevo MessageID: ${mailSent.messageId}`);
     return res.status(200).json({
       success: true,
       pendingVerification: true,
@@ -481,12 +543,17 @@ export const completeRegistration = async (req: Request, res: Response) => {
   const { credential, otp } = req.body;
   if (!credential || !otp) return res.status(400).json({ success: false, message: "Identification and verification code are required." });
 
+  const searchCredential = String(credential).trim();
+  const normalizedMobile = normalizeMobile(searchCredential);
+
   try {
     const user = await prisma.user.findFirst({
       where: {
-        AND: [
-          { role: "student" },
-          { OR: [{ mobile: credential }, { email: credential }] }
+        role: "student",
+        OR: [
+          { mobile: searchCredential },
+          { mobile: normalizedMobile },
+          { email: { equals: searchCredential, mode: "insensitive" } }
         ]
       }
     });
@@ -560,19 +627,19 @@ export const mailerHealthCheck = async (req: Request, res: Response) => {
 
   try {
     if (!process.env.SMTP_PASS) throw new Error("API Key missing (SMTP_PASS)");
-    
-    // Testing connectivity with a dummy account info request or similar
-    // For simplicity, we'll try to check SMTP statistics as a "ping"
-    const response = await fetch("https://api.brevo.com/v3/smtp/statistics", {
-        headers: { "api-key": process.env.SMTP_PASS }
+
+    // Testing connectivity with the Account endpoint (validates API key)
+    const response = await fetch("https://api.brevo.com/v3/account", {
+      headers: { "api-key": process.env.SMTP_PASS }
     });
 
     if (response.ok) {
-        results.apiTest = "SUCCESS: Brevo API is reachable and authorized.";
-        return res.json({ success: true, ...results });
+      const accountData: any = await response.json();
+      results.apiTest = `SUCCESS: Brevo API is reachable. Account for: ${accountData.email}`;
+      return res.json({ success: true, ...results, account: { email: accountData.email, plan: accountData.planType } });
     } else {
-        const data: any = await response.json();
-        throw new Error(data.message || "API Authorization Failed");
+      const data: any = await response.json();
+      throw new Error(data.message || "API Authorization Failed");
     }
   } catch (error: any) {
     results.apiTest = `FAILED: ${error.message}`;

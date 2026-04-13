@@ -30,17 +30,17 @@ export const sendMail = async (email, subject, html) => {
 
     if (!response.ok) {
       console.error(`[MAILER] Brevo API Error: ${data.message || response.statusText}`);
-      return { 
-        success: false, 
-        error: { 
-          message: data.message || "Brevo API Dispatch Failed", 
-          code: data.code || `HTTP_${response.status}` 
-        } 
+      return {
+        success: false,
+        error: {
+          message: data.message || "Brevo API Dispatch Failed",
+          code: data.code || `HTTP_${response.status}`
+        }
       };
     }
 
-    console.log(`[MAILER] Brevo API dispatched successfully to: ${email}`);
-    return { success: true };
+    console.log(`[MAILER] Brevo API dispatched successfully. MessageID: ${data.messageId} to: ${email}`);
+    return { success: true, messageId: data.messageId };
   } catch (error) {
     console.error(`[MAILER] Network Failure during API dispatch to: ${email}`);
     return { success: false, error: { message: error.message, code: error.code || "FETCH_ERR" } };
