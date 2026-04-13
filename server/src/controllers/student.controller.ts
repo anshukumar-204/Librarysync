@@ -14,7 +14,7 @@ export const createStudent = async (req: Request, res: Response) => {
 
     const {
       fullName, fatherName, profileImage, mobile, email,
-      address, village, post, district, city, state, pincode, joinDate
+      address, village, post, district, city, state, pincode, joinDate, status, monthlyFee
     } = req.body;
 
     // MANDATORY: Mobile is the primary identifier for institutional registry
@@ -58,6 +58,7 @@ export const createStudent = async (req: Request, res: Response) => {
             city: city || null,
             state: state || null,
             pincode: pincode || null,
+            monthlyFee: monthlyFee ? parseFloat(monthlyFee) : 500.0,
             joinDate: joinDate ? new Date(joinDate) : new Date()
           }
         }
@@ -181,6 +182,7 @@ export const updateStudent = async (req: Request, res: Response) => {
             state,
             pincode,
             bio,
+            monthlyFee: monthlyFee ? parseFloat(monthlyFee) : undefined,
             joinDate: joinDate ? new Date(joinDate) : undefined
           }
         }

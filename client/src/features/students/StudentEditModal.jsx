@@ -42,6 +42,7 @@ export default function StudentEditModal() {
     pincode: "",
     status: "Active",
     bio: "",
+    monthlyFee: "500.0",
     joinDate: new Date().toISOString().split('T')[0]
   });
 
@@ -63,13 +64,14 @@ export default function StudentEditModal() {
           pincode: editingStudent.pincode || "",
           status: editingStudent.status || editingStudent.user?.status || "Active",
           bio: editingStudent.bio || "",
+          monthlyFee: editingStudent.monthlyFee?.toString() || "500.0",
           joinDate: editingStudent.joinDate ? editingStudent.joinDate.split('T')[0] : new Date().toISOString().split('T')[0]
         });
       } else {
         setFormData({
           fullName: "", email: "", mobile: "", fatherName: "", profileImage: "",
           address: "", village: "", post: "", district: "", city: "", state: "", pincode: "",
-          status: "Active", bio: "", joinDate: new Date().toISOString().split('T')[0]
+          status: "Active", bio: "", monthlyFee: "500.0", joinDate: new Date().toISOString().split('T')[0]
         });
       }
       setErrors({});
@@ -401,7 +403,21 @@ export default function StudentEditModal() {
                             <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 rotate-90 text-zinc-600 pointer-events-none" size={16} />
                           </div>
                         </div>
-                        <div className="space-y-2 col-span-2">
+                        <div className="space-y-2 col-span-2 sm:col-span-1">
+                          <label className="text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest block">Monthly Subscription Fee (₹)</label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              name="monthlyFee"
+                              value={formData.monthlyFee}
+                              onChange={handleChange}
+                              placeholder="500.0"
+                              className="w-full bg-zinc-900 border border-white/5 rounded-2xl p-4 text-sm font-bold text-white outline-none focus:border-emerald-500/30 transition-all"
+                            />
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 pointer-events-none text-xs font-bold">INR</div>
+                          </div>
+                        </div>
+                        <div className="space-y-2 col-span-2 sm:col-span-1">
                           <label className="text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest block">Official Joining Date</label>
                           <div className="relative">
                             <input
