@@ -2,7 +2,7 @@ import { Router } from "express";
 import { 
   login, forgotPassword, resetPassword, logout, register, 
   verifyRegistration, completeRegistration, verifyLoginOtp, 
-  mailerHealthCheck 
+  mailerHealthCheck, checkAccountExistence 
 } from "../controllers/auth.controller.js";
 import { authRateLimiter } from "../middlewares/rateLimiter.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
@@ -16,6 +16,7 @@ router.post("/register", authRateLimiter, register);
 router.post("/verify-registration", authRateLimiter, verifyRegistration);
 router.post("/complete-registration", authRateLimiter, completeRegistration);
 router.post("/forgot-password", authRateLimiter, forgotPassword);
+router.post("/check-account", authRateLimiter, checkAccountExistence);
 router.post("/reset-password", authRateLimiter, resetPassword);
 router.post("/logout", authenticate, logout);
 

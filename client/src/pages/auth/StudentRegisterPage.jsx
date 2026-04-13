@@ -272,9 +272,11 @@ export default function StudentRegisterPage() {
               </motion.button>
             </form>
 
-            <div className="mt-8 pt-6 border-t border-white/5 text-center">
+            <div className="mt-8 pt-6 border-t border-white/5 text-center relative z-20">
               <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest">Secure Verification Active</p>
-              <Link to="/login" className="inline-block mt-4 text-sm text-gray-400 hover:text-white transition-colors">Back to Login</Link>
+              <Link to="/login" className="inline-block mt-4 text-sm text-gray-400 hover:text-white transition-colors cursor-pointer pointer-events-auto">
+                Back to Login
+              </Link>
             </div>
           </div>
         </motion.div>
@@ -447,7 +449,7 @@ export default function StudentRegisterPage() {
                     required={editableFields.includes('email')}
                     status={availability.email}
                     error={errors.email}
-                    onCheckNow={() => forceCheck('email')}
+                    onCheckNow={editableFields.includes('email') ? () => forceCheck('email') : null}
                     className={availability.email.available === false ? "border-rose-500/50" : !editableFields.includes('email') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <div className="md:col-span-2">
@@ -581,7 +583,7 @@ function Input({ label, icon: Icon, className, type, status, required, error, on
           )}
  
           {/* Manual Verify Action - Persistent so users can re-trigger check if needed */}
-          {status && !status.loading && props.value && props.value.length > 5 && (
+          {status && !status.loading && props.value && props.value.length > 5 && (status.onCheckNow || props.onCheckNow) && (
             <button 
               type="button"
               onClick={status.onCheckNow || onCheckNow}

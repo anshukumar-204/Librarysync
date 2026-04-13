@@ -179,8 +179,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
   try {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      // Return success even if user doesn't exist to prevent enumeration
-      return res.json({ success: true, message: "If a matching account exists, a reset code has been sent to your email." });
+      return res.status(404).json({ success: false, message: "No account found with this email address. Please check and try again." });
     }
 
     const otp = generateSecureOTP();
@@ -214,6 +213,32 @@ export const forgotPassword = async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, message: "Internal communication failure while sending email." });
+  }
+};
+
+export const checkAccountExistence = async (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ success: false, message: "Email is required for verification." });
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.json({ 
+        exists: false, 
+        message: "Registry Desync: This email address is not registered in our current student or administrator database." 
+      });
+    }
+
+    return res.json({ 
+      exists: true, 
+      message: `Identity Sync Successful: We found a ${user.role} account registered to ${user.name}.`,
+      name: user.name,
+      role: user.role
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Registry check failed." });
   }
 };
 

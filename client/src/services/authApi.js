@@ -30,6 +30,11 @@ const authApi = {
     const response = await API.post('/auth/forgot-password', { email });
     return response.data;
   },
+
+  checkAccountExistence: async (email) => {
+    const response = await API.post('/auth/check-account', { email });
+    return response.data;
+  },
   
   resetPassword: async (resetData) => {
     const response = await API.post('/auth/reset-password', resetData);
