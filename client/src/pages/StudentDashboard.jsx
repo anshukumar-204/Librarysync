@@ -1309,7 +1309,7 @@ export default function StudentDashboard() {
           </motion.div>
         )}
 
-        <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Total Paid</span>
             <span className="text-base sm:text-lg font-black text-white flex items-center gap-1">
@@ -1329,6 +1329,14 @@ export default function StudentDashboard() {
         </div>
       </div>
     );
+  };
+
+  const formatHistoryTime = (hours) => {
+    const totalMinutes = Math.round((hours || 0) * 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    if (h === 0) return `${m}MIN`;
+    return `${h}HRS ${m}MIN`;
   };
 
   const renderHub = () => (
@@ -1691,8 +1699,8 @@ export default function StudentDashboard() {
                   onChange={(e) => handleSelectHistoryDate(e.target.value)}
                   className="w-full h-full absolute inset-0 opacity-0 z-20 cursor-pointer"
                 />
-                <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between text-[10px] font-black uppercase text-white group-hover:border-emerald-500/50 transition-all">
-                  <span className={selectedHistoryDate ? 'text-white' : 'text-gray-500'}>
+                <div className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-4 flex items-center justify-between text-[10px] font-black uppercase text-white group-hover:border-emerald-500/50 transition-all">
+                  <span className={selectedHistoryDate ? 'text-white font-bold text-sm' : 'text-sm text-gray-500 font-bold'}>
                     {selectedHistoryDate
                       ? new Date(selectedHistoryDate).toLocaleDateString('en-GB').replace(/\//g, '-')
                       : 'DD-MM-YYYY'}
@@ -1707,11 +1715,11 @@ export default function StudentDashboard() {
                 <Calendar size={18} className="text-emerald-500" />
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Recent</span>
               </div>
-              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-2 overflow-y-auto pr-2 custom-scrollbar">
                 {history.map((record) => (
-                  <button key={record.id} onClick={() => handleSelectHistoryDate(record.date)} className={`w-full p-5 rounded-[2rem] border transition-all text-left flex flex-col gap-1 ${selectedHistoryDate === record.date ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : 'bg-white/5 border-white/5 text-gray-400 hover:border-emerald-500/30'}`}>
-                    <span className="text-xs font-black italic">{new Date(record.date).toLocaleDateString()}</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{record.studyHours?.toFixed(1) || 0}H Total</span>
+                  <button key={record.id} onClick={() => handleSelectHistoryDate(record.date)} className={`w-full py-4 px-6 rounded-[2rem] border transition-all text-left flex flex-col gap-1 ${selectedHistoryDate === record.date ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : 'bg-white/5 border-white/5 text-gray-400 hover:border-emerald-500/30'}`}>
+                    <span className="text-sm font-black italic">{new Date(record.date).toLocaleDateString()}</span>
+                    <span className="text-[12px] font-black uppercase tracking-widest opacity-60">{formatHistoryTime(record.studyHours)} Total</span>
                   </button>
                 ))}
               </div>
@@ -1740,7 +1748,7 @@ export default function StudentDashboard() {
                     <div className="p-6 rounded-[2.5rem] bg-emerald-500/10 border border-emerald-500/20">
                       <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest block mb-2">Total Time</span>
                       <span className="text-4xl font-black text-white italic tracking-tighter">
-                        {selectedRecord?.studyHours?.toFixed(1) || 0} <span className="text-lg">HOURS</span>
+                        {formatHistoryTime(selectedRecord?.studyHours)}
                       </span>
                     </div>
 
