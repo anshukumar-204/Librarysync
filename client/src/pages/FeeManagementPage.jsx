@@ -25,6 +25,14 @@ export default function FeeManagementPage() {
   useEffect(() => {
     dispatch(getFeesRegistry());
   }, [dispatch]);
+  
+  // Keep selected student synced with registry updates (e.g. after a payment)
+  useEffect(() => {
+    if (selectedStudent && registry.length > 0) {
+      const updated = registry.find(s => s.id === selectedStudent.id);
+      if (updated) setSelectedStudent(updated);
+    }
+  }, [registry]);
 
   const totalCollected = registry.reduce((sum, item) => sum + item.totalPaid, 0);
   const totalPending = registry.reduce((sum, item) => sum + item.totalPending, 0);

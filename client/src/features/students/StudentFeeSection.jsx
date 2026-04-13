@@ -12,7 +12,7 @@ import {
   IndianRupee,
   CalendarDays
 } from 'lucide-react';
-import { getAdminFeeSummary, recordFeePayment } from '../../store/slices/feeSlice';
+import { getAdminFeeSummary, recordFeePayment, getFeesRegistry } from '../../store/slices/feeSlice';
 import { cn } from '../../utils/cn';
 import toast from 'react-hot-toast';
 
@@ -53,8 +53,9 @@ export default function StudentFeeSection({ studentId }) {
         year: new Date().getFullYear(),
         remarks: ''
       });
-      // Refresh summary
+      // Refresh summary and global registry for stats
       dispatch(getAdminFeeSummary(studentId));
+      dispatch(getFeesRegistry());
     } catch (err) {
       toast.error(err || "Failed to record payment");
     }
