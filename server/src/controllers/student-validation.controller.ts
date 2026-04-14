@@ -42,27 +42,37 @@ const verifyRealPhone = async (phone: string): Promise<{ valid: boolean; carrier
     return { valid: true }; // Fallback to local check
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
+
   try {
-    // Prefix with +91 for Indian numbers (standard for this system)
     const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
     
-    const response = await fetch(`https://api.veriphone.io/v2/verify?phone=${encodeURIComponent(formattedPhone)}&key=${apiKey}`);
+    const response = await fetch(`https://api.veriphone.io/v2/verify?phone=${encodeURIComponent(formattedPhone)}&key=${apiKey}`, {
+      signal: controller.signal
+    });
     
     if (!response.ok) {
       console.error("Veriphone API Error:", response.statusText);
-      return { valid: true }; // Fallback
+      return { valid: true };
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
     return {
       valid: data.phone_valid,
       carrier: data.carrier,
       region: data.phone_region || data.country,
       message: data.phone_valid ? 'Valid Number' : 'Invalid global phone number'
     };
-  } catch (error) {
-    console.error("Veriphone Integration Failure:", error);
-    return { valid: true }; // Fallback
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.warn("Veriphone verification timed out - proceeding with fallback");
+    } else {
+      console.error("Veriphone Integration Failure:", error.message);
+    }
+    return { valid: true };
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 
@@ -76,15 +86,20 @@ const verifyRealEmail = async (email: string): Promise<{ valid: boolean; provide
     return { valid: true };
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
+
   try {
-    const response = await fetch(`https://emailreputation.abstractapi.com/v1/?api_key=${apiKey}&email=${encodeURIComponent(email)}`);
+    const response = await fetch(`https://emailreputation.abstractapi.com/v1/?api_key=${apiKey}&email=${encodeURIComponent(email)}`, {
+      signal: controller.signal
+    });
     
     if (!response.ok) {
       console.error("Abstract API Error:", response.statusText);
-      return { valid: true }; // Fallback
+      return { valid: true };
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
     
     // Deliverability checks
     const isDeliverable = data.email_deliverability?.status === 'deliverable';
@@ -110,9 +125,15 @@ const verifyRealEmail = async (email: string): Promise<{ valid: boolean; provide
       provider: provider.charAt(0).toUpperCase() + provider.slice(1),
       message: 'Verified'
     };
-  } catch (error) {
-    console.error("Abstract Integration Failure:", error);
-    return { valid: true }; // Fallback
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.warn("Abstract verification timed out - proceeding with fallback");
+    } else {
+      console.error("Abstract Integration Failure:", error.message);
+    }
+    return { valid: true };
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 

@@ -37,6 +37,19 @@ export const fetchAdminHistory = createAsyncThunk(
   }
 );
 
+export const forceAdminCheckout = createAsyncThunk(
+  'adminDashboard/forceCheckout',
+  async ({ attendanceId, checkOutTime }, { dispatch, rejectWithValue }) => {
+    try {
+      const response = await dashboardApi.forceAdminCheckout(attendanceId, checkOutTime);
+      dispatch(fetchAdminLiveStats()); // Refresh table
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to perform rescue checkout');
+    }
+  }
+);
+
 const adminDashboardSlice = createSlice({
   name: 'adminDashboard',
   initialState: {

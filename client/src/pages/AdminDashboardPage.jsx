@@ -5,9 +5,10 @@ import {
   Users, UserCheck, UserMinus, Clock,
   ArrowUpRight, ArrowDownRight, Activity,
   Search, Filter, MoreHorizontal, RefreshCcw,
-  Zap, Calendar, BarChart3, Radio
+  Zap, Calendar, BarChart3, Radio, X, AlertCircle, CheckCircle2
 } from 'lucide-react';
-import { fetchAdminLiveStats, fetchAdminTrends, fetchAdminHistory } from '../store/slices/adminDashboardSlice';
+import { fetchAdminLiveStats, fetchAdminTrends, fetchAdminHistory, forceAdminCheckout } from '../store/slices/adminDashboardSlice';
+import toast from 'react-hot-toast';
 
 export default function AdminDashboardPage() {
   const dispatch = useDispatch();
@@ -15,6 +16,7 @@ export default function AdminDashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // all, inside, left
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [rescueTarget, setRescueTarget] = useState(null); // The attendance record being rescued
 
   useEffect(() => {
     if (selectedDate === new Date().toISOString().split('T')[0]) {
@@ -192,6 +194,15 @@ export default function AdminDashboardPage() {
                             </div>
                           </div>
                         )}
+                        {!record.checkOutTime && (
+                          <button 
+                            onClick={() => setRescueTarget(record)}
+                            className="w-10 h-10 flex items-center justify-center bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-500 hover:bg-blue-500 hover:text-white transition-all shadow-lg shadow-blue-500/10"
+                            title="Force Checkout (Rescue)"
+                          >
+                            <Zap size={18} fill="currentColor" />
+                          </button>
+                        )}
                         <button className="w-10 h-10 flex items-center justify-center bg-white/[0.03] rounded-xl text-zinc-600 hover:text-white transition-colors">
                           <MoreHorizontal size={18} />
                         </button>
@@ -256,9 +267,125 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {rescueTarget && (
+          <RescueCheckoutModal 
+            record={rescueTarget} 
+            onClose={() => setRescueTarget(null)} 
+            onConfirm={(time) => {
+              dispatch(forceAdminCheckout({ 
+                attendanceId: rescueTarget.id, 
+                checkOutTime: time 
+              })).unwrap()
+                .then(() => {
+                  toast.success("Checkout protocol executed successfully.");
+                  setRescueTarget(null);
+                })
+                .catch((err) => toast.error(err));
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
+const RescueCheckoutModal = ({ record, onClose, onConfirm }) => {
+  const [targetTime, setTargetTime] = useState(() => {
+    // Default to current time, but formatted for input
+    const now = new Date();
+    return now.toTimeString().slice(0, 5); 
+  });
+
+  const handleCommit = () => {
+    // Combine record date with target time
+    const date = new Date(record.date);
+    const [hrs, mins] = targetTime.split(':');
+    date.setHours(parseInt(hrs), parseInt(mins), 0, 0);
+    
+    onConfirm(date.toISOString());
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-xl">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="w-full max-w-md bg-[#09090b] border border-white/10 rounded-[40px] p-8 shadow-2xl relative overflow-hidden"
+      >
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-indigo-600" />
+        
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
+              <Zap size={24} fill="currentColor" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-white italic uppercase tracking-tight">Rescue System</h3>
+              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Manual Checkout Protocol</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-zinc-500 hover:text-white transition-all">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-6">
+          <div className="p-6 bg-zinc-900/50 rounded-3xl border border-white/5 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Target Student</span>
+              <span className="text-sm font-black text-white italic uppercase">{record.student?.fullName}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Check-in Time</span>
+              <span className="text-sm font-black text-blue-500 italic uppercase">
+                {new Date(record.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em] ml-2">Final Checkout Time</label>
+            <div className="relative group">
+              <Clock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500 group-focus-within:scale-110 transition-transform" />
+              <input 
+                type="time" 
+                value={targetTime}
+                onChange={(e) => setTargetTime(e.target.value)}
+                className="w-full bg-zinc-900 border border-white/10 rounded-[28px] py-5 pl-16 pr-8 text-xl font-black text-white focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            {[ "18:00", "20:00", "22:00" ].map(t => (
+              <button 
+                key={t}
+                onClick={() => setTargetTime(t)}
+                className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-800 border border-white/5 rounded-2xl text-[10px] font-black text-zinc-400 hover:text-white transition-all uppercase tracking-widest"
+              >
+                {t} PM
+              </button>
+            ))}
+          </div>
+
+          <div className="pt-4">
+            <button 
+              onClick={handleCommit}
+              className="w-full py-5 bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-[0.3em] rounded-[28px] shadow-2xl shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+            >
+              <CheckCircle2 size={18} />
+              Confirm Rescue
+            </button>
+            <p className="text-[9px] text-zinc-600 text-center mt-4 font-bold uppercase tracking-widest">This action will be logged in the permanent audit trail</p>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
 
 const FilterTab = ({ active, label, count, onClick, color }) => {
   const activeColors = {

@@ -12,8 +12,12 @@ const calculateDetailedSummary = (student: any, payments: any[], monthlyFee: num
   let currentCycleDate = new Date(joinDate.getFullYear(), joinDate.getMonth(), joinDate.getDate());
   let carryForward = 0;
 
-  // Iterate through all months from joining until the current month to build the ledger
-  while (currentCycleDate <= today || (currentCycleDate.getMonth() === today.getMonth() && currentCycleDate.getFullYear() === today.getFullYear())) {
+  // Iterate through all months from joining until current month OR as long as carryForward exists
+  while (
+    currentCycleDate <= today || 
+    (currentCycleDate.getMonth() === today.getMonth() && currentCycleDate.getFullYear() === today.getFullYear()) ||
+    carryForward > 0
+  ) {
     const monthLabel = currentCycleDate.getMonth() + 1;
     const yearLabel = currentCycleDate.getFullYear();
     
@@ -32,24 +36,29 @@ const calculateDetailedSummary = (student: any, payments: any[], monthlyFee: num
     const isPastCycleDay = today.getDate() > cycleDay;
     const isPastMonth = (today.getFullYear() > yearLabel) || (today.getFullYear() === yearLabel && today.getMonth() + 1 > monthLabel);
     const isCurrentMonth = today.getMonth() + 1 === monthLabel && today.getFullYear() === yearLabel;
+    const isFuture = (today.getFullYear() < yearLabel) || (today.getFullYear() === yearLabel && today.getMonth() + 1 < monthLabel);
     
-    const shouldNotify = status !== "PAID" && (isPastMonth || (isCurrentMonth && isPastCycleDay));
+    // Notifications only for past/current overdue, not future
+    const shouldNotify = !isFuture && status !== "PAID" && (isPastMonth || (isCurrentMonth && isPastCycleDay));
 
     historicalCycles.push({
       month: monthLabel,
       year: yearLabel,
       expected: monthlyFee,
       paid: effectiveFunds, 
-      balance: Math.max(0, monthlyFee - effectiveFunds),
-      status,
+      balance: isFuture ? 0 : Math.max(0, monthlyFee - effectiveFunds), // Future months don't have "due" balance yet unless we want to show it
+      status: (isFuture && status === 'PAID') ? 'PAID' : status,
+      isCredit: isFuture && status === 'PAID',
       cycleDate: new Date(yearLabel, monthLabel - 1, cycleDay),
       isOverdue: shouldNotify,
       payments: intrinsicPayments
     });
 
-    carryForward = surplus; // Pass surplus to next cycle
+    carryForward = surplus; 
     currentCycleDate = new Date(currentCycleDate.getFullYear(), currentCycleDate.getMonth() + 1, cycleDay);
-    if (historicalCycles.length > 240) break; 
+    
+    // Safety break and stop if we are way in the future and out of credit
+    if (historicalCycles.length > 240 || (isFuture && carryForward <= 0)) break; 
   }
 
   return historicalCycles;

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticate, requireVerified } from "../middlewares/auth.middleware.js";
 import { getTodayStatus, getHistory, getConsistencyMetrics } from "../controllers/student-dashboard.controller.js";
-import { getLiveAttendance, getAttendanceFilters, getAttendanceTrends } from "../controllers/admin-dashboard.controller.js";
+import { getLiveAttendance, getAttendanceFilters, getAttendanceTrends, forceCheckout } from "../controllers/admin-dashboard.controller.js";
 
 const router = Router();
 
@@ -16,5 +16,6 @@ router.get("/student/metrics", getConsistencyMetrics);
 router.get("/admin/live", getLiveAttendance);
 router.get("/admin/filters", getAttendanceFilters);
 router.get("/admin/trends", getAttendanceTrends);
+router.post("/admin/force-checkout", forceCheckout);
 
 export default router;

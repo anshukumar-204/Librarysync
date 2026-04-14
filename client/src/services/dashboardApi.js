@@ -29,6 +29,11 @@ const dashboardApi = {
   getAdminAttendanceFilters: async (params) => {
     const response = await API.get('/dashboard/admin/filters', { params });
     return response.data;
+  },
+  
+  forceAdminCheckout: async (attendanceId, checkOutTime) => {
+    const response = await API.post('/dashboard/admin/force-checkout', { attendanceId, checkOutTime });
+    return response.data;
   }
 };
 

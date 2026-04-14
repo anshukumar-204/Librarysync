@@ -19,7 +19,8 @@ import {
   getWeeklyRoutine,
   createRoutineNode,
   deleteRoutineNode,
-  syncRoutineTasks
+  syncRoutineTasks,
+  resetStudentPassword
 } from "../controllers/student.controller.js";
 import { checkAvailability } from "../controllers/student-validation.controller.js";
 import { authenticate, requireVerified } from "../middlewares/auth.middleware.js";
@@ -57,5 +58,6 @@ router.post("/check-availability", checkAvailability);
 router.post("/", createStudent); 
 router.get("/", getStudents);
 router.put("/:id", updateStudent);
+router.put("/:id/reset-password", resetStudentPassword);
 
 export default router;

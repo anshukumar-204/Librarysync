@@ -20,6 +20,11 @@ export const deleteStudent = async (id) => {
   return response.data;
 };
 
+export const resetStudentPassword = async (id, newPassword) => {
+  const response = await API.put(`/students/${id}/reset-password`, { newPassword });
+  return response.data;
+};
+
 // Productivity Features
 export const fetchLeaderboard = async () => {
   const response = await API.get('/students/leaderboard');

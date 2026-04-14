@@ -112,3 +112,59 @@ export const getAttendanceTrends = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: "Trend analysis failure" });
   }
 };
+
+export const forceCheckout = async (req: Request, res: Response) => {
+  try {
+    if (req.user?.role !== "admin") return res.status(403).json({ success: false, message: "Forbidden" });
+
+    const { attendanceId, checkOutTime } = req.body;
+
+    if (!attendanceId) {
+      return res.status(400).json({ success: false, message: "Attendance ID is required" });
+    }
+
+    const record = await prisma.attendance.findUnique({
+      where: { id: Number(attendanceId) }
+    });
+
+    if (!record) {
+      return res.status(404).json({ success: false, message: "Attendance record not found" });
+    }
+
+    if (record.checkOutTime) {
+      return res.status(400).json({ success: false, message: "Student already checked out" });
+    }
+
+    const manualTime = checkOutTime ? new Date(checkOutTime) : new Date();
+    
+    // Validation: Cannot checkout before checkin
+    if (record.checkInTime && manualTime < new Date(record.checkInTime)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Check-out time cannot be earlier than check-in time" 
+      });
+    }
+
+    // Validation: Cannot checkout in the future
+    if (manualTime > new Date()) {
+      return res.status(400).json({ success: false, message: "Cannot record checkout in the future" });
+    }
+
+    const updated = await prisma.attendance.update({
+      where: { id: record.id },
+      data: {
+        checkOutTime: manualTime
+      }
+    });
+
+    return res.json({ 
+      success: true, 
+      message: "Manual checkout successful",
+      data: updated
+    });
+
+  } catch (error) {
+    console.error("Force Checkout Error:", error);
+    return res.status(500).json({ success: false, message: "Server error occurred during rescue" });
+  }
+};

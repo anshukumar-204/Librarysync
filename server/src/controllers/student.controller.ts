@@ -748,3 +748,47 @@ export const updateStudentProfileSelf = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: "Profile update failed. Please contact the administration office if this persists." });
   }
 };
+
+export const resetStudentPassword = async (req: Request, res: Response) => {
+  try {
+    // Only Admin can reset passwords
+    if (req.user?.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Forbidden: Admin access required" });
+    }
+
+    const studentId = Number(req.params.id);
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: "Security protocol requires at least 6 characters." });
+    }
+
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      include: { user: true }
+    });
+
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student record not found" });
+    }
+
+    const hashed = await hashPassword(newPassword);
+
+    await prisma.user.update({
+      where: { id: student.userId },
+      data: {
+        passwordHash: hashed,
+        tokenVersion: { increment: 1 } // Force logout from all devices
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: "Security override successful. Student has been logged out of all devices and password updated."
+    });
+
+  } catch (error) {
+    console.error("PASSWORD RESET ERROR:", error);
+    return res.status(500).json({ success: false, message: "Internal security failure" });
+  }
+};

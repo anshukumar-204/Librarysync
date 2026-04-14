@@ -40,7 +40,10 @@ import {
   Power,
   IndianRupee,
   CreditCard,
-  Lock
+  Lock,
+  Receipt,
+  ArrowRightLeft,
+  X
 } from 'lucide-react';
 import { logoutAdmin } from '../store/slices/authSlice';
 import { getFeeStatus } from '../store/slices/feeSlice';
@@ -116,7 +119,8 @@ export default function StudentDashboard() {
   }, [isRestricted]);
 
   const [activeView, setActiveView] = React.useState('hub'); // 'hub' | 'rank' | 'journal' | 'history' | 'routine' | 'profile'
-  const [activeModal, setActiveModal] = React.useState(null); // 'qr' | 'goal' | 'profile_otp'
+  const [activeModal, setActiveModal] = React.useState(null); // 'attendance' | 'profile' | 'ledger'
+  const [ledgerTab, setLedgerTab] = React.useState('cycles'); // 'cycles' | 'journal'
   const [chartRange, setChartRange] = React.useState('week'); // 'week' | 'month' | 'year'
   const [profileFormData, setProfileFormData] = React.useState({
     fullName: '',
@@ -184,6 +188,7 @@ export default function StudentDashboard() {
   const [activeTaskTimer, setActiveTaskTimer] = React.useState(null); // { id, timeLeft, isRunning }
   const [isAlarmActive, setIsAlarmActive] = React.useState(false);
   const vibrationInterval = React.useRef(null);
+  const pomodoroTargetTime = React.useRef(null);
 
   const [routineDay, setRoutineDay] = React.useState(new Date().getDay());
   const [newRoutineSubject, setNewRoutineSubject] = React.useState('');
@@ -206,18 +211,30 @@ export default function StudentDashboard() {
     dispatch(getFeeStatus());
   }, [dispatch]);
 
-  // Pomodoro Ticker
+  // Precision Pomodoro Ticker
   useEffect(() => {
     let interval;
     if (pomodoro.isRunning) {
+      if (!pomodoroTargetTime.current) {
+        pomodoroTargetTime.current = Date.now() + (pomodoro.timeLeft * 1000);
+      }
+
       interval = setInterval(() => {
-        if (pomodoro.timeLeft > 0) {
-          dispatch(tickPomodoro());
+        const remaining = Math.max(0, Math.ceil((pomodoroTargetTime.current - Date.now()) / 1000));
+        
+        if (remaining > 0) {
+          // Only update if time actually changed (to prevent unnecessary re-renders)
+          if (remaining !== pomodoro.timeLeft) {
+            dispatch(updatePomodoro({ timeLeft: remaining }));
+          }
         } else {
           handleTimerComplete('Focus Terminal');
+          pomodoroTargetTime.current = null;
           clearInterval(interval);
         }
-      }, 1000);
+      }, 500); // Check every 500ms for better accuracy
+    } else {
+      pomodoroTargetTime.current = null;
     }
     return () => clearInterval(interval);
   }, [pomodoro.isRunning, dispatch]);
@@ -256,6 +273,32 @@ export default function StudentDashboard() {
       handlePomodoroComplete();
     }
     triggerAlarm(source);
+
+    // BACKGROUND DISPATCH: Send system notification if user is away
+    if (document.visibilityState === 'hidden') {
+      sendSystemNotification(source);
+    }
+  };
+
+  const sendSystemNotification = (source) => {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+    const options = {
+      body: `PROTOCOL COMPLETE: ${source} session terminated. Swipe to return to terminal.`,
+      icon: '/pwa-192x192.png',
+      vibrate: [500, 200, 500],
+      tag: 'timer-alert',
+      requireInteraction: true
+    };
+
+    // Use Service Worker if available for better background support
+    if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.showNotification(`TERMINAL ALERT`, options);
+      });
+    } else {
+      new Notification(`TERMINAL ALERT`, options);
+    }
   };
 
   const triggerAlarm = (source) => {
@@ -323,7 +366,14 @@ export default function StudentDashboard() {
   };
 
   const handleToggleTimer = () => {
-    dispatch(updatePomodoro({ isRunning: !pomodoro.isRunning }));
+    const nextRunning = !pomodoro.isRunning;
+    
+    // Request notification permission when starting the timer
+    if (nextRunning && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
+    dispatch(updatePomodoro({ isRunning: nextRunning }));
   };
 
   const handleResetTimer = () => {
@@ -1002,9 +1052,22 @@ export default function StudentDashboard() {
             >
               {formatTimer(pomodoro.timeLeft)}
             </motion.div>
-            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
-              <div className={`w-1.5 h-1.5 rounded-full ${pomodoro.isRunning ? 'bg-indigo-500 animate-pulse' : 'bg-gray-600'}`} />
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">{pomodoro.isRunning ? 'Active' : 'Idle'}</span>
+            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+              <div className="flex items-center gap-2">
+                <div className={`w-1.5 h-1.5 rounded-full ${pomodoro.isRunning ? 'bg-indigo-500 animate-pulse' : 'bg-gray-600'}`} />
+                <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">{pomodoro.isRunning ? 'Active' : 'Idle'}</span>
+              </div>
+              
+              {pomodoro.isRunning && "Notification" in window && Notification.permission === "granted" && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-1 text-[8px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full"
+                >
+                  <ShieldCheck size={8} />
+                  Background Alerts Active
+                </motion.div>
+              )}
             </div>
           </div>
 
@@ -1324,9 +1387,169 @@ export default function StudentDashboard() {
           </div>
         </div>
 
+        <button
+          onClick={() => setActiveModal('ledger')}
+          className="mt-6 w-full py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex items-center justify-center gap-3 transition-all group/btn"
+        >
+          <Receipt size={16} className="text-indigo-400 group-hover/btn:scale-110 transition-transform" />
+          <span className="text-[10px] font-black text-white uppercase tracking-widest">View Detailed Ledger</span>
+          <ChevronRight size={14} className="text-gray-500 group-hover/btn:translate-x-1 transition-transform" />
+        </button>
+
         <div className="absolute -right-4 -bottom-4 text-indigo-500/5 group-hover:scale-125 transition-transform rotate-12">
           <IndianRupee size={100} />
         </div>
+      </div>
+    );
+  };
+
+  const renderFeeLedgerModal = () => {
+    if (activeModal !== 'ledger') return null;
+    const history = feeStatus?.history || [];
+    const payments = feeStatus?.payments || [];
+
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setActiveModal(null)}
+          className="absolute inset-0 bg-black/80 backdrop-blur-xl"
+        />
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="relative w-full max-w-2xl bg-[#0d1117] border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        >
+          {/* Header */}
+          <div className="p-6 sm:p-8 border-b border-white/5 flex items-center justify-between shrink-0 bg-white/[0.02]">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                <History size={24} />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-white uppercase tracking-tighter italic">Financial Ledger</h2>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Transparent billing & history</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveModal(null)}
+              className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-500 hover:text-white transition-all"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex px-8 pt-6 gap-6 border-b border-white/5 shrink-0 bg-white/[0.01]">
+            <button
+              onClick={() => setLedgerTab('cycles')}
+              className={cn(
+                "pb-4 text-[11px] font-black uppercase tracking-widest transition-all relative",
+                ledgerTab === 'cycles' ? "text-indigo-400" : "text-gray-500 hover:text-gray-300"
+              )}
+            >
+              Billing Ledger
+              {ledgerTab === 'cycles' && <motion.div layoutId="tab-active" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />}
+            </button>
+            <button
+              onClick={() => setLedgerTab('journal')}
+              className={cn(
+                "pb-4 text-[11px] font-black uppercase tracking-widest transition-all relative",
+                ledgerTab === 'journal' ? "text-indigo-400" : "text-gray-500 hover:text-gray-300"
+              )}
+            >
+              Payment Journal
+              {ledgerTab === 'journal' && <motion.div layoutId="tab-active" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />}
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar">
+            {ledgerTab === 'cycles' ? (
+              <div className="space-y-4">
+                {history.map((cycle, idx) => (
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    key={`${cycle.month}-${cycle.year}`}
+                    className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-all flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px]",
+                        cycle.status === 'PAID' ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
+                      )}>
+                        {new Date(cycle.year, cycle.month - 1).toLocaleString('default', { month: 'short' }).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-white">{new Date(cycle.year, cycle.month - 1).toLocaleString('default', { month: 'long' })} {cycle.year}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase flex items-center gap-1 opacity-60">
+                          Due: ₹{cycle.expected} | Paid: ₹{cycle.paid}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={cn(
+                        "text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-widest border",
+                        cycle.isCredit ? "bg-indigo-500/10 text-indigo-400 border-indigo-400/20" :
+                          cycle.status === 'PAID' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                            "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                      )}>
+                        {cycle.isCredit ? "PAID (Credit)" : cycle.status}
+                      </span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {payments.length > 0 ? (
+                  payments.map((p, idx) => (
+                    <motion.div
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      key={p.id}
+                      className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-all flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                          <Receipt size={18} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-black text-white">₹{p.amount} Received</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase opacity-60">
+                            {new Date(p.paymentDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right flex flex-col items-end gap-1">
+                        <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Target Cycle</span>
+                        <span className="text-[10px] font-black text-indigo-400">
+                          {new Date(p.year, p.month - 1).toLocaleString('default', { month: 'short' })} {p.year}
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="py-20 text-center">
+                    <Receipt size={40} className="text-gray-700 mx-auto mb-4 opacity-20" />
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">No transaction records found</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="p-6 bg-indigo-500/5 text-center shrink-0">
+            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em]">All amounts in Indian Rupee (INR)</p>
+          </div>
+        </motion.div>
       </div>
     );
   };
@@ -1401,7 +1624,7 @@ export default function StudentDashboard() {
           <div className="glass-card p-8 rounded-[3rem] bg-gradient-to-br from-blue-600/5 to-transparent border border-white/5 relative overflow-hidden shadow-2xl">
             <div className="flex flex-col items-center">
               <div className="w-48 h-48 relative mb-8">
-                <ResponsiveContainer width="99%" aspect={1} debounce={100}>
+                <ResponsiveContainer width="99%" aspect={1} minHeight={150} debounce={100}>
                   <PieChart>
                     <Pie
                       data={[
@@ -1595,7 +1818,7 @@ export default function StudentDashboard() {
                 <div key={node.id} className="p-5 sm:p-6 rounded-[2rem] bg-white/[0.03] border border-white/5 flex items-center justify-between group">
                   <div>
                     <span className="text-base sm:text-lg font-bold text-white block leading-none">{node.subject}</span>
-                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest mt-2 block">{formatDuration(node.estimatedMinutes)}</span>
+                    <span className="text-[12px] font-black text-gray-500 uppercase tracking-widest mt-2 block">{formatDuration(node.estimatedMinutes)}</span>
                   </div>
                   <button onClick={() => handleRemoveScheduleItem(node.id)} className="p-3 text-red-500 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100 transition-all">
                     <Trash2 size={18} />
@@ -1766,11 +1989,11 @@ export default function StudentDashboard() {
                             <div key={task.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/5 transition-colors hover:bg-white/[0.05]">
                               <div className="flex items-center gap-3">
                                 <div className={`w-2 h-2 rounded-full ${task.isCompleted ? 'bg-emerald-500' : 'bg-white/20'}`} />
-                                <span className={`text-xs font-bold ${task.isCompleted ? 'text-white' : 'text-gray-500'}`}>{task.title}</span>
+                                <span className={`text-sm font-bold ${task.isCompleted ? 'text-white' : 'text-gray-500'}`}>{task.title}</span>
                               </div>
                               <div className="flex items-center gap-3">
-                                {task.estimatedMinutes && <span className="text-[9px] text-gray-600 font-bold uppercase">{formatDuration(task.estimatedMinutes)}</span>}
-                                <span className={`text-[8px] font-black px-2 py-1 rounded-lg uppercase ${task.isCompleted ? 'bg-emerald-500/10 text-emerald-500' : 'bg-white/5 text-gray-600'}`}>
+                                {task.estimatedMinutes && <span className="text-[13px] text-gray-600 font-bold uppercase">{formatDuration(task.estimatedMinutes)}</span>}
+                                <span className={`text-[13px] font-black px-2 py-1 rounded-lg uppercase ${task.isCompleted ? 'bg-emerald-500/10 text-emerald-500' : 'bg-white/5 text-gray-600'}`}>
                                   {task.isCompleted ? 'Done' : 'Pending'}
                                 </span>
                               </div>
@@ -1993,6 +2216,7 @@ export default function StudentDashboard() {
           </div>
         )}
       </AnimatePresence>
+      {renderFeeLedgerModal()}
     </div>
   );
 }

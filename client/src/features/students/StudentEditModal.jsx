@@ -4,9 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, User, Settings, ShieldCheck,
   Loader2, Camera, Check, ChevronRight, AlertCircle,
-  GraduationCap, Mail, MapPin, Home, CreditCard
+  GraduationCap, Mail, MapPin, Home, CreditCard, Lock, Key
 } from "lucide-react";
-import { registerStudent, modifyStudent, closeEditModal } from './studentSlice';
+import { registerStudent, modifyStudent, closeEditModal, overridePassword } from './studentSlice';
 import StudentProfileView from './StudentProfileView';
 import StudentFeeSection from './StudentFeeSection';
 import { uploadImageToCloudinary } from '../../services/cloudinary';
@@ -44,6 +44,11 @@ export default function StudentEditModal() {
     bio: "",
     monthlyFee: "500.0",
     joinDate: new Date().toISOString().split('T')[0]
+  });
+  
+  const [resetPasswordData, setResetPasswordData] = useState({
+    newPassword: "",
+    isRevealed: false
   });
 
   useEffect(() => {
@@ -192,11 +197,45 @@ export default function StudentEditModal() {
     }
   };
 
+  const handleManualReset = async () => {
+    if (!resetPasswordData.newPassword || resetPasswordData.newPassword.length < 6) {
+      toast.error("Security protocol requires at least 6 characters.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await dispatch(overridePassword({ 
+        id: editingStudent.id, 
+        newPassword: resetPasswordData.newPassword 
+      })).unwrap();
+      
+      toast.success("Security coordinates updated. Student has been force-logged out.");
+      setResetPasswordData({ newPassword: "", isRevealed: false });
+    } catch (err) {
+      toast.error(err || "Manual reset failed");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const generateCipher = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+    let pass = "";
+    for (let i = 0; i < 10; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setResetPasswordData({ newPassword: pass, isRevealed: true });
+  };
+
   const sections = [
     { id: "personal", label: "Identity", icon: User, hasError: !!errors.fullName || !!errors.fatherName || !!errors.mobile },
     { id: "residence", label: "Residence", icon: Home, hasError: !!errors.village || !!errors.post || !!errors.district || !!errors.address },
     { id: "academic", label: "Administrative", icon: ShieldCheck, hasError: false },
-    ...(editingStudent ? [{ id: "financials", label: "Fees & Ledger", icon: CreditCard, hasError: false }] : []),
+    ...(editingStudent ? [
+      { id: "financials", label: "Fees & Ledger", icon: CreditCard, hasError: false },
+      { id: "security", label: "Security Node", icon: Lock, hasError: false }
+    ] : []),
   ];
 
   if (!isEditModalOpen) return null;
@@ -439,6 +478,64 @@ export default function StudentEditModal() {
                   {activeSection === "financials" && (
                     <motion.div key="f" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}>
                       <StudentFeeSection studentId={editingStudent?.id} />
+                    </motion.div>
+                  )}
+
+                  {activeSection === "security" && (
+                    <motion.div key="s" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="space-y-10 text-left">
+                      <div className="flex items-center gap-4 p-6 bg-rose-500/5 border border-rose-500/10 rounded-3xl">
+                        <AlertCircle className="text-rose-500 shrink-0" size={24} />
+                        <div>
+                          <h3 className="text-sm font-black text-white uppercase tracking-widest">Master Security Override</h3>
+                          <p className="text-[10px] text-rose-500/70 font-bold uppercase tracking-widest mt-1">Updates to this node will terminate all active student sessions globally.</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-6">
+                        <div className="space-y-3">
+                          <label className="text-[10px] font-black text-zinc-500 uppercase ml-1 tracking-widest">New Institutional Password</label>
+                          <div className="relative group">
+                            <Key className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500 group-focus-within:scale-110 transition-transform" />
+                            <input 
+                              type={resetPasswordData.isRevealed ? "text" : "password"}
+                              value={resetPasswordData.newPassword}
+                              onChange={(e) => setResetPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                              placeholder="Min 6 characters (e.g. mobile#)"
+                              className="w-full bg-zinc-900 border border-white/10 rounded-[28px] py-5 pl-16 pr-8 text-xl font-black text-white focus:outline-none focus:border-emerald-500/50 transition-all outline-none"
+                            />
+                            <button 
+                              onClick={() => setResetPasswordData(prev => ({ ...prev, isRevealed: !prev.isRevealed }))}
+                              className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-500 hover:text-white uppercase tracking-tighter"
+                            >
+                              {resetPasswordData.isRevealed ? "Hide" : "Show"}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-4">
+                          <button 
+                            onClick={generateCipher}
+                            className="flex-1 py-4 bg-zinc-900 hover:bg-zinc-800 border border-white/5 rounded-2xl text-[10px] font-black text-zinc-400 hover:text-white transition-all uppercase tracking-widest flex items-center justify-center gap-2"
+                          >
+                            <Loader2 size={12} className={uploading ? "animate-spin" : ""} />
+                            Generate Secure Cipher
+                          </button>
+                        </div>
+
+                        <div className="pt-4">
+                          <button 
+                            onClick={handleManualReset}
+                            disabled={isSubmitting || !resetPasswordData.newPassword}
+                            className="w-full py-5 bg-rose-600 hover:bg-rose-500 text-white font-black text-sm uppercase tracking-[0.3em] rounded-[28px] shadow-2xl shadow-rose-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                          >
+                            {isSubmitting ? <Loader2 className="animate-spin" /> : <ShieldCheck size={18} />}
+                            Apply Security Override
+                          </button>
+                          <p className="text-[9px] text-zinc-600 text-center mt-6 font-bold uppercase tracking-widest leading-loose">
+                            Warning: This action bypasses standard OTP protocols. Identity must be verified manually before execution.
+                          </p>
+                        </div>
+                      </div>
                     </motion.div>
                   )}
                 </>

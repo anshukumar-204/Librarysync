@@ -38,6 +38,18 @@ export const modifyStudent = createAsyncThunk(
   }
 );
 
+export const overridePassword = createAsyncThunk(
+  'students/overridePassword',
+  async ({ id, newPassword }, { rejectWithValue }) => {
+    try {
+      const response = await studentApi.resetStudentPassword(id, newPassword);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Security override failure");
+    }
+  }
+);
+
 const initialState = {
   students: [],
   loading: false,
