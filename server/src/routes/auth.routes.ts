@@ -2,7 +2,7 @@ import { Router } from "express";
 import { 
   login, forgotPassword, resetPassword, logout, register, 
   verifyRegistration, completeRegistration, verifyLoginOtp, 
-  mailerHealthCheck, checkAccountExistence 
+  mailerHealthCheck, checkAccountExistence, firebaseSync
 } from "../controllers/auth.controller.js";
 import { checkAvailability } from "../controllers/student-validation.controller.js";
 import { authRateLimiter } from "../middlewares/rateLimiter.js";
@@ -20,6 +20,7 @@ router.post("/forgot-password", authRateLimiter, forgotPassword);
 router.post("/check-account", authRateLimiter, checkAccountExistence);
 router.post("/check-availability", authRateLimiter, checkAvailability);
 router.post("/reset-password", authRateLimiter, resetPassword);
+router.post("/firebase-sync", authRateLimiter, firebaseSync);
 router.post("/logout", authenticate, logout);
 
 // Debugging routes

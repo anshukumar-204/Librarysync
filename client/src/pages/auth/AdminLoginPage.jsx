@@ -16,6 +16,7 @@ export default function AdminLoginPage() {
   const [showOtp, setShowOtp] = useState(false);
   const [otp, setOtp] = useState('');
   const [loginId, setLoginId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.adminAuth);
@@ -23,36 +24,44 @@ export default function AdminLoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     dispatch(clearError());
-    
+    setIsSubmitting(true);
     try {
       const resultAction = await dispatch(loginAdmin({ credential, password }));
       if (loginAdmin.fulfilled.match(resultAction)) {
         if (resultAction.payload.requiresOtp) {
           setLoginId(resultAction.payload.loginId);
           setShowOtp(true);
-          toast.success("Security code sent to your email");
+          toast.success('Security code sent to your registered email address.');
         } else {
-          toast.success("Login Successful. Opening Dashboard...");
+          toast.success('Access granted. Opening Admin Dashboard...');
           navigate('/admin/dashboard');
         }
+      } else {
+        toast.error(resultAction.payload || 'Login failed. Check your credentials.');
       }
-    } catch (err) {
-      toast.error("Access Refused");
+    } catch {
+      toast.error('Unable to connect to the server. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleOtpSubmit = async (e) => {
     e.preventDefault();
     dispatch(clearError());
-    
+    setIsSubmitting(true);
     try {
       const resultAction = await dispatch(verifyLoginOtpAdmin({ loginId, otp }));
       if (verifyLoginOtpAdmin.fulfilled.match(resultAction)) {
-        toast.success("Login Successful. Opening Dashboard...");
+        toast.success('Identity confirmed. Welcome, Admin!');
         navigate('/admin/dashboard');
+      } else {
+        toast.error(resultAction.payload || 'Security code is incorrect or has expired.');
       }
-    } catch (err) {
-      toast.error("Invalid Security Code");
+    } catch {
+      toast.error('Verification failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -146,10 +155,10 @@ export default function AdminLoginPage() {
               <motion.button 
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
-                disabled={loading}
+                disabled={loading || isSubmitting}
                 className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 text-emerald-950 font-bold py-4 rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all duration-300 group"
               >
-                {loading ? (
+                {loading || isSubmitting ? (
                   <Loader2 className="animate-spin" size={20} />
                 ) : (
                   <>
@@ -197,10 +206,10 @@ export default function AdminLoginPage() {
               <motion.button 
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
-                disabled={loading}
+                disabled={loading || isSubmitting}
                 className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 text-emerald-950 font-bold py-4 rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all duration-300 group"
               >
-                {loading ? (
+                {loading || isSubmitting ? (
                   <Loader2 className="animate-spin" size={20} />
                 ) : (
                   <>

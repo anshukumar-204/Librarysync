@@ -1,17 +1,31 @@
-import { MoreHorizontal, PenLine, ChevronLeft, ChevronRight, Eye, Loader2, AlertCircle } from 'lucide-react';
+import { MoreHorizontal, PenLine, ChevronLeft, ChevronRight, Eye, Loader2, AlertCircle, Search } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { calculateFeeStatus } from '../../utils/feeUtils';
 import { fetchStudents, openEditModal } from './studentSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { useEffect } from 'react';
 
-export default function StudentTable() {
+export default function StudentTable({ searchTerm }) {
   const dispatch = useDispatch();
   const { students, loading, error } = useSelector((state) => state.students);
 
   useEffect(() => {
     dispatch(fetchStudents());
   }, [dispatch]);
+
+  const filteredStudents = students.filter(student => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    const name = (student.fullName || student.name || '').toLowerCase();
+    const email = (student.email || student.user?.email || '').toLowerCase();
+    const mobile = (student.mobile || student.user?.mobile || '').toLowerCase();
+    const id = student.id?.toString() || '';
+    
+    return name.includes(searchLower) || 
+           email.includes(searchLower) || 
+           mobile.includes(searchLower) ||
+           id.includes(searchLower);
+  });
 
   if (loading && students.length === 0) {
     return (
@@ -49,7 +63,17 @@ export default function StudentTable() {
             </tr>
           </thead>
           <tbody className="divide-y divide-white/[0.02]">
-            {students.map((student, idx) => (
+            {filteredStudents.length === 0 && (
+              <tr>
+                <td colSpan="7" className="px-10 py-20 text-center">
+                   <div className="flex flex-col items-center justify-center opacity-40">
+                      <Search className="w-10 h-10 mb-4 text-zinc-600" />
+                      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500">No matching nodes found in registry</p>
+                   </div>
+                </td>
+              </tr>
+            )}
+            {filteredStudents.map((student, idx) => (
               <tr
                 key={student.id || idx}
                 className="group hover:bg-white/[0.01] transition-all duration-300"
@@ -140,7 +164,7 @@ export default function StudentTable() {
 
       {/* Pagination Footer */}
       <div className="px-10 py-6 border-t border-white/[0.03] flex items-center justify-between bg-white/[0.01] text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-        <div>Registry Index: 01 - {students.length} NODE</div>
+        <div>Registry Index: {filteredStudents.length} / {students.length} NODES</div>
         <div className="flex items-center gap-4">
           <button className="hover:text-white transition-colors cursor-not-allowed opacity-30"><ChevronLeft size={16} /></button>
           <div className="flex items-center gap-2">

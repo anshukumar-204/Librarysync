@@ -8,9 +8,15 @@ import {
   CheckCircle2, Sparkles, GraduationCap, Search,
   ShieldCheck, KeyRound, RefreshCw, Eye, EyeOff, Camera, Hash
 } from 'lucide-react';
-import { registerStudent, clearError } from '../../store/slices/authSlice';
+import { registerStudent, clearError, firebaseSyncAuth } from '../../store/slices/authSlice';
 import authApi from '../../services/authApi';
 import toast from 'react-hot-toast';
+import { auth } from '../../config/firebase';
+import { 
+  RecaptchaVerifier, 
+  signInWithPhoneNumber, 
+  sendSignInLinkToEmail 
+} from "firebase/auth";
 
 export default function StudentRegisterPage() {
   const [credential, setCredential] = useState('');
@@ -26,6 +32,9 @@ export default function StudentRegisterPage() {
     mobile: { loading: false, available: true, message: '' },
     email: { loading: false, available: true, message: '' }
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState(null);
+  const [authMethod, setAuthMethod] = useState('email'); // 'email' | 'phone'
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -187,12 +196,13 @@ export default function StudentRegisterPage() {
     }
 
     dispatch(clearError());
+    setIsSubmitting(true);
     try {
       // Step 2 submit triggers OTP send
       const response = await authApi.register({
         ...formData,
-        profileImage: profileImageBase64, // Include the base64 image
-        credential: credential // Use original identifier
+        profileImage: profileImageBase64, 
+        credential: credential 
       });
       if (response.pendingVerification) {
         setShowOtpStage(true);
@@ -200,6 +210,8 @@ export default function StudentRegisterPage() {
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Registration failed to initiate.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -218,6 +230,85 @@ export default function StudentRegisterPage() {
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Activation code incorrect.");
+    } finally {
+      setIsActivating(false);
+    }
+  };
+
+  // --- FIREBASE PHONE AUTH ---
+  const setupRecaptcha = () => {
+    if (window.recaptchaVerifier) return;
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+      'size': 'invisible',
+      'callback': () => {}
+    });
+  };
+
+  const startPhoneAuth = async () => {
+    if (!formData.mobile || formData.mobile.length < 10) {
+      toast.error('Please enter a valid 10-digit mobile number first.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      // Reset old verifier if it exists (handles page re-use)
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
+      }
+      setupRecaptcha();
+      const appVerifier = window.recaptchaVerifier;
+      const formattedPhone = formData.mobile.startsWith('+') ? formData.mobile : `+91${formData.mobile}`;
+      const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      setConfirmationResult(result);
+      setAuthMethod('phone');
+      setShowOtpStage(true);
+      toast.success(`SMS code sent to ${formattedPhone}. Check your messages.`);
+    } catch (err) {
+      console.error('Phone auth error:', err);
+      if (err.code === 'auth/too-many-requests') {
+        toast.error('Too many SMS attempts. Please try again after some time.');
+      } else if (err.code === 'auth/invalid-phone-number') {
+        toast.error('Invalid phone number format. Use +91XXXXXXXXXX.');
+      } else {
+        toast.error('SMS dispatch failed. Free quota (10/day) may be exhausted. Use email instead.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFirebaseOtpVerify = async (e) => {
+    e.preventDefault();
+    if (!confirmationResult) {
+      toast.error('Session expired. Please resend the SMS code.');
+      setShowOtpStage(false);
+      setAuthMethod('email');
+      return;
+    }
+    if (!otp || otp.length !== 6) {
+      toast.error('Please enter the complete 6-digit code.');
+      return;
+    }
+    setIsActivating(true);
+    try {
+      const result = await confirmationResult.confirm(otp);
+      const idToken = await result.user.getIdToken();
+      const resultAction = await dispatch(firebaseSyncAuth(idToken));
+      if (firebaseSyncAuth.fulfilled.match(resultAction)) {
+        toast.success('Phone verified! Your portal is now active. Welcome!');
+        navigate('/student/portal');
+      } else {
+        toast.error(resultAction.payload || 'Sync failed. Contact admin.');
+      }
+    } catch (err) {
+      if (err.code === 'auth/invalid-verification-code') {
+        toast.error('OTP is incorrect. Please re-check and try again.');
+      } else if (err.code === 'auth/code-expired') {
+        toast.error('OTP has expired. Click "Resend" to get a new code.');
+      } else {
+        toast.error(err?.response?.data?.message || 'Verification failed. Please try again.');
+      }
     } finally {
       setIsActivating(false);
     }
@@ -315,10 +406,25 @@ export default function StudentRegisterPage() {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                   disabled={isActivating}
+                  onClick={authMethod === 'phone' ? handleFirebaseOtpVerify : handleFinalActivation}
                   className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white font-bold py-4 rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all"
                 >
                   {isActivating ? <Loader2 className="animate-spin" size={20} /> : "Finalize Activation"}
                 </motion.button>
+                
+                {authMethod === 'email' && (
+                  <button 
+                    type="button"
+                    onClick={() => {
+                       // Lock the form first then start phone auth
+                       startPhoneAuth();
+                    }} 
+                    className="flex items-center justify-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors py-2 uppercase tracking-widest font-bold"
+                  >
+                    Didn't get email? Use Phone SMS (Firebase)
+                  </button>
+                )}
+
                 <button 
                   type="button"
                   onClick={handleSubmit} 
@@ -552,16 +658,17 @@ export default function StudentRegisterPage() {
                 </button>
               )}
               <motion.button 
-                whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} disabled={loading}
+                whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} disabled={loading || isSubmitting}
                 className="flex-[2] bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all group"
               >
-                {loading ? <Loader2 className="animate-spin" size={20} /> : (
+                {loading || isSubmitting ? <Loader2 className="animate-spin" size={20} /> : (
                   <>
                     <span>{step === 1 ? 'Save and Continue' : 'Complete Registration'}</span>
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </motion.button>
+              <div id="recaptcha-container"></div>
             </div>
           </form>
         </div>

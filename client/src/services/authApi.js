@@ -49,6 +49,11 @@ const authApi = {
   checkAvailability: async (availabilityData) => {
     const response = await API.post('/auth/check-availability', availabilityData);
     return response.data;
+  },
+  
+  firebaseSync: async (idToken) => {
+    const response = await API.post('/auth/firebase-sync', { idToken });
+    return response.data;
   }
 };
 

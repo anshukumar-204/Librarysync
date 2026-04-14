@@ -4,6 +4,7 @@ import { generateSecureOTP, hashPassword, verifyPassword } from "../utils/securi
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 import { sendMail } from "../utils/mailer.js";
 import { normalizeMobile } from "./student-validation.controller.js";
+import admin from "../config/firebase-admin.js";
 
 export const login = async (req: Request, res: Response) => {
   const { credential, password } = req.body; // credential can be email or mobile
@@ -443,6 +444,19 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "Account activation requires a valid email address for secure verification. Please provide your email." });
     }
 
+    // --- COOLDOWN CHECK (60s) ---
+    // If OTP was sent less than 60 seconds ago, don't resend
+    if (existingUser.verifyOtpExpiresAt) {
+      const timeSinceSent = 15 * 60 * 1000 - (existingUser.verifyOtpExpiresAt.getTime() - Date.now());
+      if (timeSinceSent < 60000) {
+        return res.status(200).json({
+          success: true,
+          pendingVerification: true,
+          message: "Activation code already dispatched. Please check your inbox (including spam)."
+        });
+      }
+    }
+
     console.log("[REGISTRY] Synchronizing profile components...");
     const passwordHash = await hashPassword(password);
     const otp = generateSecureOTP();
@@ -656,5 +670,101 @@ export const mailerHealthCheck = async (req: Request, res: Response) => {
   } catch (error: any) {
     results.apiTest = `FAILED: ${error.message}`;
     return res.status(500).json({ success: false, ...results, error_code: error.code });
+  }
+};
+
+export const firebaseSync = async (req: Request, res: Response) => {
+  const { idToken } = req.body;
+  if (!idToken) {
+    return res.status(400).json({ success: false, message: "No verification token provided. Please complete the Firebase authentication step first." });
+  }
+
+  try {
+    let decodedToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(idToken);
+    } catch (tokenError: any) {
+      const isExpired = tokenError?.code === "auth/id-token-expired";
+      return res.status(401).json({
+        success: false,
+        message: isExpired
+          ? "Your session has expired. Please sign in again."
+          : "Invalid security token. Please restart the authentication process.",
+        code: tokenError?.code || "TOKEN_INVALID"
+      });
+    }
+
+    const { email, phone_number } = decodedToken;
+
+    if (!email && !phone_number) {
+      return res.status(400).json({
+        success: false,
+        message: "Firebase token does not contain a verifiable email or phone. Please use a different sign-in method."
+      });
+    }
+
+    let user;
+    if (email) {
+      user = await prisma.user.findFirst({
+        where: { email: { equals: email, mode: "insensitive" } },
+        include: { student: true }
+      });
+    } else if (phone_number) {
+      const normalized = normalizeMobile(phone_number);
+      user = await prisma.user.findFirst({
+        where: { OR: [{ mobile: phone_number }, { mobile: normalized }] },
+        include: { student: true }
+      });
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: email
+          ? `No student record found for email: ${email}. Please ensure your account was registered by the admin with this exact email.`
+          : `No student record found for this mobile number. Please ensure your profile mobile matches the institute database.`,
+        code: "RECORD_NOT_FOUND"
+      });
+    }
+
+    // Check if account is locked
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / (1000 * 60));
+      return res.status(403).json({
+        success: false,
+        message: `Account is temporarily locked due to multiple failed attempts. Please try again in ${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}.`
+      });
+    }
+
+    // Auto-activate account on successful Firebase verification (email/phone is proven valid)
+    if (!user.emailVerified) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: true, status: "active", failedLoginAttempts: 0, lockedUntil: null }
+      });
+    }
+
+    const accessToken = generateAccessToken({ id: user.id, role: user.role });
+    const refreshToken = generateRefreshToken({ id: user.id, tokenVersion: user.tokenVersion });
+
+    res.cookie("refresh_token", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    console.log(`[FIREBASE SYNC] Successfully authenticated UserID ${user.id} (${user.role}) via Firebase.`);
+
+    return res.json({
+      success: true,
+      message: `Welcome back, ${user.name}! You have been securely logged in.`,
+      accessToken,
+      user: { id: user.id, name: user.name, role: user.role, email: user.email, status: user.status }
+    });
+
+  } catch (error: any) {
+    console.error("FIREBASE SYNC CRITICAL ERROR:", error);
+    return res.status(500).json({ success: false, message: "An unexpected server error occurred during authentication. Please try again." });
   }
 };

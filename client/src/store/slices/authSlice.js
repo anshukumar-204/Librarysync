@@ -91,6 +91,22 @@ export const logoutAdmin = createAsyncThunk(
   }
 );
 
+export const firebaseSyncAuth = createAsyncThunk(
+  'adminAuth/firebaseSync',
+  async (idToken, { rejectWithValue }) => {
+    try {
+      const response = await authApi.firebaseSync(idToken);
+      if (response.accessToken) {
+        localStorage.setItem('token', response.accessToken);
+        localStorage.setItem('user', JSON.stringify(response.user));
+      }
+      return response;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Firebase synchronization failed');
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'adminAuth',
   initialState: {
@@ -161,6 +177,20 @@ const authSlice = createSlice({
         state.user = null;
         state.token = null;
         state.loading = false;
+      })
+      // Firebase Sync
+      .addCase(firebaseSyncAuth.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(firebaseSyncAuth.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.accessToken;
+      })
+      .addCase(firebaseSyncAuth.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });
