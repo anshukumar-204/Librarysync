@@ -26,8 +26,15 @@ export const login = async (req: Request, res: Response) => {
     if (!user) return res.status(401).json({ success: false, message: "Incorrect identification or password. Please try again." });
 
     // Check brute force
-    if (user.lockedUntil && user.lockedUntil > new Date()) {
-      return res.status(403).json({ success: false, message: "Account temporarily locked. Please try again later." });
+    if (user.lockedUntil) {
+      const lockTimeRemaining = user.lockedUntil.getTime() - Date.now();
+      if (lockTimeRemaining > 0) {
+        const minutesWaiting = Math.ceil(lockTimeRemaining / (1000 * 60));
+        return res.status(403).json({ 
+          success: false, 
+          message: `Account temporarily locked due to multiple failed attempts. Please try again in ${minutesWaiting} minute${minutesWaiting > 1 ? 's' : ''}.` 
+        });
+      }
     }
 
     const isMatch = await verifyPassword(password, user.passwordHash);
@@ -42,13 +49,14 @@ export const login = async (req: Request, res: Response) => {
       });
 
       const message = attempts >= 5
-        ? "Account temporarily locked for 15 minutes due to multiple failed attempts."
+        ? "Account temporarily locked for 15 minutes due to multiple failed attempts. Please try again later."
         : `Incorrect credentials. Attempts remaining: ${attemptsLeft}`;
 
       return res.status(401).json({
         success: false,
         message,
-        attemptsLeft
+        attemptsLeft,
+        lockDuration: attempts >= 5 ? 15 : 0
       });
     }
 
