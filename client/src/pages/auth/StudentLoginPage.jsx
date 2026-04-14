@@ -256,6 +256,7 @@ export default function StudentLoginPage() {
                     onChange={(e) => setCredential(e.target.value)}
                     icon={loginMethod === 'phone' ? Phone : Mail}
                     required
+                    autoComplete={loginMethod === 'phone' ? 'tel' : 'username'}
                   />
 
                   {loginMethod === 'password' && (
@@ -270,6 +271,7 @@ export default function StudentLoginPage() {
                       showPasswordToggle
                       showPassword={showPassword}
                       onTogglePassword={() => setShowPassword(!showPassword)}
+                      autoComplete="current-password"
                     />
                   )}
 

@@ -523,6 +523,7 @@ export default function StudentRegisterPage() {
                     icon={User} 
                     required={editableFields.includes('fullName')}
                     error={errors.fullName}
+                    autoComplete="name"
                     className={!editableFields.includes('fullName') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                   <Input 
@@ -531,6 +532,7 @@ export default function StudentRegisterPage() {
                     readOnly 
                     icon={Phone} 
                     error={errors.mobile}
+                    autoComplete="tel"
                     className="opacity-50 blur-[0.5px] cursor-not-allowed"
                   />
                   <Input 
@@ -554,6 +556,7 @@ export default function StudentRegisterPage() {
                     required={editableFields.includes('email')}
                     status={availability.email}
                     error={errors.email}
+                    autoComplete="email"
                     onCheckNow={editableFields.includes('email') ? () => forceCheck('email') : null}
                     className={availability.email.available === false ? "border-rose-500/50" : !editableFields.includes('email') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
@@ -567,6 +570,7 @@ export default function StudentRegisterPage() {
                       icon={MapPin} 
                       required={editableFields.includes('address')}
                       error={errors.address}
+                      autoComplete="street-address"
                       className={!editableFields.includes('address') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                     />
                   </div>
@@ -634,6 +638,7 @@ export default function StudentRegisterPage() {
                     icon={Hash} 
                     required={editableFields.includes('pincode')}
                     error={errors.pincode}
+                    autoComplete="postal-code"
                     className={!editableFields.includes('pincode') ? "opacity-50 blur-[0.5px] cursor-not-allowed" : "border-blue-500/30"} 
                   />
                 </>
@@ -644,7 +649,7 @@ export default function StudentRegisterPage() {
                       <ShieldCheck size={18} className="flex-shrink-0" />
                       <p>Details verified. Standard profile data is locked. Create a strong password (8+ chars) to activate your account.</p>
                     </div>
-                    <Input label="Create Your Password" name="password" icon={Lock} placeholder="••••••••" value={formData.password} onChange={handleInputChange} type="password" required error={errors.password} />
+                    <Input label="Create Your Password" name="password" icon={Lock} placeholder="••••••••" value={formData.password} onChange={handleInputChange} type="password" required error={errors.password} autoComplete="new-password" />
                   </div>
                 </>
               )}
