@@ -2130,49 +2130,41 @@ export default function StudentDashboard() {
       <AnimatePresence>
         {isAlarmActive && (
           <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }} 
-            className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-red-950/20 backdrop-blur-xl"
+            initial={{ opacity: 0, y: -100 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -100 }} 
+            className="fixed top-6 left-4 right-4 z-[1000] flex justify-center"
           >
-            {/* Pulsing Red Background for Urgency */}
             <motion.div 
-              animate={{ opacity: [0.1, 0.4, 0.1] }}
-              transition={{ duration: 1, repeat: Infinity }}
-              className="absolute inset-0 bg-red-600 pointer-events-none" 
-            />
-
-            <motion.div 
-              initial={{ scale: 0.8, y: 40 }} 
-              animate={{ scale: 1, y: 0 }} 
-              exit={{ scale: 0.8, y: 40 }} 
-              className="w-full max-w-sm bg-zinc-900 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(220,38,38,0.4)] flex flex-col items-center gap-8 border border-white/10 relative overflow-hidden z-10"
+              className="w-full max-w-sm bg-zinc-900/90 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.5)] flex items-center gap-4 relative overflow-hidden ring-1 ring-white/20 active:scale-[0.98] transition-all"
             >
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-red-600 animate-pulse" />
-
-              <div className="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center text-white relative">
-                <div className="absolute inset-0 bg-red-600 rounded-full animate-ping opacity-25" />
-                <Timer size={48} className="animate-bounce" />
+              <div className="w-12 h-12 bg-red-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-red-600/20">
+                <Timer size={24} className="animate-bounce" />
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em]">Live Protocol</span>
+                  <span className="text-[9px] font-bold text-zinc-500 uppercase">Just Now</span>
+                </div>
+                <h3 className="text-sm font-black text-white truncate">Session Terminated</h3>
+                <p className="text-[11px] text-zinc-400 font-medium truncate">Timer goal reached. Awaiting deactivation.</p>
               </div>
 
-              <div className="text-center space-y-3">
-                <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">Time Up!</h3>
-                <p className="text-[12px] text-red-500 font-black uppercase tracking-[0.3em] animate-pulse">Critical Alert Active</p>
+              <div className="flex gap-2 shrink-0">
+                <button 
+                  onClick={stopAlarm} 
+                  className="w-10 h-10 bg-white/5 text-zinc-400 rounded-xl flex items-center justify-center hover:bg-white/10 hover:text-white transition-all border border-white/5"
+                >
+                  <X size={18} />
+                </button>
+                <button 
+                  onClick={stopAlarm} 
+                  className="px-4 bg-red-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-lg shadow-red-600/20 active:scale-95 transition-all flex items-center justify-center"
+                >
+                  Stop
+                </button>
               </div>
-
-              <div className="w-full h-[1px] bg-white/5" />
-
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-center px-4">
-                The session protocol has been completed. Manual deactivation required.
-              </p>
-
-              <button 
-                onClick={stopAlarm} 
-                className="w-full py-6 bg-red-600 text-white font-black text-xs uppercase tracking-[0.4em] rounded-2xl shadow-2xl shadow-red-600/20 hover:bg-red-500 active:scale-95 transition-all flex items-center justify-center gap-3 group"
-              >
-                <Power size={18} className="group-hover:rotate-90 transition-transform duration-500" />
-                Stop Alarm
-              </button>
             </motion.div>
           </motion.div>
         )}
