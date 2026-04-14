@@ -291,9 +291,10 @@ const studentDashboardSlice = createSlice({
     leaderboard: [],
     studyLogs: [],
     tasks: [],
-    historyTasks: [],
     weeklyRoutine: [],
     subjectAnalytics: [],
+    historyTasks: [],
+    historyTasksLoading: false,
     qrToken: null,
     loading: false,
     error: null,
@@ -387,13 +388,13 @@ const studentDashboardSlice = createSlice({
       })
       
       // History Tasks
-      .addCase(fetchHistoryTasks.pending, (state) => { state.loading = true; })
+      .addCase(fetchHistoryTasks.pending, (state) => { state.historyTasksLoading = true; })
       .addCase(fetchHistoryTasks.fulfilled, (state, action) => {
-        state.loading = false;
+        state.historyTasksLoading = false;
         state.historyTasks = action.payload;
       })
       .addCase(fetchHistoryTasks.rejected, (state, action) => {
-        state.loading = false;
+        state.historyTasksLoading = false;
         state.error = action.payload;
       })
 

@@ -22,6 +22,7 @@ import {
   Settings,
   LayoutGrid,
   ChevronRight,
+  ChevronLeft,
   Play,
   Pause,
   RotateCcw,
@@ -85,7 +86,9 @@ import {
   XAxis,
   YAxis,
   Tooltip as ReTooltip,
-  CartesianGrid
+  CartesianGrid,
+  AreaChart,
+  Area
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -105,7 +108,8 @@ export default function StudentDashboard() {
     weeklyRoutine,
     subjectAnalytics,
     loading,
-    actionLoading
+    actionLoading,
+    historyTasksLoading
   } = useSelector((state) => state.studentDashboard);
   const { status: feeStatus } = useSelector((state) => state.fees);
 
@@ -142,6 +146,15 @@ export default function StudentDashboard() {
   const [tempGoal, setTempGoal] = React.useState(8);
   const [isCustomPomodoro, setIsCustomPomodoro] = React.useState(false);
   const [customPomodoroMins, setCustomPomodoroMins] = React.useState('25');
+
+  const formatStudyTime = (hours) => {
+    const totalMinutes = Math.round(hours * 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    if (h === 0) return `${m}m`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}m`;
+  };
 
   // Sync Profile Form Data when metrics are loaded
   useEffect(() => {
@@ -196,7 +209,10 @@ export default function StudentDashboard() {
   const [newRoutineSubject, setNewRoutineSubject] = React.useState('');
   const [newRoutineHrs, setNewRoutineHrs] = React.useState('');
   const [newRoutineMin, setNewRoutineMin] = React.useState('');
-  const [selectedHistoryDate, setSelectedHistoryDate] = React.useState(null);
+  const [selectedHistoryDate, setSelectedHistoryDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [analyticsRange, setAnalyticsRange] = React.useState('7D'); // '7D', '30D', '90D', '1Y'
+  const [heatmapIntensity, setHeatmapIntensity] = React.useState({});
+  const [selectedStatsDate, setSelectedStatsDate] = React.useState(new Date());
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -461,8 +477,13 @@ export default function StudentDashboard() {
 
   const handleSelectHistoryDate = (date) => {
     setSelectedHistoryDate(date);
-    dispatch(fetchHistoryTasks(date));
   };
+
+  useEffect(() => {
+    if (selectedHistoryDate) {
+      dispatch(fetchHistoryTasks(selectedHistoryDate));
+    }
+  }, [selectedHistoryDate, dispatch]);
 
   const handleAddScheduleItem = async (e) => {
     e.preventDefault();
@@ -563,14 +584,217 @@ export default function StudentDashboard() {
     }
   }, [todayStatus]);
 
-  const handleUpdateGoal = async () => {
-    try {
-      await dispatch(updateDailyGoal(tempGoal)).unwrap();
-      setActiveModal(null);
-      toast.success("Goal updated.");
-    } catch (err) {
-      toast.error("Failed to update goal");
+  // --- ANALYTICS PROCESSING LOGIC ---
+  const getAggregatedAnalytics = () => {
+    if (!history || history.length === 0) return [];
+    
+    const data = [];
+    const baseDate = new Date(selectedStatsDate);
+    
+    if (analyticsRange === '7D') {
+      // Calendar Week: Sunday to Saturday
+      const dayOfWeek = baseDate.getDay();
+      const sun = new Date(baseDate);
+      sun.setDate(baseDate.getDate() - dayOfWeek);
+      sun.setHours(0,0,0,0);
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(sun);
+        d.setDate(sun.getDate() + i);
+        const dateStr = d.toISOString().split('T')[0];
+        const record = history.find(r => r.date.split('T')[0] === dateStr);
+        data.push({
+          date: dateStr,
+          label: d.toLocaleDateString(undefined, { weekday: 'short' }),
+          hours: record ? (record.studyHours || 0) : 0,
+          fullDate: d.toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' })
+        });
+      }
+    } else if (analyticsRange === '30D') {
+      // Calendar Month: 1st to End
+      const month = baseDate.getMonth();
+      const year = baseDate.getFullYear();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 1; i <= daysInMonth; i++) {
+        const d = new Date(year, month, i);
+        const dateStr = d.toISOString().split('T')[0];
+        const record = history.find(r => r.date.split('T')[0] === dateStr);
+        data.push({
+          date: dateStr,
+          label: i.toString(),
+          hours: record ? (record.studyHours || 0) : 0,
+          fullDate: d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
+        });
+      }
+    } else if (analyticsRange === '90D') {
+      // Last 3 Calendar Months
+      for (let m = 2; m >= 0; m--) {
+        const d = new Date(baseDate.getFullYear(), baseDate.getMonth() - m, 1);
+        const monthName = d.toLocaleDateString(undefined, { month: 'short' });
+        
+        // Sum total hours for this month
+        const recordsInMonth = history.filter(r => {
+          const rd = new Date(r.date);
+          return rd.getMonth() === d.getMonth() && rd.getFullYear() === d.getFullYear();
+        });
+        const total = recordsInMonth.reduce((acc, curr) => acc + (curr.studyHours || 0), 0);
+        
+        data.push({
+          date: d.toISOString(),
+          label: monthName,
+          hours: total,
+          fullDate: d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+        });
+      }
+    } else if (analyticsRange === '1Y') {
+      // Calendar Year: Jan to Dec
+      const year = baseDate.getFullYear();
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(year, i, 1);
+        const monthLabel = d.toLocaleDateString(undefined, { month: 'short' });
+        const recordsInMonth = history.filter(r => {
+          const rd = new Date(r.date);
+          return rd.getMonth() === i && rd.getFullYear() === year;
+        });
+        const total = recordsInMonth.reduce((acc, curr) => acc + (curr.studyHours || 0), 0);
+        data.push({
+          date: d.toISOString(),
+          label: monthLabel,
+          hours: total,
+          fullDate: d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+        });
+      }
     }
+    return data;
+  };
+
+  useEffect(() => {
+    if (history && history.length > 0) {
+      const intensityMap = {};
+      history.forEach(record => {
+        const dateKey = record.date.split('T')[0];
+        intensityMap[dateKey] = record.studyHours || 0;
+      });
+      setHeatmapIntensity(intensityMap);
+    }
+  }, [history]);
+
+  const renderConsistencyHeatmap = () => {
+    const viewDate = new Date(selectedStatsDate);
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    
+    const firstDay = new Date(year, month, 1).getDay(); // 0 (Sun) to 6 (Sat)
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    const monthLabel = viewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+    const changeMonth = (delta) => {
+      const d = new Date(selectedStatsDate);
+      d.setMonth(d.getMonth() + delta);
+      setSelectedStatsDate(d);
+    };
+
+    const days = [];
+    // Padding for First Week
+    for (let i = 0; i < firstDay; i++) days.push(null);
+    // Month Days
+    for (let i = 1; i <= daysInMonth; i++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        const hours = heatmapIntensity[dateStr] || 0;
+        let level = 0;
+        if (hours > 0) level = 1;
+        if (hours > 3) level = 2;
+        if (hours > 6) level = 3;
+        if (hours > 9) level = 4;
+        days.push({ date: dateStr, level, hours, day: i });
+    }
+
+    return (
+      <div className="flex flex-col gap-6 mt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2">
+          <div className="flex items-center gap-3">
+             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                <Calendar size={16} />
+             </div>
+             <div>
+                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-0.5">Focus Rhythm</p>
+                <h4 className="text-sm font-black text-white uppercase tracking-tight italic">{monthLabel}</h4>
+             </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+             <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl">
+               <button onClick={() => changeMonth(-1)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition-all"><ChevronLeft size={16} /></button>
+               <button onClick={() => setSelectedStatsDate(new Date())} className="px-3 text-[9px] font-black uppercase text-blue-500">Today</button>
+               <button onClick={() => changeMonth(1)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition-all"><ChevronRight size={16} /></button>
+             </div>
+
+             <div className="hidden sm:flex items-center gap-1.5 ml-2 border-l border-white/10 pl-4">
+               {[0, 1, 2, 3, 4].map(l => (
+                 <div key={l} className={cn(
+                   "w-3 h-3 rounded-sm",
+                   l === 0 ? "bg-white/[0.03] border border-white/5" : 
+                   l === 1 ? "bg-emerald-500/20" : 
+                   l === 2 ? "bg-emerald-500/40" : 
+                   l === 3 ? "bg-emerald-500/70" : "bg-emerald-500"
+                 )} />
+               ))}
+             </div>
+          </div>
+        </div>
+        
+        <div className="bg-black/20 rounded-[2rem] p-4 sm:p-6 border border-white/5">
+          <div className="grid grid-cols-7 gap-2 sm:gap-3 mb-4">
+            {['S','M','T','W','T','F','S'].map(d => (
+              <div key={d} className="text-center text-[9px] font-black text-zinc-600 uppercase tracking-widest">{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-2 sm:gap-3">
+            {days.map((day, idx) => (
+              day ? (
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  key={idx}
+                  title={`${day.date}: ${day.hours.toFixed(1)}h`}
+                  className={cn(
+                    "aspect-square rounded-lg transition-all cursor-help flex items-center justify-center relative group",
+                    day.level === 0 ? "bg-white/[0.03] border border-white/5" : 
+                    day.level === 1 ? "bg-emerald-500/20" : 
+                    day.level === 2 ? "bg-emerald-500/40" : 
+                    day.level === 3 ? "bg-emerald-500/70 shadow-[0_4px_10px_rgba(16,185,129,0.1)]" : "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                  )}
+                >
+                  <span className={cn(
+                    "text-[10px] sm:text-xs font-black italic opacity-0 group-hover:opacity-100 transition-opacity",
+                    day.level > 2 ? "text-white" : "text-gray-500"
+                  )}>{day.day}</span>
+                  {day.level > 0 && (
+                    <div className="absolute top-1 right-1 w-1 h-1 rounded-full bg-white/20" />
+                  )}
+                </motion.div>
+              ) : (
+                <div key={idx} className="aspect-square" />
+              )
+            ))}
+          </div>
+        </div>
+        
+        <div className="sm:hidden flex items-center justify-end gap-1.5 px-2">
+           <span className="text-[8px] text-zinc-600 font-bold uppercase tracking-widest mr-2">Intensity Score</span>
+           {[0, 1, 2, 3, 4].map(l => (
+             <div key={l} className={cn(
+               "w-3 h-3 rounded-sm",
+               l === 0 ? "bg-white/[0.03] border border-white/5" : 
+               l === 1 ? "bg-emerald-500/20" : 
+               l === 2 ? "bg-emerald-500/40" : 
+               l === 3 ? "bg-emerald-500/70" : "bg-emerald-500"
+             )} />
+           ))}
+        </div>
+      </div>
+    );
   };
 
   const handleProfileChange = (e) => {
@@ -1673,7 +1897,7 @@ export default function StudentDashboard() {
           <div className="glass-card p-8 rounded-[3rem] bg-gradient-to-br from-blue-600/5 to-transparent border border-white/5 relative overflow-hidden shadow-2xl">
             <div className="flex flex-col items-center">
               <div className="w-48 h-48 relative mb-8">
-                <ResponsiveContainer width="99%" aspect={1} minHeight={150} debounce={100}>
+                <ResponsiveContainer width="100%" height="100%" debounce={50}>
                   <PieChart>
                     <Pie
                       data={[
@@ -1707,7 +1931,7 @@ export default function StudentDashboard() {
                 <div className="flex items-center justify-between p-5 rounded-3xl bg-white/[0.03] border border-white/5">
                   <div>
                     <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Actual</span>
-                    <span className="text-2xl font-black text-blue-500 tracking-tighter">{todayStatus?.studyHours?.toFixed(1) || 0}H</span>
+                    <span className="text-2xl font-black text-blue-500 tracking-tighter">{formatStudyTime(todayStatus?.studyHours || 0)}</span>
                   </div>
                   <div className="w-12 h-12 rounded-2xl bg-orange-600/10 flex items-center justify-center text-orange-500">
                     <Clock size={24} />
@@ -1951,116 +2175,273 @@ export default function StudentDashboard() {
     </motion.div>
   );
   const renderHistory = () => {
-    const selectedRecord = selectedHistoryDate ? history.find(h => h.date?.split('T')[0] === selectedHistoryDate?.split('T')[0]) : null;
+    const analyticsData = getAggregatedAnalytics();
+    const totalHours = analyticsData.reduce((acc, curr) => acc + curr.hours, 0);
+    const avgHours = analyticsData.length > 0 ? (totalHours / analyticsData.length).toFixed(1) : '0';
+    
+    // Period Label for Chart
+    let periodLabel = '';
+    if (analyticsRange === '7D') periodLabel = 'Current Week';
+    if (analyticsRange === '30D') periodLabel = 'Calendar Month';
+    if (analyticsRange === '90D') periodLabel = 'Quarterly Overview';
+    if (analyticsRange === '1Y') periodLabel = `Annual Performance (${selectedStatsDate.getFullYear()})`;
 
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-8 pb-32 max-w-4xl mx-auto">
-        <div className="mb-12">
-          <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">Study <span className="text-zinc-600">History</span></h2>
-          <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em] mt-2">Your Past Sessions</p>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.98 }} 
+        animate={{ opacity: 1, scale: 1 }} 
+        exit={{ opacity: 0, scale: 0.98 }} 
+        className="space-y-6 sm:space-y-10 pb-32 max-w-5xl mx-auto"
+      >
+        {/* Intelligence Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 px-1">
+          <div className="space-y-1">
+            <h2 className="text-3xl sm:text-4xl font-black text-white italic tracking-tighter uppercase leading-none">
+               Intelligence <span className="text-blue-500">Vault</span>
+            </h2>
+            <div className="flex items-center gap-2 mt-2">
+               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+               <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] italic">Audit Session: {selectedStatsDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
+            </div>
+          </div>
+          
+          <div className="flex gap-1 bg-white/5 border border-white/5 p-1 rounded-2xl self-start sm:self-auto">
+            {['7D', '30D', '90D', '1Y'].map(range => (
+              <button 
+                key={range}
+                onClick={() => setAnalyticsRange(range)}
+                className={cn(
+                  "px-3 sm:px-4 py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all",
+                  analyticsRange === range ? "bg-blue-600 text-white shadow-lg" : "text-gray-500 hover:text-white"
+                )}
+              >
+                {range}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Sidebar: Calendar & Recent Sessions */}
-          <div className="md:col-span-1 space-y-8">
-            <div className="space-y-4 mb-6 px-2">
-              <div className="relative group">
-                <input
-                  type="date"
-                  value={selectedHistoryDate ? selectedHistoryDate.split('T')[0] : ''}
-                  onChange={(e) => handleSelectHistoryDate(e.target.value)}
-                  className="w-full h-full absolute inset-0 opacity-0 z-20 cursor-pointer"
-                />
-                <div className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-4 flex items-center justify-between text-[10px] font-black uppercase text-white group-hover:border-emerald-500/50 transition-all">
-                  <span className={selectedHistoryDate ? 'text-white font-bold text-sm' : 'text-sm text-gray-500 font-bold'}>
-                    {selectedHistoryDate
-                      ? new Date(selectedHistoryDate).toLocaleDateString('en-GB').replace(/\//g, '-')
-                      : 'DD-MM-YYYY'}
-                  </span>
-                  <Calendar size={14} className="text-emerald-500" />
-                </div>
-              </div>
+        {/* Intelligence Grid - Mobile optimized 2x2 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 px-1">
+          {[
+            { label: 'Volume', value: `${totalHours.toFixed(1)}H`, sub: 'Total Effort', color: 'indigo' },
+            { label: 'Velocity', value: `${avgHours}H`, sub: 'Daily Avg', color: 'blue' },
+            { label: 'Peak', value: `${([...analyticsData].sort((a,b)=>b.hours-a.hours)[0]?.hours || 0).toFixed(1)}H`, sub: 'Max Node', color: 'emerald' },
+            { label: 'Streak', value: `${metrics?.currentStreak || 0}D`, sub: 'Live Chain', color: 'orange' }
+          ].map((card, i) => (
+            <div key={i} className={cn(
+              "p-4 sm:p-5 rounded-[2rem] border transition-all hover:scale-[1.02]",
+              card.color === 'indigo' ? "bg-indigo-500/5 border-indigo-500/10" :
+              card.color === 'blue' ? "bg-blue-500/5 border-blue-500/10" :
+              card.color === 'emerald' ? "bg-emerald-500/5 border-emerald-500/10" :
+              "bg-orange-500/5 border-orange-500/10"
+            )}>
+              <span className={cn("text-[9px] font-black uppercase tracking-widest block mb-2 opacity-60", `text-${card.color}-400`)}>{card.label}</span>
+              <span className="text-xl sm:text-2xl font-black text-white italic tracking-tighter">{card.value}</span>
+              <span className="text-[8px] sm:text-[9px] font-bold text-gray-500 uppercase block mt-1">{card.sub}</span>
             </div>
+          ))}
+        </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 px-2">
-                <Calendar size={18} className="text-emerald-500" />
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Recent</span>
+        {/* Consistency Calendar - Now month-wise */}
+        <div className="glass-card rounded-[2.5rem] sm:rounded-[3rem] p-4 sm:p-8 bg-zinc-900/40 border border-white/5 shadow-2xl overflow-hidden">
+          {renderConsistencyHeatmap()}
+        </div>
+
+        {/* Velocity Graph - Calendar Aligned */}
+        <div className="glass-card rounded-[2.5rem] sm:rounded-[3rem] p-4 sm:p-8 bg-zinc-900/40 border border-white/5 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-5">
+             <TrendingUp size={120} />
+          </div>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+               <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400"><TrendingUp size={20} /></div>
+               <div>
+                  <h3 className="text-sm sm:text-lg font-black text-white uppercase tracking-tight italic">Velocity Trend</h3>
+                  <p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest">{periodLabel}</p>
+               </div>
+            </div>
+          </div>
+          
+          <div className="h-[220px] sm:h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={analyticsData} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" vertical={false} />
+                <XAxis 
+                  dataKey="label" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#4B5563', fontSize: 8, fontWeight: '900' }} 
+                  interval={analyticsRange === '30D' ? 2 : 0}
+                />
+                <YAxis hide domain={[0, 'auto']} />
+                <ReTooltip 
+                  cursor={{ stroke: '#3B82F6', strokeWidth: 2, strokeDasharray: '5 5' }}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-[#0c0c0e] border border-white/10 p-2 sm:p-3 rounded-2xl shadow-2xl">
+                          <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">{payload[0].payload.fullDate}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg sm:text-xl font-black text-white italic tracking-tighter">{formatStudyTime(payload[0].value)}</span>
+                            <span className="text-[8px] font-black text-blue-500 uppercase">Focus</span>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Area type="monotone" dataKey="hours" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorHours)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Subject Breakdown */}
+        <div className="space-y-6 px-1">
+          <h3 className="text-xl font-black text-white italic tracking-tighter uppercase mb-6 flex items-center gap-3">
+             <div className="w-1.5 h-6 bg-indigo-500 rounded-full" />
+             Subject <span className="text-indigo-500">Breakdown</span>
+          </h3>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {subjectAnalytics.length > 0 ? subjectAnalytics.map((item, idx) => (
+              <motion.div 
+                whileHover={{ y: -5 }}
+                key={item.subject} 
+                className="p-5 rounded-[2rem] bg-white/[0.02] border border-white/5 hover:border-indigo-500/30 transition-all group"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
+                    <LayoutGrid size={18} />
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[12px] font-black text-white italic">{formatStudyTime(item.hours)}</span>
+                    <p className="text-[8px] font-black text-gray-500 uppercase tracking-tighter mt-0.5">Logged</p>
+                  </div>
+                </div>
+                <h4 className="text-base font-black text-white italic leading-tight mb-3 truncate">{item.subject}</h4>
+                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, (item.hours / Math.max(1, totalHours)) * 100)}%` }}
+                    className="h-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" 
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-2.5 text-[8px] font-black text-gray-500 uppercase tracking-widest">
+                  <span>Intensity</span>
+                  <span>{((item.hours / Math.max(1, totalHours)) * 100).toFixed(1)}%</span>
+                </div>
+              </motion.div>
+            )) : (
+              <div className="col-span-full py-16 text-center opacity-20 bg-white/[0.01] rounded-[3rem] border border-dashed border-white/10">
+                <Activity size={32} className="mx-auto mb-3" />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em]">Matrix Offline - Select node to sync</p>
               </div>
-              <div className="space-y-2 overflow-y-auto pr-2 custom-scrollbar">
-                {history.map((record) => (
-                  <button key={record.id} onClick={() => handleSelectHistoryDate(record.date)} className={`w-full py-4 px-6 rounded-[2rem] border transition-all text-left flex flex-col gap-1 ${selectedHistoryDate === record.date ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : 'bg-white/5 border-white/5 text-gray-400 hover:border-emerald-500/30'}`}>
-                    <span className="text-sm font-black italic">{new Date(record.date).toLocaleDateString()}</span>
-                    <span className="text-[12px] font-black uppercase tracking-widest opacity-60">{formatHistoryTime(record.studyHours)} Total</span>
-                  </button>
-                ))}
-              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Node Explorer (Daily View) */}
+        <div className="space-y-6 pt-6">
+          <div className="flex items-center justify-between px-2">
+            <h3 className="text-xl font-black text-white italic tracking-tighter uppercase leading-tight flex items-center gap-3">
+               <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
+               Node <span className="text-emerald-500">Explorer</span>
+            </h3>
+            <div className="relative">
+              <input
+                type="date"
+                value={selectedHistoryDate ? selectedHistoryDate.split('T')[0] : ''}
+                onChange={(e) => handleSelectHistoryDate(e.target.value)}
+                className="bg-zinc-800 border-none rounded-xl px-3 py-1.5 text-[9px] font-black text-white uppercase outline-none focus:ring-1 ring-emerald-500"
+              />
             </div>
           </div>
 
-          {/* Main Content: Session Details */}
-          <div className="md:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 px-1">
             {selectedHistoryDate ? (
-              <div className="glass-card p-8 rounded-[3rem] border border-white/5 bg-white/[0.02] min-h-[400px]">
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <h3 className="text-2xl font-black text-white italic truncate">{new Date(selectedHistoryDate).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
-                    <p className="text-[10px] text-emerald-500 font-black uppercase tracking-widest mt-1">Session Detail</p>
+              <>
+                <div className="p-8 rounded-[3rem] bg-emerald-500/5 border border-emerald-500/10 relative overflow-hidden flex flex-col justify-center">
+                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 blur-[80px] rounded-full" />
+                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest block mb-4">Input Synchronized</span>
+                  <div className="flex items-baseline gap-2 mb-6">
+                    <span className="text-5xl font-black text-white italic tracking-tighter">
+                      {formatStudyTime(history.find(h => h.date?.split('T')[0] === selectedHistoryDate?.split('T')[0])?.studyHours || 0)}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <p className="text-[9px] font-bold text-gray-500 uppercase flex items-center gap-2">
+                      <div className="w-1 h-1 rounded-full bg-emerald-500" /> 
+                      Session Verified and Audited
+                    </p>
+                    <p className="text-[9px] font-bold text-gray-500 uppercase flex items-center gap-2">
+                      <div className="w-1 h-1 rounded-full bg-emerald-500" /> 
+                      Database persistence locked
+                    </p>
                   </div>
                 </div>
 
-                <div className="space-y-8">
-                  <div className="flex items-center gap-3 opacity-40">
-                    <div className="h-[1px] flex-1 bg-white" />
-                    <span className="text-[8px] font-black uppercase tracking-[0.3em]">Summary</span>
-                    <div className="h-[1px] flex-1 bg-white" />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6">
-                    <div className="p-6 rounded-[2.5rem] bg-emerald-500/10 border border-emerald-500/20">
-                      <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest block mb-2">Total Time</span>
-                      <span className="text-4xl font-black text-white italic tracking-tighter">
-                        {formatHistoryTime(selectedRecord?.studyHours)}
-                      </span>
+                <div className="p-6 sm:p-8 rounded-[3rem] bg-zinc-900 border border-white/5 space-y-6">
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <CheckSquare size={14} className="text-blue-500" /> Session Tasks
                     </div>
-
-                    <div className="p-8 rounded-[3rem] bg-indigo-500/5 border border-white/5">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><PenLine size={16} /></div>
-                        <h4 className="text-sm font-black text-white uppercase tracking-tight">Tasks</h4>
+                    {historyTasksLoading && (
+                      <div className="flex items-center gap-2 text-emerald-500/50">
+                        <Loader2 size={10} className="animate-spin" />
+                        <span className="text-[8px] animate-pulse">Syncing Node...</span>
                       </div>
+                    )}
+                  </h4>
+                  <div className="space-y-2">
+                    {historyTasks.length > 0 ? historyTasks.map(task => {
+                      const durationStr = task.estimatedMinutes ? `${task.estimatedMinutes}m` : 'No Limit';
+                      const timeStr = task.completedAt 
+                        ? new Date(task.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+                        : new Date(task.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
-                      <div className="space-y-3">
-                        {historyTasks.length === 0 ? (
-                          <p className="text-[10px] text-gray-400 font-bold italic text-center py-4 uppercase tracking-widest opacity-40">No entries</p>
-                        ) : (
-                          historyTasks.map(task => (
-                            <div key={task.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/5 transition-colors hover:bg-white/[0.05]">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-2 h-2 rounded-full ${task.isCompleted ? 'bg-emerald-500' : 'bg-white/20'}`} />
-                                <span className={`text-sm font-bold ${task.isCompleted ? 'text-white' : 'text-gray-500'}`}>{task.title}</span>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                {task.estimatedMinutes && <span className="text-[13px] text-gray-600 font-bold uppercase">{formatDuration(task.estimatedMinutes)}</span>}
-                                <span className={`text-[13px] font-black px-2 py-1 rounded-lg uppercase ${task.isCompleted ? 'bg-emerald-500/10 text-emerald-500' : 'bg-white/5 text-gray-600'}`}>
-                                  {task.isCompleted ? 'Done' : 'Pending'}
-                                </span>
-                              </div>
+                      return (
+                        <div key={task.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5 group hover:bg-white/[0.04] transition-all">
+                          <div className="flex flex-col truncate pr-4">
+                            <span className={`text-[12px] font-black italic truncate ${task.isCompleted ? 'text-white' : 'text-zinc-600'}`}>{task.title}</span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[8px] font-bold text-blue-500 uppercase tracking-widest">{durationStr} node</span>
+                              <span className="text-[7px] font-bold text-gray-600 uppercase tracking-widest">• {timeStr}</span>
                             </div>
-                          ))
-                        )}
+                          </div>
+                          <span className={cn(
+                            "text-[9px] font-black px-2 py-0.5 rounded-lg uppercase shrink-0 transition-all",
+                            task.isCompleted ? "bg-emerald-500/10 text-emerald-500" : "bg-white/5 text-zinc-700"
+                          )}>{task.isCompleted ? 'OK' : 'MISS'}</span>
+                        </div>
+                      );
+                    }) : !historyTasksLoading ? (
+                      <p className="text-[9px] text-zinc-700 font-bold italic py-8 text-center uppercase tracking-widest opacity-40">No entries for this temporal node</p>
+                    ) : (
+                      <div className="space-y-2 py-4">
+                        {[1, 2].map(i => (
+                          <div key={i} className="h-14 rounded-2xl bg-white/5 animate-pulse border border-white/5" />
+                        ))}
                       </div>
-                      <div className="space-y-4 pt-4 border-t border-white/5">
-                        <p className="text-[10px] text-gray-500 font-bold text-center mt-4 italic">"Study records are verified and finalized."</p>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
-              </div>
+              </>
             ) : (
-              <div className="flex flex-col items-center justify-center p-20 glass-card rounded-[3rem] border border-dashed border-white/10 opacity-30 h-full">
-                <History size={48} className="mb-4" />
-                <p className="text-xs font-black uppercase tracking-widest text-center">Select a date to view session details</p>
+              <div className="col-span-full py-16 bg-white/[0.01] rounded-[3rem] border border-dashed border-white/5 flex flex-col items-center justify-center gap-4 text-zinc-800">
+                <div className="w-16 h-16 rounded-full border-2 border-dashed border-zinc-800 flex items-center justify-center">
+                  <History size={32} />
+                </div>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em]">Select a node to browse session history</p>
               </div>
             )}
           </div>
