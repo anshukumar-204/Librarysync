@@ -189,6 +189,8 @@ export default function StudentDashboard() {
   const [isAlarmActive, setIsAlarmActive] = React.useState(false);
   const vibrationInterval = React.useRef(null);
   const pomodoroTargetTime = React.useRef(null);
+  const audioCtx = React.useRef(null);
+  const audioOsc = React.useRef(null);
 
   const [routineDay, setRoutineDay] = React.useState(new Date().getDay());
   const [newRoutineSubject, setNewRoutineSubject] = React.useState('');
@@ -305,25 +307,72 @@ export default function StudentDashboard() {
     setIsAlarmActive(true);
     toast.error(`TERMINAL ALERT: ${source} Completed!`, { duration: 6000 });
 
-    // Recursive vibration for persistence
+    // 1. START AUDIO ALARM (Synthetic)
+    try {
+      if (!audioCtx.current) {
+        audioCtx.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      
+      if (audioCtx.current.state === 'suspended') {
+        audioCtx.current.resume();
+      }
+
+      const osc = audioCtx.current.createOscillator();
+      const gain = audioCtx.current.createGain();
+      
+      osc.type = 'square'; // Aggressive square wave
+      osc.frequency.setValueAtTime(880, audioCtx.current.currentTime); // A5 note
+      
+      // Pulsing volume effect
+      gain.gain.setValueAtTime(0, audioCtx.current.currentTime);
+      gain.gain.setTargetAtTime(0.5, audioCtx.current.currentTime, 0.1);
+      
+      // Create a beep-beep-beep effect
+      const interval = 0.5;
+      for (let i = 0; i < 100; i++) {
+        gain.gain.setValueAtTime(0.5, audioCtx.current.currentTime + (i * interval));
+        gain.gain.setValueAtTime(0, audioCtx.current.currentTime + (i * interval) + 0.25);
+      }
+
+      osc.connect(gain);
+      gain.connect(audioCtx.current.destination);
+      osc.start();
+      audioOsc.current = osc;
+    } catch (err) {
+      console.error("Audio failed:", err);
+    }
+
+    // 2. RECURSIVE VIBRATION (Hardware Alert)
     const startVibration = () => {
       if (navigator.vibrate) {
-        navigator.vibrate([500, 200, 500, 200, 500]);
+        // Aggressive pattern: Vibrate 800ms, pause 200ms, repeat
+        navigator.vibrate([800, 200, 800, 200, 800]);
       }
     };
 
     startVibration();
-    vibrationInterval.current = setInterval(startVibration, 2000);
+    vibrationInterval.current = setInterval(startVibration, 2500);
   };
 
   const stopAlarm = () => {
     setIsAlarmActive(false);
+    
+    // Stop Audio
+    if (audioOsc.current) {
+      try {
+        audioOsc.current.stop();
+        audioOsc.current.disconnect();
+        audioOsc.current = null;
+      } catch (err) { }
+    }
+
+    // Stop Vibration
     if (vibrationInterval.current) {
       clearInterval(vibrationInterval.current);
       vibrationInterval.current = null;
     }
     if (navigator.vibrate) {
-      navigator.vibrate(0); // Stop vibration
+      navigator.vibrate(0);
     }
     toast.success("Schedule updated.");
   };
@@ -2080,24 +2129,49 @@ export default function StudentDashboard() {
       {/* Alarm Notification Overlay */}
       <AnimatePresence>
         {isAlarmActive && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-[#0B0D17]/80 backdrop-blur-md">
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="w-full max-w-sm bg-red-600 rounded-[2.5rem] p-8 shadow-[0_0_80px_rgba(239,68,68,0.5)] flex flex-col items-center gap-6 border border-red-500/50 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-white/20 animate-pulse" />
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-red-950/20 backdrop-blur-xl"
+          >
+            {/* Pulsing Red Background for Urgency */}
+            <motion.div 
+              animate={{ opacity: [0.1, 0.4, 0.1] }}
+              transition={{ duration: 1, repeat: Infinity }}
+              className="absolute inset-0 bg-red-600 pointer-events-none" 
+            />
 
-              <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center text-white relative">
-                <div className="absolute inset-0 bg-white/5 rounded-full animate-ping" />
-                <Timer size={40} className="animate-bounce" />
+            <motion.div 
+              initial={{ scale: 0.8, y: 40 }} 
+              animate={{ scale: 1, y: 0 }} 
+              exit={{ scale: 0.8, y: 40 }} 
+              className="w-full max-w-sm bg-zinc-900 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(220,38,38,0.4)] flex flex-col items-center gap-8 border border-white/10 relative overflow-hidden z-10"
+            >
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-red-600 animate-pulse" />
+
+              <div className="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center text-white relative">
+                <div className="absolute inset-0 bg-red-600 rounded-full animate-ping opacity-25" />
+                <Timer size={48} className="animate-bounce" />
               </div>
 
-              <div className="text-center space-y-2">
-                <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none">Goal Reached</h3>
-                <p className="text-[11px] text-white/70 font-black uppercase tracking-[0.2em]">Study Session Completed</p>
+              <div className="text-center space-y-3">
+                <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">Time Up!</h3>
+                <p className="text-[12px] text-red-500 font-black uppercase tracking-[0.3em] animate-pulse">Critical Alert Active</p>
               </div>
 
-              <div className="w-full h-[1px] bg-white/10" />
+              <div className="w-full h-[1px] bg-white/5" />
 
-              <button onClick={stopAlarm} className="w-full py-5 bg-white text-red-600 font-black text-sm uppercase tracking-[0.3em] rounded-2xl shadow-2xl active:scale-95 transition-all hover:bg-gray-100">
-                Deactivate Alert
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-center px-4">
+                The session protocol has been completed. Manual deactivation required.
+              </p>
+
+              <button 
+                onClick={stopAlarm} 
+                className="w-full py-6 bg-red-600 text-white font-black text-xs uppercase tracking-[0.4em] rounded-2xl shadow-2xl shadow-red-600/20 hover:bg-red-500 active:scale-95 transition-all flex items-center justify-center gap-3 group"
+              >
+                <Power size={18} className="group-hover:rotate-90 transition-transform duration-500" />
+                Stop Alarm
               </button>
             </motion.div>
           </motion.div>
