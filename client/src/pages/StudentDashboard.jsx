@@ -584,6 +584,17 @@ export default function StudentDashboard() {
     }
   }, [todayStatus]);
 
+  const handleUpdateGoal = async () => {
+    try {
+      await dispatch(updateDailyGoal(tempGoal)).unwrap();
+      setActiveModal(null);
+      toast.success("Daily target synchronized.");
+    } catch (err) {
+      toast.error(typeof err === 'string' ? err : (err?.message || "Sync failure"));
+    }
+  };
+
+
   // --- ANALYTICS PROCESSING LOGIC ---
   const getAggregatedAnalytics = () => {
     if (!history || history.length === 0) return [];
@@ -747,8 +758,8 @@ export default function StudentDashboard() {
         
         <div className="bg-black/20 rounded-[2rem] p-4 sm:p-6 border border-white/5">
           <div className="grid grid-cols-7 gap-2 sm:gap-3 mb-4">
-            {['S','M','T','W','T','F','S'].map(d => (
-              <div key={d} className="text-center text-[9px] font-black text-zinc-600 uppercase tracking-widest">{d}</div>
+            {['S','M','T','W','T','F','S'].map((d, i) => (
+              <div key={`${d}-${i}`} className="text-center text-[9px] font-black text-zinc-600 uppercase tracking-widest">{d}</div>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-2 sm:gap-3">
@@ -1897,7 +1908,7 @@ export default function StudentDashboard() {
           <div className="glass-card p-8 rounded-[3rem] bg-gradient-to-br from-blue-600/5 to-transparent border border-white/5 relative overflow-hidden shadow-2xl">
             <div className="flex flex-col items-center">
               <div className="w-48 h-48 relative mb-8">
-                <ResponsiveContainer width="100%" height="100%" debounce={50}>
+                <ResponsiveContainer width="99%" height="100%" minHeight={150}>
                   <PieChart>
                     <Pie
                       data={[
@@ -2263,9 +2274,15 @@ export default function StudentDashboard() {
             </div>
           </div>
           
-          <div className="h-[220px] sm:h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={analyticsData} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
+          <div className="w-full overflow-x-auto overflow-y-hidden custom-scrollbar pb-4">
+            <div className={cn(
+              "h-[220px] sm:h-[300px] transition-all duration-500",
+              analyticsRange === '7D' ? "w-full" : 
+              analyticsRange === '30D' ? "w-[150%] sm:w-full min-w-[600px]" : 
+              "w-[300%] sm:w-full min-w-[1000px]"
+            )}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={220}>
+                <AreaChart data={analyticsData} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
@@ -2273,13 +2290,13 @@ export default function StudentDashboard() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" vertical={false} />
-                <XAxis 
-                  dataKey="label" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#4B5563', fontSize: 8, fontWeight: '900' }} 
-                  interval={analyticsRange === '30D' ? 2 : 0}
-                />
+                  <XAxis 
+                    dataKey="label" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#4B5563', fontSize: 8, fontWeight: '900' }} 
+                    interval={0}
+                  />
                 <YAxis hide domain={[0, 'auto']} />
                 <ReTooltip 
                   cursor={{ stroke: '#3B82F6', strokeWidth: 2, strokeDasharray: '5 5' }}
@@ -2302,6 +2319,7 @@ export default function StudentDashboard() {
               </AreaChart>
             </ResponsiveContainer>
           </div>
+        </div>
         </div>
 
         {/* Subject Breakdown */}
@@ -2379,14 +2397,14 @@ export default function StudentDashboard() {
                   </div>
                   
                   <div className="space-y-3">
-                    <p className="text-[9px] font-bold text-gray-500 uppercase flex items-center gap-2">
+                    <div className="text-[9px] font-bold text-gray-500 uppercase flex items-center gap-2">
                       <div className="w-1 h-1 rounded-full bg-emerald-500" /> 
                       Session Verified and Audited
-                    </p>
-                    <p className="text-[9px] font-bold text-gray-500 uppercase flex items-center gap-2">
+                    </div>
+                    <div className="text-[9px] font-bold text-gray-500 uppercase flex items-center gap-2">
                       <div className="w-1 h-1 rounded-full bg-emerald-500" /> 
                       Database persistence locked
-                    </p>
+                    </div>
                   </div>
                 </div>
 
@@ -2414,14 +2432,16 @@ export default function StudentDashboard() {
                           <div className="flex flex-col truncate pr-4">
                             <span className={`text-[12px] font-black italic truncate ${task.isCompleted ? 'text-white' : 'text-zinc-600'}`}>{task.title}</span>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-[8px] font-bold text-blue-500 uppercase tracking-widest">{durationStr} node</span>
+                              <span className="text-[8px] font-bold text-blue-500 uppercase tracking-widest">
+                                {task.estimatedMinutes ? formatStudyTime(task.estimatedMinutes / 60) : 'No Limit'} node
+                              </span>
                               <span className="text-[7px] font-bold text-gray-600 uppercase tracking-widest">• {timeStr}</span>
                             </div>
                           </div>
                           <span className={cn(
                             "text-[9px] font-black px-2 py-0.5 rounded-lg uppercase shrink-0 transition-all",
-                            task.isCompleted ? "bg-emerald-500/10 text-emerald-500" : "bg-white/5 text-zinc-700"
-                          )}>{task.isCompleted ? 'OK' : 'MISS'}</span>
+                            task.isCompleted ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
+                          )}>{task.isCompleted ? 'COMPLETE' : 'MISS'}</span>
                         </div>
                       );
                     }) : !historyTasksLoading ? (
