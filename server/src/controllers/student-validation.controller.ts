@@ -7,21 +7,25 @@ import { prisma } from "../db/prisma.js";
  */
 export const normalizeMobile = (phone: string): string => {
   if (!phone) return "";
-  
-  // If it starts with +, treat as global E.164
-  if (phone.startsWith("+")) {
-    return "+" + phone.replace(/\D/g, "");
+
+  const digitsOnly = phone.replace(/\D/g, "");
+
+  // Indian number with +91 or 91 prefix should normalize to local 10-digit form
+  if (digitsOnly.length === 12 && digitsOnly.startsWith("91")) {
+    return digitsOnly.slice(2);
   }
 
-  // Keep only digits for internal processing
-  const digits = phone.replace(/\D/g, "");
-  
-  // If 12 digits and starts with 91, it's an Indian number with prefix
-  if (digits.length === 12 && digits.startsWith("91")) {
-    return digits.slice(2);
+  // Indian number with leading zero should also normalize to 10-digit form
+  if (digitsOnly.length === 11 && digitsOnly.startsWith("0")) {
+    return digitsOnly.slice(1);
   }
-  
-  return digits;
+
+  // Preserve E.164-style international numbers for non-Indian formats
+  if (phone.trim().startsWith("+")) {
+    return "+" + digitsOnly;
+  }
+
+  return digitsOnly;
 };
 
 /**

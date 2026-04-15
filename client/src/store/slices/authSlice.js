@@ -98,9 +98,9 @@ export const logoutAdmin = createAsyncThunk(
 
 export const firebaseSyncAuth = createAsyncThunk(
   'adminAuth/firebaseSync',
-  async (idToken, { rejectWithValue }) => {
+  async (firebaseData, { rejectWithValue }) => {
     try {
-      const response = await authApi.firebaseSync(idToken);
+      const response = await authApi.firebaseSync(firebaseData);
       if (response.accessToken) {
         localStorage.setItem('token', response.accessToken);
         localStorage.setItem('user', JSON.stringify(response.user));

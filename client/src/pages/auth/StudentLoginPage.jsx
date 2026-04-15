@@ -35,6 +35,22 @@ export default function StudentLoginPage() {
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.adminAuth);
 
+  const buildFirebaseSyncPayload = async (firebaseUser) => {
+    const providerIds = (firebaseUser.providerData || [])
+      .map((provider) => provider?.providerId)
+      .filter(Boolean);
+
+    return {
+      idToken: await firebaseUser.getIdToken(),
+      email: firebaseUser.email || credential || '',
+      phone: firebaseUser.phoneNumber || credential || '',
+      firebaseUid: firebaseUser.uid,
+      displayName: firebaseUser.displayName || '',
+      providerId: providerIds[0] || null,
+      providerIds,
+    };
+  };
+
   // --- Standard Password Login ---
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -91,11 +107,13 @@ export default function StudentLoginPage() {
     setIsSubmitting(true);
     try {
       const result = await confirmationResult.confirm(otp);
-      const idToken = await result.user.getIdToken();
-      const resultAction = await dispatch(firebaseSyncAuth(idToken));
+      const syncPayload = await buildFirebaseSyncPayload(result.user);
+      const resultAction = await dispatch(firebaseSyncAuth(syncPayload));
       if (firebaseSyncAuth.fulfilled.match(resultAction)) {
         toast.success('Identity verified safely.');
         navigate('/student/portal');
+      } else {
+        toast.error(resultAction.payload || 'Firebase synchronization failed.');
       }
     } catch {
       toast.error('Invalid code. Please check and try again.');
@@ -137,9 +155,8 @@ export default function StudentLoginPage() {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       const result = await signInWithPopup(auth, provider);
-      const idToken = await result.user.getIdToken();
-
-      const resultAction = await dispatch(firebaseSyncAuth(idToken));
+      const syncPayload = await buildFirebaseSyncPayload(result.user);
+      const resultAction = await dispatch(firebaseSyncAuth(syncPayload));
       if (firebaseSyncAuth.fulfilled.match(resultAction)) {
         toast.success(`Welcome back, ${result.user.displayName}!`);
         navigate('/student/portal');
@@ -165,12 +182,14 @@ export default function StudentLoginPage() {
         setIsSubmitting(true);
         try {
           const result = await signInWithEmailLink(auth, email, window.location.href);
-          const idToken = await result.user.getIdToken();
-          const resultAction = await dispatch(firebaseSyncAuth(idToken));
+          const syncPayload = await buildFirebaseSyncPayload(result.user);
+          const resultAction = await dispatch(firebaseSyncAuth(syncPayload));
           if (firebaseSyncAuth.fulfilled.match(resultAction)) {
             toast.success('Access Link verified!');
             window.localStorage.removeItem('emailForSignIn');
             navigate('/student/portal');
+          } else {
+            toast.error(resultAction.payload || 'Firebase synchronization failed.');
           }
         } catch {
           toast.error('Link expired or invalid.');

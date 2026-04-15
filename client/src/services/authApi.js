@@ -51,8 +51,11 @@ const authApi = {
     return response.data;
   },
   
-  firebaseSync: async (idToken) => {
-    const response = await API.post('/auth/firebase-sync', { idToken });
+  firebaseSync: async (firebaseData) => {
+    const payload = typeof firebaseData === 'string'
+      ? { idToken: firebaseData }
+      : firebaseData;
+    const response = await API.post('/auth/firebase-sync', payload);
     return response.data;
   }
 };

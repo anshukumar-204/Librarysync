@@ -58,6 +58,22 @@ export default function StudentRegisterPage() {
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.adminAuth);
 
+  const buildFirebaseSyncPayload = async (firebaseUser) => {
+    const providerIds = (firebaseUser.providerData || [])
+      .map((provider) => provider?.providerId)
+      .filter(Boolean);
+
+    return {
+      idToken: await firebaseUser.getIdToken(),
+      email: firebaseUser.email || formData.email || credential || '',
+      phone: firebaseUser.phoneNumber || formData.mobile || credential || '',
+      firebaseUid: firebaseUser.uid,
+      displayName: firebaseUser.displayName || formData.fullName || '',
+      providerId: providerIds[0] || null,
+      providerIds,
+    };
+  };
+
   // --- LIVE AVAILABILITY TRIGGER ---
   React.useEffect(() => {
     if (!isVerified || step !== 1) return;
@@ -294,8 +310,8 @@ export default function StudentRegisterPage() {
     setIsActivating(true);
     try {
       const result = await confirmationResult.confirm(otp);
-      const idToken = await result.user.getIdToken();
-      const resultAction = await dispatch(firebaseSyncAuth(idToken));
+      const syncPayload = await buildFirebaseSyncPayload(result.user);
+      const resultAction = await dispatch(firebaseSyncAuth(syncPayload));
       if (firebaseSyncAuth.fulfilled.match(resultAction)) {
         toast.success('Phone verified! Your portal is now active. Welcome!');
         navigate('/student/portal');

@@ -101,14 +101,14 @@ export default function StudentDashboard() {
   const {
     todayStatus,
     metrics,
-    history = [],
-    leaderboard = [],
-    studyLogs = [],
-    tasks = [],
-    historyTasks = [],
+    history,
+    leaderboard,
+    studyLogs,
+    tasks,
+    historyTasks,
     pomodoro,
-    weeklyRoutine = [],
-    subjectAnalytics = [],
+    weeklyRoutine,
+    subjectAnalytics,
     loading,
     actionLoading,
     historyTasksLoading
@@ -241,7 +241,7 @@ export default function StudentDashboard() {
 
       interval = setInterval(() => {
         const remaining = Math.max(0, Math.ceil((pomodoroTargetTime.current - Date.now()) / 1000));
-        
+
         if (remaining > 0) {
           // Only update if time actually changed (to prevent unnecessary re-renders)
           if (remaining !== pomodoro.timeLeft) {
@@ -330,21 +330,21 @@ export default function StudentDashboard() {
       if (!audioCtx.current) {
         audioCtx.current = new (window.AudioContext || window.webkitAudioContext)();
       }
-      
+
       if (audioCtx.current.state === 'suspended') {
         audioCtx.current.resume();
       }
 
       const osc = audioCtx.current.createOscillator();
       const gain = audioCtx.current.createGain();
-      
+
       osc.type = 'square'; // Aggressive square wave
       osc.frequency.setValueAtTime(880, audioCtx.current.currentTime); // A5 note
-      
+
       // Pulsing volume effect
       gain.gain.setValueAtTime(0, audioCtx.current.currentTime);
       gain.gain.setTargetAtTime(0.5, audioCtx.current.currentTime, 0.1);
-      
+
       // Create a beep-beep-beep effect
       const interval = 0.5;
       for (let i = 0; i < 100; i++) {
@@ -374,7 +374,7 @@ export default function StudentDashboard() {
 
   const stopAlarm = () => {
     setIsAlarmActive(false);
-    
+
     // Stop Audio
     if (audioOsc.current) {
       try {
@@ -434,7 +434,7 @@ export default function StudentDashboard() {
 
   const handleToggleTimer = () => {
     const nextRunning = !pomodoro.isRunning;
-    
+
     // Request notification permission when starting the timer
     if (nextRunning && "Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
@@ -600,16 +600,16 @@ export default function StudentDashboard() {
   // --- ANALYTICS PROCESSING LOGIC ---
   const getAggregatedAnalytics = () => {
     if (!history || history.length === 0) return [];
-    
+
     const data = [];
     const baseDate = new Date(selectedStatsDate);
-    
+
     if (analyticsRange === '7D') {
       // Calendar Week: Sunday to Saturday
       const dayOfWeek = baseDate.getDay();
       const sun = new Date(baseDate);
       sun.setDate(baseDate.getDate() - dayOfWeek);
-      sun.setHours(0,0,0,0);
+      sun.setHours(0, 0, 0, 0);
 
       for (let i = 0; i < 7; i++) {
         const d = new Date(sun);
@@ -645,14 +645,14 @@ export default function StudentDashboard() {
       for (let m = 2; m >= 0; m--) {
         const d = new Date(baseDate.getFullYear(), baseDate.getMonth() - m, 1);
         const monthName = d.toLocaleDateString(undefined, { month: 'short' });
-        
+
         // Sum total hours for this month
         const recordsInMonth = history.filter(r => {
           const rd = new Date(r.date);
           return rd.getMonth() === d.getMonth() && rd.getFullYear() === d.getFullYear();
         });
         const total = recordsInMonth.reduce((acc, curr) => acc + (curr.studyHours || 0), 0);
-        
+
         data.push({
           date: d.toISOString(),
           label: monthName,
@@ -697,10 +697,10 @@ export default function StudentDashboard() {
     const viewDate = new Date(selectedStatsDate);
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
-    
+
     const firstDay = new Date(year, month, 1).getDay(); // 0 (Sun) to 6 (Sat)
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
+
     const monthLabel = viewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
     const changeMonth = (delta) => {
@@ -714,53 +714,53 @@ export default function StudentDashboard() {
     for (let i = 0; i < firstDay; i++) days.push(null);
     // Month Days
     for (let i = 1; i <= daysInMonth; i++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-        const hours = heatmapIntensity[dateStr] || 0;
-        let level = 0;
-        if (hours > 0) level = 1;
-        if (hours > 3) level = 2;
-        if (hours > 6) level = 3;
-        if (hours > 9) level = 4;
-        days.push({ date: dateStr, level, hours, day: i });
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      const hours = heatmapIntensity[dateStr] || 0;
+      let level = 0;
+      if (hours > 0) level = 1;
+      if (hours > 3) level = 2;
+      if (hours > 6) level = 3;
+      if (hours > 9) level = 4;
+      days.push({ date: dateStr, level, hours, day: i });
     }
 
     return (
       <div className="flex flex-col gap-6 mt-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2">
           <div className="flex items-center gap-3">
-             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                <Calendar size={16} />
-             </div>
-             <div>
-                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-0.5">Focus Rhythm</p>
-                <h4 className="text-sm font-black text-white uppercase tracking-tight italic">{monthLabel}</h4>
-             </div>
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+              <Calendar size={16} />
+            </div>
+            <div>
+              <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-0.5">Focus Rhythm</p>
+              <h4 className="text-sm font-black text-white uppercase tracking-tight italic">{monthLabel}</h4>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
-             <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl">
-               <button onClick={() => changeMonth(-1)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition-all"><ChevronLeft size={16} /></button>
-               <button onClick={() => setSelectedStatsDate(new Date())} className="px-3 text-[9px] font-black uppercase text-blue-500">Today</button>
-               <button onClick={() => changeMonth(1)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition-all"><ChevronRight size={16} /></button>
-             </div>
+            <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl">
+              <button onClick={() => changeMonth(-1)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition-all"><ChevronLeft size={16} /></button>
+              <button onClick={() => setSelectedStatsDate(new Date())} className="px-3 text-[9px] font-black uppercase text-blue-500">Today</button>
+              <button onClick={() => changeMonth(1)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition-all"><ChevronRight size={16} /></button>
+            </div>
 
-             <div className="hidden sm:flex items-center gap-1.5 ml-2 border-l border-white/10 pl-4">
-               {[0, 1, 2, 3, 4].map(l => (
-                 <div key={l} className={cn(
-                   "w-3 h-3 rounded-sm",
-                   l === 0 ? "bg-white/[0.03] border border-white/5" : 
-                   l === 1 ? "bg-emerald-500/20" : 
-                   l === 2 ? "bg-emerald-500/40" : 
-                   l === 3 ? "bg-emerald-500/70" : "bg-emerald-500"
-                 )} />
-               ))}
-             </div>
+            <div className="hidden sm:flex items-center gap-1.5 ml-2 border-l border-white/10 pl-4">
+              {[0, 1, 2, 3, 4].map(l => (
+                <div key={l} className={cn(
+                  "w-3 h-3 rounded-sm",
+                  l === 0 ? "bg-white/[0.03] border border-white/5" :
+                    l === 1 ? "bg-emerald-500/20" :
+                      l === 2 ? "bg-emerald-500/40" :
+                        l === 3 ? "bg-emerald-500/70" : "bg-emerald-500"
+                )} />
+              ))}
+            </div>
           </div>
         </div>
-        
+
         <div className="bg-black/20 rounded-[2rem] p-4 sm:p-6 border border-white/5">
           <div className="grid grid-cols-7 gap-2 sm:gap-3 mb-4">
-            {['S','M','T','W','T','F','S'].map((d, i) => (
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
               <div key={`${d}-${i}`} className="text-center text-[9px] font-black text-zinc-600 uppercase tracking-widest">{d}</div>
             ))}
           </div>
@@ -773,10 +773,10 @@ export default function StudentDashboard() {
                   title={`${day.date}: ${day.hours.toFixed(1)}h`}
                   className={cn(
                     "aspect-square rounded-lg transition-all cursor-help flex items-center justify-center relative group",
-                    day.level === 0 ? "bg-white/[0.03] border border-white/5" : 
-                    day.level === 1 ? "bg-emerald-500/20" : 
-                    day.level === 2 ? "bg-emerald-500/40" : 
-                    day.level === 3 ? "bg-emerald-500/70 shadow-[0_4px_10px_rgba(16,185,129,0.1)]" : "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                    day.level === 0 ? "bg-white/[0.03] border border-white/5" :
+                      day.level === 1 ? "bg-emerald-500/20" :
+                        day.level === 2 ? "bg-emerald-500/40" :
+                          day.level === 3 ? "bg-emerald-500/70 shadow-[0_4px_10px_rgba(16,185,129,0.1)]" : "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
                   )}
                 >
                   <span className={cn(
@@ -793,18 +793,18 @@ export default function StudentDashboard() {
             ))}
           </div>
         </div>
-        
+
         <div className="sm:hidden flex items-center justify-end gap-1.5 px-2">
-           <span className="text-[8px] text-zinc-600 font-bold uppercase tracking-widest mr-2">Intensity Score</span>
-           {[0, 1, 2, 3, 4].map(l => (
-             <div key={l} className={cn(
-               "w-3 h-3 rounded-sm",
-               l === 0 ? "bg-white/[0.03] border border-white/5" : 
-               l === 1 ? "bg-emerald-500/20" : 
-               l === 2 ? "bg-emerald-500/40" : 
-               l === 3 ? "bg-emerald-500/70" : "bg-emerald-500"
-             )} />
-           ))}
+          <span className="text-[8px] text-zinc-600 font-bold uppercase tracking-widest mr-2">Intensity Score</span>
+          {[0, 1, 2, 3, 4].map(l => (
+            <div key={l} className={cn(
+              "w-3 h-3 rounded-sm",
+              l === 0 ? "bg-white/[0.03] border border-white/5" :
+                l === 1 ? "bg-emerald-500/20" :
+                  l === 2 ? "bg-emerald-500/40" :
+                    l === 3 ? "bg-emerald-500/70" : "bg-emerald-500"
+            )} />
+          ))}
         </div>
       </div>
     );
@@ -1368,9 +1368,9 @@ export default function StudentDashboard() {
                 <div className={`w-1.5 h-1.5 rounded-full ${pomodoro.isRunning ? 'bg-indigo-500 animate-pulse' : 'bg-gray-600'}`} />
                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">{pomodoro.isRunning ? 'Active' : 'Idle'}</span>
               </div>
-              
+
               {pomodoro.isRunning && "Notification" in window && Notification.permission === "granted" && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="flex items-center gap-1 text-[8px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full"
@@ -2216,7 +2216,7 @@ export default function StudentDashboard() {
     const analyticsData = getAggregatedAnalytics();
     const totalHours = analyticsData.reduce((acc, curr) => acc + curr.hours, 0);
     const avgHours = analyticsData.length > 0 ? (totalHours / analyticsData.length).toFixed(1) : '0';
-    
+
     // Period Label for Chart
     let periodLabel = '';
     if (analyticsRange === '7D') periodLabel = 'Current Week';
@@ -2225,27 +2225,27 @@ export default function StudentDashboard() {
     if (analyticsRange === '1Y') periodLabel = `Annual Performance (${selectedStatsDate.getFullYear()})`;
 
     return (
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.98 }} 
-        animate={{ opacity: 1, scale: 1 }} 
-        exit={{ opacity: 0, scale: 0.98 }} 
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.98 }}
         className="space-y-6 sm:space-y-10 pb-32 max-w-5xl mx-auto"
       >
         {/* Intelligence Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 px-1">
           <div className="space-y-1">
             <h2 className="text-3xl sm:text-4xl font-black text-white italic tracking-tighter uppercase leading-none">
-               Intelligence <span className="text-blue-500">Vault</span>
+              Intelligence <span className="text-blue-500">Vault</span>
             </h2>
             <div className="flex items-center gap-2 mt-2">
-               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-               <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] italic">Audit Session: {selectedStatsDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] italic">Audit Session: {selectedStatsDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
             </div>
           </div>
-          
+
           <div className="flex gap-1 bg-white/5 border border-white/5 p-1 rounded-2xl self-start sm:self-auto">
             {['7D', '30D', '90D', '1Y'].map(range => (
-              <button 
+              <button
                 key={range}
                 onClick={() => setAnalyticsRange(range)}
                 className={cn(
@@ -2264,15 +2264,15 @@ export default function StudentDashboard() {
           {[
             { label: 'Volume', value: `${totalHours.toFixed(1)}H`, sub: 'Total Effort', color: 'indigo' },
             { label: 'Velocity', value: `${avgHours}H`, sub: 'Daily Avg', color: 'blue' },
-            { label: 'Peak', value: `${([...analyticsData].sort((a,b)=>b.hours-a.hours)[0]?.hours || 0).toFixed(1)}H`, sub: 'Max Node', color: 'emerald' },
+            { label: 'Peak', value: `${([...analyticsData].sort((a, b) => b.hours - a.hours)[0]?.hours || 0).toFixed(1)}H`, sub: 'Max Node', color: 'emerald' },
             { label: 'Streak', value: `${metrics?.currentStreak || 0}D`, sub: 'Live Chain', color: 'orange' }
           ].map((card, i) => (
             <div key={i} className={cn(
               "p-4 sm:p-5 rounded-[2rem] border transition-all hover:scale-[1.02]",
               card.color === 'indigo' ? "bg-indigo-500/5 border-indigo-500/10" :
-              card.color === 'blue' ? "bg-blue-500/5 border-blue-500/10" :
-              card.color === 'emerald' ? "bg-emerald-500/5 border-emerald-500/10" :
-              "bg-orange-500/5 border-orange-500/10"
+                card.color === 'blue' ? "bg-blue-500/5 border-blue-500/10" :
+                  card.color === 'emerald' ? "bg-emerald-500/5 border-emerald-500/10" :
+                    "bg-orange-500/5 border-orange-500/10"
             )}>
               <span className={cn("text-[9px] font-black uppercase tracking-widest block mb-2 opacity-60", `text-${card.color}-400`)}>{card.label}</span>
               <span className="text-xl sm:text-2xl font-black text-white italic tracking-tighter">{card.value}</span>
@@ -2289,78 +2289,78 @@ export default function StudentDashboard() {
         {/* Velocity Graph - Calendar Aligned */}
         <div className="glass-card rounded-[2.5rem] sm:rounded-[3rem] p-4 sm:p-8 bg-zinc-900/40 border border-white/5 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-5">
-             <TrendingUp size={120} />
+            <TrendingUp size={120} />
           </div>
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-               <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400"><TrendingUp size={20} /></div>
-               <div>
-                  <h3 className="text-sm sm:text-lg font-black text-white uppercase tracking-tight italic">Velocity Trend</h3>
-                  <p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest">{periodLabel}</p>
-               </div>
+              <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400"><TrendingUp size={20} /></div>
+              <div>
+                <h3 className="text-sm sm:text-lg font-black text-white uppercase tracking-tight italic">Velocity Trend</h3>
+                <p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest">{periodLabel}</p>
+              </div>
             </div>
           </div>
-          
+
           <div className="w-full overflow-x-auto overflow-y-hidden custom-scrollbar pb-4">
             <div className={cn(
               "h-[220px] sm:h-[300px] transition-all duration-500",
-              analyticsRange === '7D' ? "w-full" : 
-              analyticsRange === '30D' ? "w-[150%] sm:w-full min-w-[600px]" : 
-              "w-[300%] sm:w-full min-w-[1000px]"
+              analyticsRange === '7D' ? "w-full" :
+                analyticsRange === '30D' ? "w-[150%] sm:w-full min-w-[600px]" :
+                  "w-[300%] sm:w-full min-w-[1000px]"
             )}>
               <ResponsiveContainer width="100%" height={220} minHeight={220}>
                 <AreaChart data={analyticsData} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" vertical={false} />
-                  <XAxis 
-                    dataKey="label" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#4B5563', fontSize: 8, fontWeight: '900' }} 
+                  <defs>
+                    <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#4B5563', fontSize: 8, fontWeight: '900' }}
                     interval={0}
                   />
-                <YAxis hide domain={[0, 'auto']} />
-                <ReTooltip 
-                  cursor={{ stroke: '#3B82F6', strokeWidth: 2, strokeDasharray: '5 5' }}
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="bg-[#0c0c0e] border border-white/10 p-2 sm:p-3 rounded-2xl shadow-2xl">
-                          <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">{payload[0].payload.fullDate}</p>
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg sm:text-xl font-black text-white italic tracking-tighter">{formatStudyTime(payload[0].value)}</span>
-                            <span className="text-[8px] font-black text-blue-500 uppercase">Focus</span>
+                  <YAxis hide domain={[0, 'auto']} />
+                  <ReTooltip
+                    cursor={{ stroke: '#3B82F6', strokeWidth: 2, strokeDasharray: '5 5' }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-[#0c0c0e] border border-white/10 p-2 sm:p-3 rounded-2xl shadow-2xl">
+                            <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">{payload[0].payload.fullDate}</p>
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg sm:text-xl font-black text-white italic tracking-tighter">{formatStudyTime(payload[0].value)}</span>
+                              <span className="text-[8px] font-black text-blue-500 uppercase">Focus</span>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Area type="monotone" dataKey="hours" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorHours)" />
-              </AreaChart>
-            </ResponsiveContainer>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Area type="monotone" dataKey="hours" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorHours)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
         </div>
 
         {/* Subject Breakdown */}
         <div className="space-y-6 px-1">
           <h3 className="text-xl font-black text-white italic tracking-tighter uppercase mb-6 flex items-center gap-3">
-             <div className="w-1.5 h-6 bg-indigo-500 rounded-full" />
-             Subject <span className="text-indigo-500">Breakdown</span>
+            <div className="w-1.5 h-6 bg-indigo-500 rounded-full" />
+            Subject <span className="text-indigo-500">Breakdown</span>
           </h3>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {subjectAnalytics.length > 0 ? subjectAnalytics.map((item, idx) => (
-              <motion.div 
+              <motion.div
                 whileHover={{ y: -5 }}
-                key={item.subject} 
+                key={item.subject}
                 className="p-5 rounded-[2rem] bg-white/[0.02] border border-white/5 hover:border-indigo-500/30 transition-all group"
               >
                 <div className="flex items-center justify-between mb-4">
@@ -2374,10 +2374,10 @@ export default function StudentDashboard() {
                 </div>
                 <h4 className="text-base font-black text-white italic leading-tight mb-3 truncate">{item.subject}</h4>
                 <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                  <motion.div 
+                  <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min(100, (item.hours / Math.max(1, totalHours)) * 100)}%` }}
-                    className="h-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" 
+                    className="h-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
                   />
                 </div>
                 <div className="flex items-center justify-between mt-2.5 text-[8px] font-black text-gray-500 uppercase tracking-widest">
@@ -2398,8 +2398,8 @@ export default function StudentDashboard() {
         <div className="space-y-6 pt-6">
           <div className="flex items-center justify-between px-2">
             <h3 className="text-xl font-black text-white italic tracking-tighter uppercase leading-tight flex items-center gap-3">
-               <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
-               Node <span className="text-emerald-500">Explorer</span>
+              <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
+              Node <span className="text-emerald-500">Explorer</span>
             </h3>
             <div className="relative">
               <input
@@ -2422,14 +2422,14 @@ export default function StudentDashboard() {
                       {formatStudyTime(history.find(h => h.date?.split('T')[0] === selectedHistoryDate?.split('T')[0])?.studyHours || 0)}
                     </span>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="text-[9px] font-bold text-gray-500 uppercase flex items-center gap-2">
-                      <div className="w-1 h-1 rounded-full bg-emerald-500" /> 
+                      <div className="w-1 h-1 rounded-full bg-emerald-500" />
                       Session Verified and Audited
                     </div>
                     <div className="text-[9px] font-bold text-gray-500 uppercase flex items-center gap-2">
-                      <div className="w-1 h-1 rounded-full bg-emerald-500" /> 
+                      <div className="w-1 h-1 rounded-full bg-emerald-500" />
                       Database persistence locked
                     </div>
                   </div>
@@ -2450,7 +2450,7 @@ export default function StudentDashboard() {
                   <div className="space-y-2">
                     {historyTasks.length > 0 ? historyTasks.map(task => {
                       const durationStr = task.estimatedMinutes ? `${task.estimatedMinutes}m` : 'No Limit';
-                      const timeStr = task.completedAt 
+                      const timeStr = task.completedAt
                         ? new Date(task.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
                         : new Date(task.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
@@ -2557,19 +2557,19 @@ export default function StudentDashboard() {
       {/* Alarm Notification Overlay */}
       <AnimatePresence>
         {isAlarmActive && (
-          <motion.div 
-            initial={{ opacity: 0, y: -100 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: -100 }} 
+          <motion.div
+            initial={{ opacity: 0, y: -100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -100 }}
             className="fixed top-6 left-4 right-4 z-[1000] flex justify-center"
           >
-            <motion.div 
+            <motion.div
               className="w-full max-w-sm bg-zinc-900/90 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.5)] flex items-center gap-4 relative overflow-hidden ring-1 ring-white/20 active:scale-[0.98] transition-all"
             >
               <div className="w-12 h-12 bg-red-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-red-600/20">
                 <Timer size={24} className="animate-bounce" />
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-0.5">
                   <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em]">Live Protocol</span>
@@ -2580,14 +2580,14 @@ export default function StudentDashboard() {
               </div>
 
               <div className="flex gap-2 shrink-0">
-                <button 
-                  onClick={stopAlarm} 
+                <button
+                  onClick={stopAlarm}
                   className="w-10 h-10 bg-white/5 text-zinc-400 rounded-xl flex items-center justify-center hover:bg-white/10 hover:text-white transition-all border border-white/5"
                 >
                   <X size={18} />
                 </button>
-                <button 
-                  onClick={stopAlarm} 
+                <button
+                  onClick={stopAlarm}
                   className="px-4 bg-red-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-lg shadow-red-600/20 active:scale-95 transition-all flex items-center justify-center"
                 >
                   Stop
