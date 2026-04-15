@@ -34,11 +34,18 @@ export const getUserSessions = async (userId: number) => {
 };
 
 export const revokeSession = async (sessionId: string, userId: number) => {
+  // First verify the session belongs to this user (security check)
+  const session = await prisma.userSession.findFirst({
+    where: { id: sessionId, userId }
+  });
+  
+  if (!session) {
+    throw new Error("Session not found or does not belong to this user");
+  }
+
+  // Delete by id only (Prisma delete requires a unique field)
   return await prisma.userSession.delete({
-    where: { 
-      id: sessionId,
-      userId // Security: Ensure session belongs to user
-    },
+    where: { id: sessionId }
   });
 };
 

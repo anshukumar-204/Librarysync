@@ -810,8 +810,9 @@ export const terminateSession = async (req: Request, res: Response) => {
     const sessionId = String(req.params.sessionId);
     await revokeSession(sessionId, req.user!.id);
     return res.json({ success: true, message: "Session terminated successfully" });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to terminate session" });
+  } catch (error: any) {
+    const msg = error?.message || "Failed to terminate session";
+    return res.status(400).json({ success: false, message: msg });
   }
 };
 
@@ -843,7 +844,8 @@ export const revokeStudentSession = async (req: Request, res: Response) => {
 
     await revokeSession(sessionId, student.userId);
     return res.json({ success: true, message: "Student session successfully terminated" });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to revoke student session" });
+  } catch (error: any) {
+    const msg = error?.message || "Failed to revoke student session";
+    return res.status(400).json({ success: false, message: msg });
   }
 };
