@@ -807,7 +807,7 @@ export const fetchActiveSessions = async (req: Request, res: Response) => {
 
 export const terminateSession = async (req: Request, res: Response) => {
   try {
-    const { sessionId } = req.params;
+    const sessionId = String(req.params.sessionId);
     await revokeSession(sessionId, req.user!.id);
     return res.json({ success: true, message: "Session terminated successfully" });
   } catch (error) {
@@ -836,7 +836,7 @@ export const revokeStudentSession = async (req: Request, res: Response) => {
     if (req.user?.role !== "admin") {
       return res.status(403).json({ success: false, message: "Forbidden: Admin access required" });
     }
-    const { sessionId } = req.params;
+    const sessionId = String(req.params.sessionId);
     const studentId = Number(req.params.id);
     const student = await prisma.student.findUnique({ where: { id: studentId } });
     if (!student) return res.status(404).json({ success: false, message: "Student not found" });
