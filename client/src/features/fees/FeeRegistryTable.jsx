@@ -14,10 +14,13 @@ import {
 import { cn } from '../../utils/cn';
 
 export default function FeeRegistryTable({ registry, onSelectStudent, searchQuery, setSearchQuery }) {
-  const filteredRegistry = registry.filter(item => 
-    item.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.mobile.includes(searchQuery)
-  );
+  const filteredRegistry = registry.filter(item => {
+    const searchLower = searchQuery.toLowerCase();
+    const name = (item.fullName || item.name || '').toLowerCase();
+    const mobile = (item.mobile || item.user?.mobile || '').toString();
+
+    return name.includes(searchLower) || mobile.includes(searchQuery);
+  });
 
   return (
     <div className="bg-[#09090b] border border-white/5 rounded-[40px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.5)] flex flex-col h-[600px]">
@@ -64,12 +67,12 @@ export default function FeeRegistryTable({ registry, onSelectStudent, searchQuer
                     ? "bg-rose-500/10 border-rose-500/20 text-rose-500" 
                     : "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
                 )}>
-                  {item.fullName[0]}
+                  {(item.fullName || item.name || 'S')[0]}
                 </div>
                 <div>
-                  <h4 className="font-black text-white tracking-tight uppercase italic">{item.fullName}</h4>
+                  <h4 className="font-black text-white tracking-tight uppercase italic">{item.fullName || item.name || 'Unknown Student'}</h4>
                   <div className="flex items-center gap-4 mt-1.5">
-                    <span className="text-[10px] font-bold text-zinc-500 tracking-widest uppercase">{item.mobile}</span>
+                    <span className="text-[10px] font-bold text-zinc-500 tracking-widest uppercase">{item.mobile || item.user?.mobile || 'N/A'}</span>
                     <span className="w-1 h-1 bg-zinc-700 rounded-full" />
                     <span className="text-[10px] font-bold text-zinc-600 tracking-widest uppercase">Tariff: ₹{item.monthlyFee}</span>
                   </div>

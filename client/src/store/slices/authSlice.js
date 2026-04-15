@@ -6,16 +6,26 @@ const token = localStorage.getItem('token');
 const storedUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
 const sessionId = localStorage.getItem('sessionId');
 
+const persistSession = (response) => {
+  if (!response?.accessToken) return;
+  localStorage.setItem('token', response.accessToken);
+  localStorage.setItem('user', JSON.stringify(response.user));
+  if (response.sessionId) localStorage.setItem('sessionId', response.sessionId);
+  else localStorage.removeItem('sessionId');
+};
+
+const clearPersistedSession = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('sessionId');
+};
+
 export const loginAdmin = createAsyncThunk(
   'adminAuth/login',
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await authApi.login(credentials);
-      if (response.accessToken) {
-        localStorage.setItem('token', response.accessToken);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        if (response.sessionId) localStorage.setItem('sessionId', response.sessionId);
-      }
+      persistSession(response);
       return response;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Authentication failed');
@@ -28,11 +38,7 @@ export const registerStudent = createAsyncThunk(
   async (studentData, { rejectWithValue }) => {
     try {
       const response = await authApi.register(studentData);
-      if (response.accessToken) {
-        localStorage.setItem('token', response.accessToken);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        if (response.sessionId) localStorage.setItem('sessionId', response.sessionId);
-      }
+      persistSession(response);
       return response;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Registration failed');
@@ -45,11 +51,7 @@ export const verifyLoginOtpAdmin = createAsyncThunk(
   async ({ loginId, otp }, { rejectWithValue }) => {
     try {
       const response = await authApi.verifyLoginOtp(loginId, otp);
-      if (response.accessToken) {
-        localStorage.setItem('token', response.accessToken);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        if (response.sessionId) localStorage.setItem('sessionId', response.sessionId);
-      }
+      persistSession(response);
       return response;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'OTP verification failed');
@@ -84,13 +86,10 @@ export const logoutAdmin = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await authApi.logout();
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('sessionId');
+      clearPersistedSession();
       return true;
     } catch (err) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      clearPersistedSession();
       return rejectWithValue(err.message);
     }
   }
@@ -101,11 +100,7 @@ export const firebaseSyncAuth = createAsyncThunk(
   async (firebaseData, { rejectWithValue }) => {
     try {
       const response = await authApi.firebaseSync(firebaseData);
-      if (response.accessToken) {
-        localStorage.setItem('token', response.accessToken);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        if (response.sessionId) localStorage.setItem('sessionId', response.sessionId);
-      }
+      persistSession(response);
       return response;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Firebase synchronization failed');
@@ -126,7 +121,24 @@ const authSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
-    }
+    },
+    setAuthSession: (state, action) => {
+      const response = action.payload;
+      persistSession(response);
+      state.user = response?.user ?? null;
+      state.token = response?.accessToken ?? null;
+      state.sessionId = response?.sessionId ?? null;
+      state.loading = false;
+      state.error = null;
+    },
+    clearAuthSession: (state) => {
+      clearPersistedSession();
+      state.user = null;
+      state.token = null;
+      state.sessionId = null;
+      state.loading = false;
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -187,6 +199,7 @@ const authSlice = createSlice({
       .addCase(logoutAdmin.rejected, (state) => {
         state.user = null;
         state.token = null;
+        state.sessionId = null;
         state.loading = false;
       })
       // Firebase Sync
@@ -207,5 +220,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError } = authSlice.actions;
+export const { clearError, setAuthSession, clearAuthSession } = authSlice.actions;
 export default authSlice.reducer;

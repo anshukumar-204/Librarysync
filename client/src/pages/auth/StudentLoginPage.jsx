@@ -74,8 +74,12 @@ export default function StudentLoginPage() {
     try {
       const resultAction = await dispatch(loginAdmin({ credential: normalizeCredential(credential), password }));
       if (loginAdmin.fulfilled.match(resultAction)) {
-        toast.success('Welcome back! Portal access granted.');
-        navigate('/student/portal');
+        if (resultAction.payload.requiresOtp) {
+          toast.error('This account requires OTP verification. Please use a supported OTP login method.');
+        } else {
+          toast.success('Welcome back! Portal access granted.');
+          navigate('/student/portal');
+        }
       } else {
         toast.error(resultAction.payload || 'Invalid login details.');
       }

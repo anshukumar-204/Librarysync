@@ -33,8 +33,9 @@ export default function AdminDashboardPage() {
   };
 
   const filteredRecords = (liveStats.records || []).filter(r => {
+    const mobile = r.student?.user?.mobile || r.student?.mobile || '';
     const matchesSearch = r.student?.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.student?.user?.mobile?.includes(searchQuery);
+      mobile.includes(searchQuery);
 
     if (statusFilter === 'inside') return matchesSearch && !r.checkOutTime;
     if (statusFilter === 'left') return matchesSearch && !!r.checkOutTime;
@@ -172,7 +173,7 @@ export default function AdminDashboardPage() {
                         <div>
                           <h4 className="font-black text-white tracking-tight uppercase italic">{record.student?.fullName}</h4>
                           <div className="flex items-center gap-4 mt-1.5">
-                            <span className="text-[10px] font-bold text-zinc-500 tracking-widest uppercase">{record.student?.user?.mobile}</span>
+                            <span className="text-[10px] font-bold text-zinc-500 tracking-widest uppercase">{record.student?.user?.mobile || record.student?.mobile || '--'}</span>
                             <span className="w-1 h-1 bg-zinc-700 rounded-full" />
                             <span className="text-[10px] font-black text-blue-500/80 tracking-widest uppercase flex items-center gap-1.5">
                               <Clock className="w-3 h-3" />
@@ -283,7 +284,9 @@ export default function AdminDashboardPage() {
             onConfirm={(time) => {
               dispatch(forceAdminCheckout({ 
                 attendanceId: rescueTarget.id, 
-                checkOutTime: time 
+                checkOutTime: time,
+                selectedDate,
+                isTodaySelected,
               })).unwrap()
                 .then(() => {
                   toast.success("Checkout protocol executed successfully.");

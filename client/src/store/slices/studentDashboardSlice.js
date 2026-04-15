@@ -3,6 +3,13 @@ import dashboardApi from '../../services/dashboardApi';
 import attendanceApi from '../../services/attendanceApi';
 import * as studentApi from '../../services/studentApi';
 
+const getAttendanceTimestamp = (payload, keys = []) => {
+  for (const key of keys) {
+    if (payload?.[key]) return payload[key];
+  }
+  return null;
+};
+
 export const requestProfileOtp = createAsyncThunk(
   'studentDashboard/requestProfileOtp',
   async (_, { rejectWithValue }) => {
@@ -465,8 +472,12 @@ const studentDashboardSlice = createSlice({
       })
       .addCase(syncRoutine.fulfilled, (state, action) => {
         state.actionLoading = false;
-        if (action.payload.length > 0) {
-          state.tasks = [...action.payload, ...state.tasks];
+        const syncedTasks = Array.isArray(action.payload) ? action.payload : [];
+        if (syncedTasks.length > 0) {
+          const existingTasks = state.tasks.filter(
+            (task) => !syncedTasks.some((syncedTask) => syncedTask.id === task.id)
+          );
+          state.tasks = [...syncedTasks, ...existingTasks];
         }
       })
 
@@ -489,12 +500,14 @@ const studentDashboardSlice = createSlice({
       .addCase(autoMarkAttendance.fulfilled, (state, action) => {
         state.actionLoading = false;
         if (state.todayStatus) {
+           const checkInTimestamp = getAttendanceTimestamp(action.payload, ['checkIn', 'checkInTime']);
+           const checkOutTimestamp = getAttendanceTimestamp(action.payload, ['checkOut', 'checkOutTime']);
            if (action.payload.status === 'In Library') {
               state.todayStatus.status = 'In Library';
-              state.todayStatus.checkIn = new Date().toISOString();
+              state.todayStatus.checkIn = checkInTimestamp || state.todayStatus.checkIn;
            } else if (action.payload.status === 'Completed') {
               state.todayStatus.status = 'Completed';
-              state.todayStatus.checkOut = new Date().toISOString();
+              state.todayStatus.checkOut = checkOutTimestamp || state.todayStatus.checkOut;
            }
         }
         // Update streak if returned from server
@@ -512,6 +525,17 @@ const studentDashboardSlice = createSlice({
       })
       
       // Generic Action Loading Protections
+      .addCase(updateProfileSelf.pending, (state) => { state.actionLoading = true; })
+      .addCase(updateProfileSelf.fulfilled, (state, action) => {
+        state.actionLoading = false;
+        if (action.payload?.data?.student) {
+          state.metrics = state.metrics
+            ? { ...state.metrics, student: action.payload.data.student }
+            : { student: action.payload.data.student };
+        }
+      })
+      .addCase(updateProfileSelf.rejected, (state) => { state.actionLoading = false; })
+
       .addCase(createTask.pending, (state) => { state.actionLoading = true; })
       .addCase(createTask.rejected, (state) => { state.actionLoading = false; })
       

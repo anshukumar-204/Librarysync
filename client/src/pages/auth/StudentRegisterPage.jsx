@@ -8,7 +8,7 @@ import {
   CheckCircle2, Sparkles, GraduationCap, Search,
   ShieldCheck, KeyRound, RefreshCw, Eye, EyeOff, Camera, Hash
 } from 'lucide-react';
-import { registerStudent, clearError, firebaseSyncAuth } from '../../store/slices/authSlice';
+import { registerStudent, clearError, firebaseSyncAuth, setAuthSession } from '../../store/slices/authSlice';
 import authApi from '../../services/authApi';
 import toast from 'react-hot-toast';
 import { auth } from '../../config/firebase';
@@ -267,12 +267,8 @@ export default function StudentRegisterPage() {
     try {
       const response = await authApi.completeRegistration(normalizeCredential(credential), otp);
       if (response.success) {
+        dispatch(setAuthSession(response));
         toast.success("Portal Account Active. Welcome!");
-        // We manually update state or just navigate to login
-        // Re-using login logic for seamless entry
-        localStorage.setItem('token', response.accessToken);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        localStorage.setItem('sessionId', response.sessionId);
         navigate('/student/portal');
       }
     } catch (err) {
@@ -361,6 +357,13 @@ export default function StudentRegisterPage() {
     }
   };
 
+  const handleActivationSubmit = (e) => {
+    if (authMethod === 'phone') {
+      return handleFirebaseOtpVerify(e);
+    }
+    return handleFinalActivation(e);
+  };
+
   // Inquiry Stage (Screen 1)
   if (!isVerified) {
     return (
@@ -436,7 +439,7 @@ export default function StudentRegisterPage() {
             <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Final Activation</h2>
             <p className="text-gray-400 text-sm mb-10">Enter the 6-digit activation code sent to your email.</p>
 
-            <form onSubmit={handleFinalActivation} className="space-y-8">
+            <form onSubmit={handleActivationSubmit} className="space-y-8">
               <input 
                 type="text" 
                 maxLength={6}
@@ -452,8 +455,8 @@ export default function StudentRegisterPage() {
                 <motion.button 
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
+                  type="submit"
                   disabled={isActivating}
-                  onClick={authMethod === 'phone' ? handleFirebaseOtpVerify : handleFinalActivation}
                   className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white font-bold py-4 rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all"
                 >
                   {isActivating ? <Loader2 className="animate-spin" size={20} /> : "Finalize Activation"}

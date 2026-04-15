@@ -158,6 +158,94 @@ export default function StudentDashboard() {
     return `${h}h ${m}m`;
   };
 
+  const normalizeDateKey = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value.split('T')[0];
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().split('T')[0];
+  };
+
+  const parseDurationMinutes = (value) => {
+    if (value == null || value === '') return null;
+    if (typeof value === 'number' && Number.isFinite(value)) return Math.max(0, Math.round(value));
+    if (typeof value !== 'string') return null;
+
+    const trimmedValue = value.trim().toLowerCase();
+    if (!trimmedValue) return null;
+
+    if (/^\d+(\.\d+)?$/.test(trimmedValue)) {
+      return Math.max(0, Math.round(Number(trimmedValue)));
+    }
+
+    const hoursMatch = trimmedValue.match(/(\d+(?:\.\d+)?)\s*h/);
+    const minutesMatch = trimmedValue.match(/(\d+(?:\.\d+)?)\s*m/);
+    if (!hoursMatch && !minutesMatch) return null;
+
+    const hours = hoursMatch ? Number(hoursMatch[1]) : 0;
+    const minutes = minutesMatch ? Number(minutesMatch[1]) : 0;
+    return Math.max(0, Math.round((hours * 60) + minutes));
+  };
+
+  const getLibraryDurationMinutes = (record, fallbackEndTime = Date.now()) => {
+    if (!record) return 0;
+
+    const minuteFields = [
+      'libraryMinutes',
+      'totalLibraryMinutes',
+      'durationMinutes',
+      'totalMinutes',
+      'elapsedMinutes',
+      'timeSpentMinutes'
+    ];
+
+    for (const key of minuteFields) {
+      const parsedMinutes = parseDurationMinutes(record[key]);
+      if (parsedMinutes != null) return parsedMinutes;
+    }
+
+    const hourFields = ['libraryHours', 'totalHours', 'durationHours'];
+    for (const key of hourFields) {
+      const rawValue = record[key];
+      if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+        return Math.max(0, Math.round(rawValue * 60));
+      }
+    }
+
+    const durationFields = ['libraryDuration', 'duration', 'totalDuration', 'timeSpent', 'sessionDuration'];
+    for (const key of durationFields) {
+      const parsedMinutes = parseDurationMinutes(record[key]);
+      if (parsedMinutes != null) return parsedMinutes;
+    }
+
+    const checkInTime = record.checkIn || record.checkInTime || record.inTime;
+    const checkOutTime = record.checkOut || record.checkOutTime || record.outTime || record.exitTime;
+
+    if (checkInTime) {
+      const startTime = new Date(checkInTime).getTime();
+      const endTime = checkOutTime ? new Date(checkOutTime).getTime() : fallbackEndTime;
+
+      if (!Number.isNaN(startTime) && !Number.isNaN(endTime) && endTime >= startTime) {
+        return Math.max(0, Math.floor((endTime - startTime) / (1000 * 60)));
+      }
+    }
+
+    if (typeof record.studyHours === 'number' && Number.isFinite(record.studyHours)) {
+      return Math.max(0, Math.round(record.studyHours * 60));
+    }
+
+    return 0;
+  };
+
+  const formatLibraryDuration = (minutes) => {
+    const safeMinutes = Math.max(0, Math.round(minutes || 0));
+    const hours = Math.floor(safeMinutes / 60);
+    const mins = safeMinutes % 60;
+
+    if (hours === 0) return `${mins}m`;
+    if (mins === 0) return `${hours}h`;
+    return `${hours}h ${mins}m`;
+  };
+
   // Sync Profile Form Data when metrics are loaded
   useEffect(() => {
     // If we have verified student data from the registry, prioritize it
@@ -212,12 +300,40 @@ export default function StudentDashboard() {
   const [newRoutineHrs, setNewRoutineHrs] = React.useState('');
   const [newRoutineMin, setNewRoutineMin] = React.useState('');
   const [selectedHistoryDate, setSelectedHistoryDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [libraryElapsedNow, setLibraryElapsedNow] = React.useState(Date.now());
   const [analyticsRange, setAnalyticsRange] = React.useState('7D'); // '7D', '30D', '90D', '1Y'
   const [heatmapIntensity, setHeatmapIntensity] = React.useState({});
   const [selectedStatsDate, setSelectedStatsDate] = React.useState(new Date());
 
+  const todayDateKey = normalizeDateKey(new Date());
+  const selectedHistoryDateKey = normalizeDateKey(selectedHistoryDate);
+  const selectedHistoryRecord = Array.isArray(history)
+    ? history.find((record) => normalizeDateKey(record?.date) === selectedHistoryDateKey)
+    : null;
+  const selectedNodeIsToday = selectedHistoryDateKey === todayDateKey;
+  const selectedNodeIsLive = selectedNodeIsToday && isInLibrary && Boolean(todayStatus?.checkIn || todayStatus?.checkInTime);
+  const selectedLibraryMinutes = selectedNodeIsLive
+    ? getLibraryDurationMinutes(todayStatus, libraryElapsedNow)
+    : getLibraryDurationMinutes(selectedHistoryRecord);
+  const selectedLibraryStatus = selectedNodeIsLive
+    ? 'Live session in progress'
+    : selectedHistoryRecord?.checkOut || selectedHistoryRecord?.checkOutTime || selectedHistoryRecord?.outTime
+      ? 'Session saved in attendance history'
+      : 'Session time loaded from your history';
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!selectedNodeIsLive) return undefined;
+
+    setLibraryElapsedNow(Date.now());
+    const interval = setInterval(() => {
+      setLibraryElapsedNow(Date.now());
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [selectedNodeIsLive]);
 
   useEffect(() => {
     dispatch(fetchTodayStatus());
@@ -248,7 +364,7 @@ export default function StudentDashboard() {
             dispatch(updatePomodoro({ timeLeft: remaining }));
           }
         } else {
-          handleTimerComplete('Focus Terminal');
+          handleTimerComplete('Focus Timer');
           pomodoroTargetTime.current = null;
           clearInterval(interval);
         }
@@ -304,7 +420,7 @@ export default function StudentDashboard() {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
 
     const options = {
-      body: `PROTOCOL COMPLETE: ${source} session terminated. Swipe to return to terminal.`,
+      body: `${source} is complete. Open the app to continue.`,
       icon: '/pwa-192x192.png',
       vibrate: [500, 200, 500],
       tag: 'timer-alert',
@@ -314,16 +430,16 @@ export default function StudentDashboard() {
     // Use Service Worker if available for better background support
     if (navigator.serviceWorker && navigator.serviceWorker.ready) {
       navigator.serviceWorker.ready.then(registration => {
-        registration.showNotification(`TERMINAL ALERT`, options);
+        registration.showNotification(`Timer complete`, options);
       });
     } else {
-      new Notification(`TERMINAL ALERT`, options);
+      new Notification(`Timer complete`, options);
     }
   };
 
   const triggerAlarm = (source) => {
     setIsAlarmActive(true);
-    toast.error(`TERMINAL ALERT: ${source} Completed!`, { duration: 6000 });
+    toast.error(`${source} completed`, { duration: 6000 });
 
     // 1. START AUDIO ALARM (Synthetic)
     try {
@@ -392,7 +508,7 @@ export default function StudentDashboard() {
     if (navigator.vibrate) {
       navigator.vibrate(0);
     }
-    toast.success("Schedule updated.");
+    toast.success("Timer stopped.");
   };
 
   const handlePomodoroComplete = () => {
@@ -408,7 +524,7 @@ export default function StudentDashboard() {
     }));
 
     if (isFocus) {
-      toast.success("Focus Session Synchronized! Time for a short recharge.");
+      toast.success("Focus session completed. Time for a short break.");
       const focusedHours = (pomodoro.focusDuration / 60).toFixed(1);
       setLogFormData(prev => ({
         ...prev,
@@ -416,7 +532,7 @@ export default function StudentDashboard() {
         topicsCovered: prev.topicsCovered + `\n- Focus session: ${pomodoro.focusDuration}m completed`
       }));
     } else {
-      toast.success("Break Terminated. Ready for the next focus node?");
+      toast.success("Break finished. You can start the next focus session.");
     }
   };
 
@@ -429,7 +545,7 @@ export default function StudentDashboard() {
     }));
     dispatch(savePomodoroSettings());
     setShowPomodoroSettings(false);
-    toast.success("Terminal rhythms updated.");
+    toast.success("Timer settings updated.");
   };
 
   const handleToggleTimer = () => {
@@ -462,7 +578,7 @@ export default function StudentDashboard() {
       setNewTaskHrs('');
       setNewTaskMin('');
       dispatch(fetchSubjectAnalytics()); // Refresh analytics when task added
-      toast.success("Preparation node added.");
+      toast.success("Task added.");
     } catch (err) {
       toast.error("Failed to add task");
     }
@@ -473,7 +589,7 @@ export default function StudentDashboard() {
       await dispatch(syncRoutine()).unwrap();
       toast.success("Study schedule updated.");
     } catch (err) {
-      toast.error(typeof err === 'string' ? err : (err?.message || "Schedule sync failed"));
+      toast.error(typeof err === 'string' ? err : (err?.message || "Could not sync routine"));
     }
   };
 
@@ -528,7 +644,7 @@ export default function StudentDashboard() {
     try {
       await dispatch(toggleTaskStatus({ id, isCompleted: !isCompleted })).unwrap();
     } catch (err) {
-      toast.error("Status sync failed");
+      toast.error("Could not update task status");
     }
   };
   const handleDeleteTask = async (id) => {
@@ -590,9 +706,9 @@ export default function StudentDashboard() {
     try {
       await dispatch(updateDailyGoal(tempGoal)).unwrap();
       setActiveModal(null);
-      toast.success("Daily target synchronized.");
+      toast.success("Daily goal updated.");
     } catch (err) {
-      toast.error(typeof err === 'string' ? err : (err?.message || "Sync failure"));
+      toast.error(typeof err === 'string' ? err : (err?.message || "Could not update goal"));
     }
   };
 
@@ -906,12 +1022,14 @@ export default function StudentDashboard() {
         await dispatch(logoutAdmin()).unwrap();
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('sessionId');
         navigate('/login');
         toast.success("Security session terminated.");
       } catch (err) {
         // Fallback for network issues
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('sessionId');
         navigate('/login');
       }
     }
@@ -1110,7 +1228,7 @@ export default function StudentDashboard() {
           Contact Administration
         </a>
         <button onClick={handleLogout} className="px-10 py-5 bg-zinc-800 text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] border border-white/5 shadow-2xl active:scale-95 transition-all">
-          Exit Portal
+          Log Out
         </button>
       </div>
     </div>
@@ -1143,7 +1261,7 @@ export default function StudentDashboard() {
             </div>
 
             <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none mb-2">
-              {profileFormData.fullName || user?.name || 'SYNC IDENTITY'}
+              {profileFormData.fullName || user?.name || 'Student Profile'}
             </h2>
             <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10">
               <GraduationCap size={14} className="text-zinc-500" />
@@ -1293,7 +1411,7 @@ export default function StudentDashboard() {
                 <div className="flex gap-3">
                   <ShieldCheck className="text-zinc-600 shrink-0" size={14} />
                   <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest leading-relaxed">
-                    Identity security protocol: If you see an unrecognized device, logout immediately and contact support.
+                    If you see a device you do not recognize, log it out and contact support.
                   </p>
                 </div>
               </div>
@@ -1309,7 +1427,7 @@ export default function StudentDashboard() {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
               {otpRequestPending ? <Loader2 size={18} className="animate-spin" /> : <RefreshCcw size={18} />}
-              {otpRequestPending ? 'Verifying...' : 'Save & Sync Profile'}
+              {otpRequestPending ? 'Sending code...' : 'Save Profile Changes'}
             </button>
 
             <button
@@ -1317,7 +1435,7 @@ export default function StudentDashboard() {
               className="w-full py-6 bg-red-500/5 hover:bg-red-500/10 text-red-500 border border-white/5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.4em] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
             >
               <Power size={14} strokeWidth={3} />
-              Exit Portal
+              Log Out
             </button>
           </div>
         </div>
@@ -1342,7 +1460,7 @@ export default function StudentDashboard() {
                 <Timer size={20} />
               </div>
               <div className="flex flex-col">
-                <h2 className="text-sm font-black text-white italic tracking-tighter uppercase leading-none">Focus Terminal</h2>
+                <h2 className="text-sm font-black text-white italic tracking-tighter uppercase leading-none">Focus Timer</h2>
               </div>
             </div>
             <motion.button
@@ -1376,7 +1494,7 @@ export default function StudentDashboard() {
                   className="flex items-center gap-1 text-[8px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full"
                 >
                   <ShieldCheck size={8} />
-                  Background Alerts Active
+                  Notifications On
                 </motion.div>
               )}
             </div>
@@ -1486,7 +1604,7 @@ export default function StudentDashboard() {
               onClick={handleSyncRoutine}
               disabled={actionLoading || !isInLibrary}
               className={`p-2 rounded-xl bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600/20 transition-all ${actionLoading || !isInLibrary ? 'opacity-30 cursor-not-allowed' : ''}`}
-              title={isInLibrary ? "Sync Schedule" : "Check in to sync"}
+              title={isInLibrary ? "Sync routine" : "Check in to sync routine"}
             >
               <RefreshCcw size={14} className={actionLoading ? 'animate-spin' : ''} />
             </button>
@@ -1503,8 +1621,8 @@ export default function StudentDashboard() {
             <div className="w-16 h-16 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 mb-4">
               <Camera size={32} className="animate-pulse" />
             </div>
-            <h3 className="text-sm font-black text-white uppercase tracking-tighter mb-1">Locked</h3>
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">Scan QR at the library<br />to activate your plan.</p>
+            <h3 className="text-sm font-black text-white uppercase tracking-tighter mb-1">Check-in Required</h3>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">Scan the library QR code<br />to unlock today's tasks.</p>
           </div>
         )}
 
@@ -1534,9 +1652,9 @@ export default function StudentDashboard() {
                             <input type="number" value={editingTask.editMin} onChange={(e) => setEditingTask({ ...editingTask, editMin: e.target.value })} className="w-12 bg-transparent text-[10px] font-bold text-white outline-none px-1 text-center" placeholder="M" title="Minutes" />
                           </div>
                           <button onClick={handleUpdateTask} disabled={actionLoading} className={`bg-blue-600 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest ${actionLoading ? 'opacity-50' : ''}`}>
-                            {actionLoading ? 'SAVING...' : 'SAVE'}
+                            {actionLoading ? 'Saving...' : 'Save'}
                           </button>
-                          <button onClick={() => setEditingTask(null)} disabled={actionLoading} className="bg-white/10 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest">CANCEL</button>
+                          <button onClick={() => setEditingTask(null)} disabled={actionLoading} className="bg-white/10 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest">Cancel</button>
                         </div>
                       </div>
                     ) : (
@@ -1597,7 +1715,7 @@ export default function StudentDashboard() {
           <form onSubmit={handleAddTask} className="relative mt-auto space-y-3">
             <input
               type="text"
-              placeholder={isInLibrary ? "Add task..." : "Check in to add tasks..."}
+              placeholder={isInLibrary ? "Add today's task..." : "Check in to add today's tasks..."}
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
               disabled={!isInLibrary}
@@ -1883,7 +2001,7 @@ export default function StudentDashboard() {
           <div className="flex items-center gap-2 mt-1 opacity-80">
             <span className={`w-2 h-2 rounded-full animate-pulse ${todayStatus?.status === 'In Library' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
             <span className={`text-[12px] font-black uppercase tracking-[0.2em] ${todayStatus?.status === 'In Library' ? 'text-emerald-400' : 'text-orange-400'}`}>
-              {todayStatus?.status || 'Awaiting Sync'}
+              {todayStatus?.status || 'Waiting for update'}
             </span>
           </div>
         </div>
@@ -1999,7 +2117,7 @@ export default function StudentDashboard() {
             <div className="glass-card rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-8 border border-white/5 shadow-2xl">
               <div className="flex items-center gap-3 mb-6 sm:mb-8">
                 <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500"><TrendingUp size={20} /></div>
-                <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight italic">Velocity</h2>
+                <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight italic">Today's Progress</h2>
               </div>
               <div className="h-[200px] sm:h-[250px] min-h-[200px] sm:min-h-[250px]">
                 <ResponsiveContainer width="99%" height={250} minHeight={200} debounce={100}>
@@ -2048,8 +2166,8 @@ export default function StudentDashboard() {
   const renderTasksView = () => (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="space-y-10 pb-32 max-w-4xl mx-auto">
       <div className="flex flex-col gap-2">
-        <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Daily <span className="text-blue-500">Protocol</span></h2>
-        <p className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.3em]">Managed Study Sessions & Tasks</p>
+        <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Daily <span className="text-blue-500">Study Plan</span></h2>
+        <p className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.3em]">Your timer, routine, and tasks for today</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -2085,23 +2203,23 @@ export default function StudentDashboard() {
         <div className="space-y-6 sm:space-y-8">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500"><PenLine size={18} /></div>
-            <h3 className="text-lg font-black text-white uppercase tracking-tight italic">Plan Subject</h3>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight italic">Add Subject</h3>
           </div>
 
           <form onSubmit={handleAddScheduleItem} className="glass-card p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] bg-white/[0.03] border border-white/5 space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-500 uppercase ml-2 tracking-widest">Subject</label>
-              <input type="text" placeholder="e.g., Mathematics" value={newRoutineSubject} onChange={(e) => setNewRoutineSubject(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-bold text-white focus:border-indigo-500 outline-none transition-all" />
+              <input type="text" placeholder="e.g., Mathematics" value={newRoutineSubject} onChange={(e) => setNewRoutineSubject(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-semibold text-white focus:border-indigo-500 outline-none transition-all placeholder:text-white/25" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-500 uppercase ml-2 tracking-widest">Hours</label>
-                <input type="number" placeholder="2" value={newRoutineHrs} onChange={(e) => setNewRoutineHrs(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-black text-white outline-none" />
+                <input type="number" placeholder="2" value={newRoutineHrs} onChange={(e) => setNewRoutineHrs(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-semibold text-white outline-none placeholder:text-white/25" />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-500 uppercase ml-2 tracking-widest">Minutes</label>
-                <input type="number" placeholder="30" value={newRoutineMin} onChange={(e) => setNewRoutineMin(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-black text-white outline-none" />
+                <input type="number" placeholder="30" value={newRoutineMin} onChange={(e) => setNewRoutineMin(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm font-semibold text-white outline-none placeholder:text-white/25" />
               </div>
             </div>
 
@@ -2115,7 +2233,7 @@ export default function StudentDashboard() {
         <div className="space-y-6 sm:space-y-8">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500"><LayoutGrid size={18} /></div>
-            <h3 className="text-lg font-black text-white uppercase tracking-tight italic">Active Slots</h3>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight italic">Today's Schedule</h3>
           </div>
 
           <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar no-scrollbar">
@@ -2146,8 +2264,8 @@ export default function StudentDashboard() {
   const renderJournal = () => (
     <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-10 pb-32 max-w-2xl mx-auto">
       <div className="flex flex-col gap-2">
-        <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Study <span className="text-blue-500">Journal</span></h2>
-        <p className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.3em]">Log your productivity metrics</p>
+        <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Study <span className="text-blue-500">Log</span></h2>
+        <p className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.3em]">Write what you studied today</p>
       </div>
 
       <div className="bg-zinc-900/40 backdrop-blur-3xl rounded-[3rem] border border-white/5 p-8 sm:p-12 shadow-2xl">
@@ -2206,7 +2324,7 @@ export default function StudentDashboard() {
             disabled={actionLoading}
             className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50 mt-4"
           >
-            {actionLoading ? 'Synchronizing...' : 'Finalize Entry'}
+            {actionLoading ? 'Saving...' : 'Save Entry'}
           </button>
         </form>
       </div>
@@ -2231,16 +2349,16 @@ export default function StudentDashboard() {
         exit={{ opacity: 0, scale: 0.98 }}
         className="space-y-6 sm:space-y-10 pb-32 max-w-5xl mx-auto"
       >
-        {/* Intelligence Header */}
+          {/* History Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 px-1">
           <div className="space-y-1">
-            <h2 className="text-3xl sm:text-4xl font-black text-white italic tracking-tighter uppercase leading-none">
-              Intelligence <span className="text-blue-500">Vault</span>
-            </h2>
-            <div className="flex items-center gap-2 mt-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-              <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] italic">Audit Session: {selectedStatsDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
-            </div>
+              <h2 className="text-3xl sm:text-4xl font-black text-white italic tracking-tighter uppercase leading-none">
+                Study <span className="text-blue-500">Insights</span>
+              </h2>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] italic">Showing data for {selectedStatsDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
+              </div>
           </div>
 
           <div className="flex gap-1 bg-white/5 border border-white/5 p-1 rounded-2xl self-start sm:self-auto">
@@ -2262,10 +2380,10 @@ export default function StudentDashboard() {
         {/* Intelligence Grid - Mobile optimized 2x2 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 px-1">
           {[
-            { label: 'Volume', value: `${totalHours.toFixed(1)}H`, sub: 'Total Effort', color: 'indigo' },
-            { label: 'Velocity', value: `${avgHours}H`, sub: 'Daily Avg', color: 'blue' },
-            { label: 'Peak', value: `${([...analyticsData].sort((a, b) => b.hours - a.hours)[0]?.hours || 0).toFixed(1)}H`, sub: 'Max Node', color: 'emerald' },
-            { label: 'Streak', value: `${metrics?.currentStreak || 0}D`, sub: 'Live Chain', color: 'orange' }
+            { label: 'Total Time', value: `${totalHours.toFixed(1)}H`, sub: 'All Study Hours', color: 'indigo' },
+            { label: 'Average', value: `${avgHours}H`, sub: 'Per Day', color: 'blue' },
+            { label: 'Best Day', value: `${([...analyticsData].sort((a, b) => b.hours - a.hours)[0]?.hours || 0).toFixed(1)}H`, sub: 'Highest Hours', color: 'emerald' },
+            { label: 'Streak', value: `${metrics?.currentStreak || 0}D`, sub: 'Days in a Row', color: 'orange' }
           ].map((card, i) => (
             <div key={i} className={cn(
               "p-4 sm:p-5 rounded-[2rem] border transition-all hover:scale-[1.02]",
@@ -2295,7 +2413,7 @@ export default function StudentDashboard() {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400"><TrendingUp size={20} /></div>
               <div>
-                <h3 className="text-sm sm:text-lg font-black text-white uppercase tracking-tight italic">Velocity Trend</h3>
+                <h3 className="text-sm sm:text-lg font-black text-white uppercase tracking-tight italic">Study Time Trend</h3>
                 <p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest">{periodLabel}</p>
               </div>
             </div>
@@ -2334,7 +2452,7 @@ export default function StudentDashboard() {
                             <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">{payload[0].payload.fullDate}</p>
                             <div className="flex items-center gap-2">
                               <span className="text-lg sm:text-xl font-black text-white italic tracking-tighter">{formatStudyTime(payload[0].value)}</span>
-                              <span className="text-[8px] font-black text-blue-500 uppercase">Focus</span>
+                              <span className="text-[8px] font-black text-blue-500 uppercase">Study</span>
                             </div>
                           </div>
                         );
@@ -2388,7 +2506,7 @@ export default function StudentDashboard() {
             )) : (
               <div className="col-span-full py-16 text-center opacity-20 bg-white/[0.01] rounded-[3rem] border border-dashed border-white/10">
                 <Activity size={32} className="mx-auto mb-3" />
-                <p className="text-[9px] font-black uppercase tracking-[0.2em]">Matrix Offline - Select node to sync</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em]">No subject data available yet</p>
               </div>
             )}
           </div>
@@ -2399,7 +2517,7 @@ export default function StudentDashboard() {
           <div className="flex items-center justify-between px-2">
             <h3 className="text-xl font-black text-white italic tracking-tighter uppercase leading-tight flex items-center gap-3">
               <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
-              Node <span className="text-emerald-500">Explorer</span>
+              Daily <span className="text-emerald-500">Summary</span>
             </h3>
             <div className="relative">
               <input
@@ -2416,21 +2534,26 @@ export default function StudentDashboard() {
               <>
                 <div className="p-8 rounded-[3rem] bg-emerald-500/5 border border-emerald-500/10 relative overflow-hidden flex flex-col justify-center">
                   <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 blur-[80px] rounded-full" />
-                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest block mb-4">Input Synchronized</span>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest block">
+                      {selectedNodeIsLive ? 'Live Library Time' : 'Total Library Time'}
+                    </span>
+                    {selectedNodeIsLive && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-[8px] font-black text-emerald-400 uppercase tracking-[0.2em]">Live</span>}
+                  </div>
                   <div className="flex items-baseline gap-2 mb-6">
                     <span className="text-5xl font-black text-white italic tracking-tighter">
-                      {formatStudyTime(history.find(h => h.date?.split('T')[0] === selectedHistoryDate?.split('T')[0])?.studyHours || 0)}
+                      {formatLibraryDuration(selectedLibraryMinutes)}
                     </span>
                   </div>
 
                   <div className="space-y-3">
                     <div className="text-[9px] font-bold text-gray-500 uppercase flex items-center gap-2">
                       <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                      Session Verified and Audited
+                      {selectedLibraryStatus}
                     </div>
                     <div className="text-[9px] font-bold text-gray-500 uppercase flex items-center gap-2">
                       <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                      Database persistence locked
+                      {selectedNodeIsLive ? `Checked in at ${formatTime(todayStatus?.checkIn || todayStatus?.checkInTime)}` : 'Saved in your account history'}
                     </div>
                   </div>
                 </div>
@@ -2443,7 +2566,7 @@ export default function StudentDashboard() {
                     {historyTasksLoading && (
                       <div className="flex items-center gap-2 text-emerald-500/50">
                         <Loader2 size={10} className="animate-spin" />
-                        <span className="text-[8px] animate-pulse">Syncing Node...</span>
+                        <span className="text-[8px] animate-pulse">Loading tasks...</span>
                       </div>
                     )}
                   </h4>
@@ -2460,7 +2583,7 @@ export default function StudentDashboard() {
                             <span className={`text-[12px] font-black italic truncate ${task.isCompleted ? 'text-white' : 'text-zinc-600'}`}>{task.title}</span>
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className="text-[8px] font-bold text-blue-500 uppercase tracking-widest">
-                                {task.estimatedMinutes ? formatStudyTime(task.estimatedMinutes / 60) : 'No Limit'} node
+                                {task.estimatedMinutes ? formatStudyTime(task.estimatedMinutes / 60) : 'No time limit'}
                               </span>
                               <span className="text-[7px] font-bold text-gray-600 uppercase tracking-widest">• {timeStr}</span>
                             </div>
@@ -2468,11 +2591,11 @@ export default function StudentDashboard() {
                           <span className={cn(
                             "text-[9px] font-black px-2 py-0.5 rounded-lg uppercase shrink-0 transition-all",
                             task.isCompleted ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
-                          )}>{task.isCompleted ? 'COMPLETE' : 'MISS'}</span>
+                          )}>{task.isCompleted ? 'Done' : 'Pending'}</span>
                         </div>
                       );
                     }) : !historyTasksLoading ? (
-                      <p className="text-[9px] text-zinc-700 font-bold italic py-8 text-center uppercase tracking-widest opacity-40">No entries for this temporal node</p>
+                      <p className="text-[9px] text-zinc-700 font-bold italic py-8 text-center uppercase tracking-widest opacity-40">No tasks found for this date</p>
                     ) : (
                       <div className="space-y-2 py-4">
                         {[1, 2].map(i => (
@@ -2488,7 +2611,7 @@ export default function StudentDashboard() {
                 <div className="w-16 h-16 rounded-full border-2 border-dashed border-zinc-800 flex items-center justify-center">
                   <History size={32} />
                 </div>
-                <p className="text-[9px] font-black uppercase tracking-[0.2em]">Select a node to browse session history</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em]">Select a date to view your study history</p>
               </div>
             )}
           </div>
@@ -2512,7 +2635,7 @@ export default function StudentDashboard() {
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
               <GraduationCap size={22} />
             </div>
-            <span className="text-xl font-black text-white tracking-tighter uppercase italic">Study<span className="text-blue-500">Vault</span></span>
+            <span className="text-xl font-black text-white tracking-tighter uppercase italic">Student<span className="text-blue-500">Dashboard</span></span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -2572,7 +2695,7 @@ export default function StudentDashboard() {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em]">Live Protocol</span>
+                  <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em]">Timer Alert</span>
                   <span className="text-[9px] font-bold text-zinc-500 uppercase">Just Now</span>
                 </div>
                 <h3 className="text-sm font-black text-white truncate">Session Terminated</h3>
@@ -2604,7 +2727,7 @@ export default function StudentDashboard() {
           <div className="bg-[#0B0D17]/80 backdrop-blur-3xl border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] p-1.5 sm:p-2 flex items-center justify-between shadow-[0_25px_50px_-12px_rgba(59,130,246,0.3)]">
             <button onClick={() => setActiveView('hub')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'hub' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
               <LayoutGrid size={24} />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Hub</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Home</span>
             </button>
 
             <button onClick={() => setActiveView('tasks')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'tasks' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
@@ -2625,7 +2748,7 @@ export default function StudentDashboard() {
 
             <button onClick={() => setActiveView('history')} className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${activeView === 'history' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}>
               <History size={24} />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">Vault</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-center w-full">History</span>
             </button>
           </div>
         </div>
@@ -2638,13 +2761,13 @@ export default function StudentDashboard() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-zinc-900 border border-white/10 p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] w-full max-w-sm shadow-2xl overflow-hidden">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tighter italic">Attendance Scan</h3>
+                <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tighter italic">Scan Library QR</h3>
                 <button onClick={() => setActiveModal(null)} className="p-2 rounded-xl bg-white/5 text-gray-500 hover:text-white"><XCircle size={20} /></button>
               </div>
               <div className="bg-black/50 rounded-2xl sm:rounded-[2rem] mb-6 overflow-hidden border border-white/5 h-[280px] sm:h-[300px] relative">
                 <Scanner onScan={handleScanSuccess} components={{ audio: false, finder: true }} styles={{ container: { width: '100%', height: '100%' } }} />
               </div>
-              <button onClick={() => setActiveModal(null)} className="w-full py-4 rounded-xl sm:rounded-2xl bg-white/5 text-gray-500 font-black text-[10px] uppercase tracking-widest hover:bg-white/10">Terminate Scan</button>
+              <button onClick={() => setActiveModal(null)} className="w-full py-4 rounded-xl sm:rounded-2xl bg-white/5 text-gray-500 font-black text-[10px] uppercase tracking-widest hover:bg-white/10">Close Scanner</button>
             </motion.div>
           </div>
         )}
@@ -2667,7 +2790,7 @@ export default function StudentDashboard() {
                 <div className="flex gap-3">
                   <button onClick={() => setActiveModal(null)} className="flex-1 py-4 sm:py-5 bg-white/5 text-zinc-500 font-bold rounded-xl sm:rounded-2xl text-xs uppercase">Abort</button>
                   <button onClick={handleUpdateGoal} disabled={actionLoading} className={`flex-2 px-6 sm:px-8 py-4 sm:py-5 bg-blue-600 text-white font-black rounded-xl sm:rounded-2xl shadow-xl shadow-blue-500/20 text-xs uppercase tracking-widest ${actionLoading ? 'opacity-50' : ''}`}>
-                    {actionLoading ? 'SYNCING...' : 'Sync Goal'}
+                    {actionLoading ? 'Saving...' : 'Save Goal'}
                   </button>
                 </div>
               </div>
@@ -2682,9 +2805,9 @@ export default function StudentDashboard() {
               <div className="w-20 h-20 rounded-[28px] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-8">
                 <ShieldCheck size={40} className="text-emerald-500" />
               </div>
-              <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2">Authorize Sync</h3>
+              <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2">Confirm Profile Update</h3>
               <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-10 leading-loose">
-                Institutional security protocol in effect.<br />Enter the 6-digit sync cipher sent to {user?.email}
+                Enter the 6-digit code sent to {user?.email}<br />to save your profile changes
               </p>
 
               <input
@@ -2703,7 +2826,7 @@ export default function StudentDashboard() {
                   disabled={actionLoading}
                   className="flex-2 px-10 py-5 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/20 text-[10px] uppercase tracking-[0.2em] transition-all disabled:opacity-50 hover:bg-emerald-500 active:scale-95"
                 >
-                  {actionLoading ? 'SYNCING...' : 'Verify & Update'}
+                  {actionLoading ? 'Saving...' : 'Verify & Save'}
                 </button>
               </div>
             </motion.div>

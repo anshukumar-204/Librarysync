@@ -72,6 +72,7 @@ const feeSlice = createSlice({
     builder
       .addCase(getFeeStatus.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(getFeeStatus.fulfilled, (state, action) => {
         state.loading = false;
@@ -83,13 +84,19 @@ const feeSlice = createSlice({
       })
       .addCase(getAdminFeeSummary.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(getAdminFeeSummary.fulfilled, (state, action) => {
         state.loading = false;
         state.summary = action.payload.data;
       })
+      .addCase(getAdminFeeSummary.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
       .addCase(getFeesRegistry.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(getFeesRegistry.fulfilled, (state, action) => {
         state.loading = false;
@@ -107,6 +114,10 @@ const feeSlice = createSlice({
       })
       .addCase(recordFeePayment.fulfilled, (state) => {
         state.loading = false;
+      })
+      .addCase(recordFeePayment.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   }
 });
