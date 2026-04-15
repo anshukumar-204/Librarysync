@@ -17,15 +17,16 @@ export default function AdminDashboardPage() {
   const [statusFilter, setStatusFilter] = useState('all'); // all, inside, left
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [rescueTarget, setRescueTarget] = useState(null); // The attendance record being rescued
+  const isTodaySelected = selectedDate === new Date().toISOString().split('T')[0];
 
   useEffect(() => {
-    if (selectedDate === new Date().toISOString().split('T')[0]) {
+    if (isTodaySelected) {
       dispatch(fetchAdminLiveStats());
     } else {
       dispatch(fetchAdminHistory({ date: selectedDate }));
     }
     dispatch(fetchAdminTrends());
-  }, [dispatch, selectedDate]);
+  }, [dispatch, isTodaySelected, selectedDate]);
 
   const handleDateChange = (e) => {
     setSelectedDate(e.target.value);
@@ -56,7 +57,9 @@ export default function AdminDashboardPage() {
           </h2>
           <p className="text-zinc-500 text-sm mt-3 font-medium flex items-center gap-2">
             <Radio className="w-3 h-3 text-emerald-500 animate-pulse" />
-            Live records updated at {new Date().toLocaleTimeString('en-US', { hour12: false })}
+            {isTodaySelected
+              ? `Live records updated at ${new Date().toLocaleTimeString('en-US', { hour12: false })}`
+              : `Viewing archived records for ${formatDate(selectedDate)}`}
           </p>
         </div>
 
@@ -71,7 +74,7 @@ export default function AdminDashboardPage() {
             />
           </div>
           <button
-            onClick={() => selectedDate === new Date().toISOString().split('T')[0] ? dispatch(fetchAdminLiveStats()) : dispatch(fetchAdminHistory({ date: selectedDate }))}
+            onClick={() => isTodaySelected ? dispatch(fetchAdminLiveStats()) : dispatch(fetchAdminHistory({ date: selectedDate }))}
             className="flex items-center gap-3 px-6 py-3.5 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
           >
             <RefreshCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -84,23 +87,23 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           label="Total Activity"
-          value={liveStats.totalPresent || filteredRecords.length}
+          value={liveStats.totalPresent ?? filteredRecords.length}
           icon={Users}
-          trend={selectedDate === new Date().toISOString().split('T')[0] ? "Today" : "Archive"}
+          trend={isTodaySelected ? "Today" : "Archive"}
           color="blue"
         />
         <StatCard
           label="Students Inside"
-          value={liveStats.records?.filter(r => !r.checkOutTime).length || 0}
+          value={liveStats.currentlyInside ?? liveStats.records?.filter(r => !r.checkOutTime).length ?? 0}
           icon={UserCheck}
-          trend="Live"
+          trend={isTodaySelected ? "Live" : "Archive"}
           color="emerald"
         />
         <StatCard
           label="Exits Recorded"
-          value={liveStats.records?.filter(r => !!r.checkOutTime).length || 0}
+          value={liveStats.completed ?? liveStats.records?.filter(r => !!r.checkOutTime).length ?? 0}
           icon={UserMinus}
-          trend="Today"
+          trend={isTodaySelected ? "Today" : "Archive"}
           color="amber"
         />
         <StatCard
@@ -130,7 +133,11 @@ export default function AdminDashboardPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-white tracking-tight leading-none uppercase italic">Live Attendance</h3>
-                  <p className="text-zinc-500 text-[10px] mt-2 font-black uppercase tracking-[0.2em]">{filteredRecords.length} students currently present</p>
+                  <p className="text-zinc-500 text-[10px] mt-2 font-black uppercase tracking-[0.2em]">
+                    {isTodaySelected
+                      ? `${filteredRecords.length} students currently present`
+                      : `${filteredRecords.length} attendance records for ${formatDate(selectedDate)}`}
+                  </p>
                 </div>
               </div>
 

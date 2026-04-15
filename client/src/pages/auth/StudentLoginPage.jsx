@@ -35,6 +35,21 @@ export default function StudentLoginPage() {
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.adminAuth);
 
+  const normalizeCredential = (value) => {
+    const trimmed = (value || '').trim();
+    if (!trimmed) return '';
+    if (trimmed.includes('@')) return trimmed.toLowerCase();
+
+    const digitsOnly = trimmed.replace(/\D/g, '');
+    if (digitsOnly.length === 12 && digitsOnly.startsWith('91')) {
+      return digitsOnly.slice(2);
+    }
+    if (digitsOnly.length === 11 && digitsOnly.startsWith('0')) {
+      return digitsOnly.slice(1);
+    }
+    return digitsOnly || trimmed;
+  };
+
   const buildFirebaseSyncPayload = async (firebaseUser) => {
     const providerIds = (firebaseUser.providerData || [])
       .map((provider) => provider?.providerId)
@@ -57,7 +72,7 @@ export default function StudentLoginPage() {
     dispatch(clearError());
     setIsSubmitting(true);
     try {
-      const resultAction = await dispatch(loginAdmin({ credential, password }));
+      const resultAction = await dispatch(loginAdmin({ credential: normalizeCredential(credential), password }));
       if (loginAdmin.fulfilled.match(resultAction)) {
         toast.success('Welcome back! Portal access granted.');
         navigate('/student/portal');
@@ -82,16 +97,18 @@ export default function StudentLoginPage() {
 
   const handlePhoneSubmit = async (e) => {
     e.preventDefault();
-    if (!credential || credential.length < 10) {
+    const normalizedPhone = normalizeCredential(credential);
+    if (!normalizedPhone || normalizedPhone.length < 10) {
       toast.error('Valid mobile number required.');
       return;
     }
     setIsSubmitting(true);
     try {
       setupRecaptcha();
-      const formattedPhone = credential.startsWith('+') ? credential : `+91${credential}`;
+      const formattedPhone = `+91${normalizedPhone}`;
       const result = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
       setConfirmationResult(result);
+      setCredential(normalizedPhone);
       setShowOtpField(true);
       toast.success('Security code sent to your mobile.');
     } catch (err) {
@@ -125,7 +142,8 @@ export default function StudentLoginPage() {
   // --- Firebase Magic Link ---
   const handleEmailLinkSend = async (e) => {
     e.preventDefault();
-    if (!credential || !credential.includes('@')) {
+    const normalizedEmail = normalizeCredential(credential);
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
       toast.error('Please enter a valid email.');
       return;
     }
@@ -136,8 +154,9 @@ export default function StudentLoginPage() {
         url: `${baseUrl}/login`,
         handleCodeInApp: true,
       };
-      await sendSignInLinkToEmail(auth, credential, actionCodeSettings);
-      window.localStorage.setItem('emailForSignIn', credential);
+      await sendSignInLinkToEmail(auth, normalizedEmail, actionCodeSettings);
+      window.localStorage.setItem('emailForSignIn', normalizedEmail);
+      setCredential(normalizedEmail);
       setLinkSent(true);
       toast.success('Magic link sent to your email.');
     } catch (err) {

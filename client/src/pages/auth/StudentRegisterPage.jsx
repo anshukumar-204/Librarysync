@@ -58,6 +58,21 @@ export default function StudentRegisterPage() {
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.adminAuth);
 
+  const normalizeCredential = (value) => {
+    const trimmed = (value || '').trim();
+    if (!trimmed) return '';
+    if (trimmed.includes('@')) return trimmed.toLowerCase();
+
+    const digitsOnly = trimmed.replace(/\D/g, '');
+    if (digitsOnly.length === 12 && digitsOnly.startsWith('91')) {
+      return digitsOnly.slice(2);
+    }
+    if (digitsOnly.length === 11 && digitsOnly.startsWith('0')) {
+      return digitsOnly.slice(1);
+    }
+    return digitsOnly || trimmed;
+  };
+
   const buildFirebaseSyncPayload = async (firebaseUser) => {
     const providerIds = (firebaseUser.providerData || [])
       .map((provider) => provider?.providerId)
@@ -129,44 +144,58 @@ export default function StudentRegisterPage() {
 
   const handleVerify = async (e) => {
     e.preventDefault();
+    const normalizedCredential = normalizeCredential(credential);
+    if (!normalizedCredential) {
+      toast.error('Enter your registered mobile number or email.');
+      return;
+    }
     setIsVerifying(true);
     try {
-      const response = await authApi.verifyRegistration(credential);
-      if (response.success) {
-        const { fullName, mobile, email, student } = response.data;
-        setFormData(prev => ({
-          ...prev,
-          fullName: fullName || '',
-          mobile: mobile || '',
-          email: email || '',
-          fatherName: student?.fatherName || '',
-          address: student?.address || '',
-          village: student?.village || '',
-          post: student?.post || '',
-          district: student?.district || '',
-          city: student?.city || '',
-          state: student?.state || '',
-          pincode: student?.pincode || '',
-        }));
-        setIsVerified(true);
-        // Only names in this array will be editable (and thus mandatory)
-        const editable = [];
-        if (!fullName || fullName === "New Student") editable.push('fullName');
-        if (!email) editable.push('email');
-        if (!student?.fatherName) editable.push('fatherName');
-        if (!student?.address) editable.push('address');
-        if (!student?.village) editable.push('village');
-        if (!student?.post) editable.push('post');
-        if (!student?.district) editable.push('district');
-        if (!student?.city) editable.push('city');
-        if (!student?.state) editable.push('state');
-        if (!student?.pincode) editable.push('pincode');
-        
-        setEditableFields(editable);
-        toast.success("Profile found. Missing fields unlocked.");
+      const response = await authApi.verifyRegistration(normalizedCredential);
+      const payload = response?.data || response?.student || response;
+      const student = payload?.student || payload;
+
+      if (response?.success === false || !student) {
+        throw new Error(response?.message || 'Student record not found in database.');
       }
+
+      const fullName = payload?.fullName || student?.fullName || '';
+      const mobile = payload?.mobile || student?.mobile || normalizedCredential;
+      const email = payload?.email || student?.email || '';
+
+      setFormData(prev => ({
+        ...prev,
+        fullName: fullName || '',
+        mobile: mobile || '',
+        email: email || '',
+        fatherName: student?.fatherName || '',
+        address: student?.address || '',
+        village: student?.village || '',
+        post: student?.post || '',
+        district: student?.district || '',
+        city: student?.city || '',
+        state: student?.state || '',
+        pincode: student?.pincode || '',
+      }));
+      setCredential(normalizedCredential);
+      setIsVerified(true);
+      // Only names in this array will be editable (and thus mandatory)
+      const editable = [];
+      if (!fullName || fullName === "New Student") editable.push('fullName');
+      if (!email) editable.push('email');
+      if (!student?.fatherName) editable.push('fatherName');
+      if (!student?.address) editable.push('address');
+      if (!student?.village) editable.push('village');
+      if (!student?.post) editable.push('post');
+      if (!student?.district) editable.push('district');
+      if (!student?.city) editable.push('city');
+      if (!student?.state) editable.push('state');
+      if (!student?.pincode) editable.push('pincode');
+      
+      setEditableFields(editable);
+      toast.success("Profile found. Missing fields unlocked.");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Student record not found in database.");
+      toast.error(err.response?.data?.message || err.message || "Student record not found in database.");
     } finally {
       setIsVerifying(false);
     }
@@ -214,11 +243,12 @@ export default function StudentRegisterPage() {
     dispatch(clearError());
     setIsSubmitting(true);
     try {
+      const normalizedCredential = normalizeCredential(credential);
       // Step 2 submit triggers OTP send
       const response = await authApi.register({
         ...formData,
         profileImage: profileImageBase64, 
-        credential: credential 
+        credential: normalizedCredential 
       });
       if (response.pendingVerification) {
         setShowOtpStage(true);
@@ -235,7 +265,7 @@ export default function StudentRegisterPage() {
     e.preventDefault();
     setIsActivating(true);
     try {
-      const response = await authApi.completeRegistration(credential, otp);
+      const response = await authApi.completeRegistration(normalizeCredential(credential), otp);
       if (response.success) {
         toast.success("Portal Account Active. Welcome!");
         // We manually update state or just navigate to login

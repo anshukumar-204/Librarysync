@@ -1,6 +1,22 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import dashboardApi from '../../services/dashboardApi';
 
+const getNormalizedAttendanceStats = (payload) => {
+  const source = payload?.data ?? payload ?? {};
+  const records = Array.isArray(source)
+    ? source
+    : Array.isArray(source.records)
+      ? source.records
+      : [];
+
+  return {
+    totalPresent: source.totalPresent ?? source.total ?? records.length,
+    currentlyInside: source.currentlyInside ?? records.filter((record) => !record.checkOutTime).length,
+    completed: source.completed ?? records.filter((record) => !!record.checkOutTime).length,
+    records,
+  };
+};
+
 export const fetchAdminLiveStats = createAsyncThunk(
   'adminDashboard/fetchLiveStats',
   async (_, { rejectWithValue }) => {
@@ -68,10 +84,11 @@ const adminDashboardSlice = createSlice({
     builder
       .addCase(fetchAdminLiveStats.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchAdminLiveStats.fulfilled, (state, action) => {
         state.loading = false;
-        state.liveStats = action.payload;
+        state.liveStats = getNormalizedAttendanceStats(action.payload);
       })
       .addCase(fetchAdminLiveStats.rejected, (state, action) => {
         state.loading = false;
@@ -79,11 +96,11 @@ const adminDashboardSlice = createSlice({
       })
       .addCase(fetchAdminHistory.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchAdminHistory.fulfilled, (state, action) => {
         state.loading = false;
-        // When fetching history, we replace the records in liveStats for display
-        state.liveStats.records = action.payload;
+        state.liveStats = getNormalizedAttendanceStats(action.payload);
       })
       .addCase(fetchAdminHistory.rejected, (state, action) => {
         state.loading = false;
