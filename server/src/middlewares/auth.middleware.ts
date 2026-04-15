@@ -28,6 +28,23 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     }
     
     const decoded = verifyAccessToken(token);
+    
+    // Security Hook: Verify Token Version for global session termination
+    const userSession = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { tokenVersion: true, status: true }
+    });
+
+    if (!userSession || userSession.status === 'suspended') {
+      return res.status(401).json({ success: false, message: "Unauthorized: Account Access Revoked" });
+    }
+
+    // If token has a version, it must match the current database version
+    if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== userSession.tokenVersion) {
+      console.warn(`[AUTH] Session Purge detected: UserID ${decoded.id} using stale token version ${decoded.tokenVersion} (Current: ${userSession.tokenVersion})`);
+      return res.status(401).json({ success: false, message: "Unauthorized: Session invalidated by security protocol" });
+    }
+
     console.log(`[AUTH] Identity verified: UserID ${decoded.id} (Role: ${decoded.role})`);
 
     // Provide user object on request

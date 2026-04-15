@@ -487,7 +487,7 @@ export default function StudentEditModal() {
                         <AlertCircle className="text-rose-500 shrink-0" size={24} />
                         <div>
                           <h3 className="text-sm font-black text-white uppercase tracking-widest">Master Security Override</h3>
-                          <p className="text-[10px] text-rose-500/70 font-bold uppercase tracking-widest mt-1">Updates to this node will terminate all active student sessions globally.</p>
+                          <p className="text-[10px] text-rose-500/70 font-bold uppercase tracking-widest mt-1">This action resets the student's password and terminates all active sessions across all devices.</p>
                         </div>
                       </div>
 
@@ -529,10 +529,10 @@ export default function StudentEditModal() {
                             className="w-full py-5 bg-rose-600 hover:bg-rose-500 text-white font-black text-sm uppercase tracking-[0.3em] rounded-[28px] shadow-2xl shadow-rose-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                           >
                             {isSubmitting ? <Loader2 className="animate-spin" /> : <ShieldCheck size={18} />}
-                            Apply Security Override
+                            Force Reset & Logout All Devices
                           </button>
                           <p className="text-[9px] text-zinc-600 text-center mt-6 font-bold uppercase tracking-widest leading-loose">
-                            Warning: This action bypasses standard OTP protocols. Identity must be verified manually before execution.
+                            Warning: Resetting the password will immediately invalidate all existing login sessions for this student.
                           </p>
                         </div>
                       </div>

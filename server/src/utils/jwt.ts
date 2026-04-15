@@ -6,6 +6,7 @@ const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret
 export type AccessTokenPayload = {
   id: number;
   role: string;
+  tokenVersion?: number; // Optional to support legacy tokens during transition
 };
 
 export type RefreshTokenPayload = {

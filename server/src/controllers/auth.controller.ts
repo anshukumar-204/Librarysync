@@ -119,7 +119,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Standard Student Login Flow
-    const accessToken = generateAccessToken({ id: user.id, role: user.role });
+    const accessToken = generateAccessToken({ id: user.id, role: user.role, tokenVersion: user.tokenVersion });
     const refreshToken = generateRefreshToken({ id: user.id, tokenVersion: user.tokenVersion });
 
     res.cookie("refresh_token", refreshToken, {
@@ -163,7 +163,7 @@ export const verifyLoginOtp = async (req: Request, res: Response) => {
       }
     });
 
-    const accessToken = generateAccessToken({ id: user.id, role: user.role });
+    const accessToken = generateAccessToken({ id: user.id, role: user.role, tokenVersion: user.tokenVersion });
     const refreshToken = generateRefreshToken({ id: user.id, tokenVersion: user.tokenVersion });
 
     res.cookie("refresh_token", refreshToken, {
@@ -600,7 +600,7 @@ export const completeRegistration = async (req: Request, res: Response) => {
     });
 
     // Issue tokens
-    const accessToken = generateAccessToken({ id: updatedUser.id, role: updatedUser.role });
+    const accessToken = generateAccessToken({ id: updatedUser.id, role: updatedUser.role, tokenVersion: updatedUser.tokenVersion });
     const refreshToken = generateRefreshToken({ id: updatedUser.id, tokenVersion: updatedUser.tokenVersion });
 
     res.cookie("refresh_token", refreshToken, {
@@ -744,7 +744,7 @@ export const firebaseSync = async (req: Request, res: Response) => {
       });
     }
 
-    const accessToken = generateAccessToken({ id: user.id, role: user.role });
+    const accessToken = generateAccessToken({ id: user.id, role: user.role, tokenVersion: user.tokenVersion });
     const refreshToken = generateRefreshToken({ id: user.id, tokenVersion: user.tokenVersion });
 
     res.cookie("refresh_token", refreshToken, {
