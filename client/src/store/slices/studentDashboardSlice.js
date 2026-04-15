@@ -262,7 +262,9 @@ export const fetchSubjectAnalytics = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await studentApi.fetchSubjectAnalytics();
-      return response.data;
+      // response is already response.data (the {success, data} object)
+      // so response.data is the actual array
+      return Array.isArray(response.data) ? response.data : (response.data || []);
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Failed to fetch analytics');
     }
@@ -472,7 +474,8 @@ const studentDashboardSlice = createSlice({
       .addCase(fetchSubjectAnalytics.pending, (state) => { state.loading = true; })
       .addCase(fetchSubjectAnalytics.fulfilled, (state, action) => {
         state.loading = false;
-        state.subjectAnalytics = action.payload;
+        // Always ensure subjectAnalytics is an array to prevent .length crashes
+        state.subjectAnalytics = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(fetchSubjectAnalytics.rejected, (state, action) => {
         state.loading = false;

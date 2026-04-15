@@ -20,7 +20,11 @@ import {
   createRoutineNode,
   deleteRoutineNode,
   syncRoutineTasks,
-  resetStudentPassword
+  resetStudentPassword,
+  getStudentSessions,
+  revokeStudentSession,
+  fetchActiveSessions,
+  terminateSession
 } from "../controllers/student.controller.js";
 import { checkAvailability } from "../controllers/student-validation.controller.js";
 import { authenticate, requireVerified } from "../middlewares/auth.middleware.js";
@@ -53,11 +57,17 @@ router.put("/tasks/:id", toggleTaskStatus);
 router.patch("/tasks/:id", updateTask);
 router.delete("/tasks/:id", deleteTask);
 
+// Session & Device Management
+router.get("/sessions", fetchActiveSessions);
+router.delete("/sessions/:sessionId", terminateSession);
+
 // Registry Management (Admin usually)
 router.post("/check-availability", checkAvailability);
 router.post("/", createStudent); 
 router.get("/", getStudents);
 router.put("/:id", updateStudent);
 router.put("/:id/reset-password", resetStudentPassword);
+router.get("/:id/sessions", getStudentSessions);
+router.delete("/:id/sessions/:sessionId", revokeStudentSession);
 
 export default router;

@@ -4,6 +4,7 @@ import authApi from '../../services/authApi';
 // Initial state helpers
 const token = localStorage.getItem('token');
 const storedUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+const sessionId = localStorage.getItem('sessionId');
 
 export const loginAdmin = createAsyncThunk(
   'adminAuth/login',
@@ -13,6 +14,7 @@ export const loginAdmin = createAsyncThunk(
       if (response.accessToken) {
         localStorage.setItem('token', response.accessToken);
         localStorage.setItem('user', JSON.stringify(response.user));
+        if (response.sessionId) localStorage.setItem('sessionId', response.sessionId);
       }
       return response;
     } catch (err) {
@@ -29,6 +31,7 @@ export const registerStudent = createAsyncThunk(
       if (response.accessToken) {
         localStorage.setItem('token', response.accessToken);
         localStorage.setItem('user', JSON.stringify(response.user));
+        if (response.sessionId) localStorage.setItem('sessionId', response.sessionId);
       }
       return response;
     } catch (err) {
@@ -45,6 +48,7 @@ export const verifyLoginOtpAdmin = createAsyncThunk(
       if (response.accessToken) {
         localStorage.setItem('token', response.accessToken);
         localStorage.setItem('user', JSON.stringify(response.user));
+        if (response.sessionId) localStorage.setItem('sessionId', response.sessionId);
       }
       return response;
     } catch (err) {
@@ -82,6 +86,7 @@ export const logoutAdmin = createAsyncThunk(
       await authApi.logout();
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('sessionId');
       return true;
     } catch (err) {
       localStorage.removeItem('token');
@@ -99,6 +104,7 @@ export const firebaseSyncAuth = createAsyncThunk(
       if (response.accessToken) {
         localStorage.setItem('token', response.accessToken);
         localStorage.setItem('user', JSON.stringify(response.user));
+        if (response.sessionId) localStorage.setItem('sessionId', response.sessionId);
       }
       return response;
     } catch (err) {
@@ -112,6 +118,7 @@ const authSlice = createSlice({
   initialState: {
     user: storedUser,
     token: token,
+    sessionId: sessionId,
     loading: false,
     error: null,
     status: 'idle', // idle | loading | succeeded | failed
@@ -133,6 +140,7 @@ const authSlice = createSlice({
         if (!action.payload.requiresOtp) {
           state.user = action.payload.user;
           state.token = action.payload.accessToken;
+          state.sessionId = action.payload.sessionId;
         }
       })
       .addCase(loginAdmin.rejected, (state, action) => {
@@ -148,6 +156,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user;
         state.token = action.payload.accessToken;
+        state.sessionId = action.payload.sessionId;
       })
       .addCase(registerStudent.rejected, (state, action) => {
         state.loading = false;
@@ -162,6 +171,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user;
         state.token = action.payload.accessToken;
+        state.sessionId = action.payload.sessionId;
       })
       .addCase(verifyLoginOtpAdmin.rejected, (state, action) => {
         state.loading = false;
@@ -171,6 +181,7 @@ const authSlice = createSlice({
       .addCase(logoutAdmin.fulfilled, (state) => {
         state.user = null;
         state.token = null;
+        state.sessionId = null;
         state.loading = false;
       })
       .addCase(logoutAdmin.rejected, (state) => {
@@ -187,6 +198,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user;
         state.token = action.payload.accessToken;
+        state.sessionId = action.payload.sessionId;
       })
       .addCase(firebaseSyncAuth.rejected, (state, action) => {
         state.loading = false;

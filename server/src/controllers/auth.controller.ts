@@ -5,6 +5,7 @@ import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 import { sendMail } from "../utils/mailer.js";
 import { normalizeMobile } from "./student-validation.controller.js";
 import admin from "../config/firebase-admin.js";
+import { recordSession } from "../services/session.service.js";
 
 export const login = async (req: Request, res: Response) => {
   const { credential, password } = req.body; // credential can be email or mobile
@@ -119,6 +120,12 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Standard Student Login Flow
+    // Create record session
+    const session = await recordSession(user.id, {
+      userAgent: req.headers["user-agent"] || "",
+      ipAddress: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "",
+    });
+
     const accessToken = generateAccessToken({ id: user.id, role: user.role, tokenVersion: user.tokenVersion });
     const refreshToken = generateRefreshToken({ id: user.id, tokenVersion: user.tokenVersion });
 
@@ -133,6 +140,7 @@ export const login = async (req: Request, res: Response) => {
       success: true,
       message: "Authentication successful. Access granted.",
       accessToken,
+      sessionId: session.id,
       user: { id: user.id, name: user.name, role: user.role, email: user.email, status: user.status }
     });
 
@@ -163,6 +171,11 @@ export const verifyLoginOtp = async (req: Request, res: Response) => {
       }
     });
 
+    const session = await recordSession(user.id, {
+      userAgent: req.headers["user-agent"] || "",
+      ipAddress: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "",
+    });
+
     const accessToken = generateAccessToken({ id: user.id, role: user.role, tokenVersion: user.tokenVersion });
     const refreshToken = generateRefreshToken({ id: user.id, tokenVersion: user.tokenVersion });
 
@@ -177,6 +190,7 @@ export const verifyLoginOtp = async (req: Request, res: Response) => {
       success: true,
       message: "Welcome back! Your identity has been verified.",
       accessToken,
+      sessionId: session.id,
       user: { id: user.id, name: user.name, role: user.role, email: user.email, status: user.status }
     });
 
@@ -599,6 +613,11 @@ export const completeRegistration = async (req: Request, res: Response) => {
       }
     });
 
+    const session = await recordSession(updatedUser.id, {
+      userAgent: req.headers["user-agent"] || "",
+      ipAddress: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "",
+    });
+
     // Issue tokens
     const accessToken = generateAccessToken({ id: updatedUser.id, role: updatedUser.role, tokenVersion: updatedUser.tokenVersion });
     const refreshToken = generateRefreshToken({ id: updatedUser.id, tokenVersion: updatedUser.tokenVersion });
@@ -613,6 +632,7 @@ export const completeRegistration = async (req: Request, res: Response) => {
       success: true,
       message: "Your student portal account has been successfully activated. Welcome!",
       accessToken,
+      sessionId: session.id,
       user: { id: updatedUser.id, name: updatedUser.name, role: updatedUser.role, email: updatedUser.email, status: updatedUser.status }
     });
 
@@ -744,6 +764,11 @@ export const firebaseSync = async (req: Request, res: Response) => {
       });
     }
 
+    const session = await recordSession(user.id, {
+      userAgent: req.headers["user-agent"] || "",
+      ipAddress: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "",
+    });
+
     const accessToken = generateAccessToken({ id: user.id, role: user.role, tokenVersion: user.tokenVersion });
     const refreshToken = generateRefreshToken({ id: user.id, tokenVersion: user.tokenVersion });
 
@@ -760,6 +785,7 @@ export const firebaseSync = async (req: Request, res: Response) => {
       success: true,
       message: `Welcome back, ${user.name}! You have been securely logged in.`,
       accessToken,
+      sessionId: session.id,
       user: { id: user.id, name: user.name, role: user.role, email: user.email, status: user.status }
     });
 

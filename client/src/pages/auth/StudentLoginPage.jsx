@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail, Lock, Loader2, ArrowRight,
-  AlertCircle, GraduationCap, Eye, EyeOff, Phone, 
+  AlertCircle, GraduationCap, Eye, EyeOff, Phone,
   Sparkles, ShieldCheck, Fingerprint
 } from 'lucide-react';
 import { loginAdmin, clearError, firebaseSyncAuth } from '../../store/slices/authSlice';
@@ -245,11 +245,11 @@ export default function StudentLoginPage() {
               ) : (
                 <form onSubmit={
                   loginMethod === 'password' ? handleSubmit :
-                  loginMethod === 'phone' ? (showOtpField ? handleOtpVerify : handlePhoneSubmit) :
-                  handleEmailLinkSend
+                    loginMethod === 'phone' ? (showOtpField ? handleOtpVerify : handlePhoneSubmit) :
+                      handleEmailLinkSend
                 } className="space-y-6">
-                  
-                  <Input 
+
+                  <Input
                     label={loginMethod === 'phone' ? 'Mobile Number' : 'Email Address'}
                     placeholder={loginMethod === 'phone' ? 'Enter registered mobile' : 'name@example.com'}
                     value={credential}
@@ -260,7 +260,7 @@ export default function StudentLoginPage() {
                   />
 
                   {loginMethod === 'password' && (
-                    <Input 
+                    <Input
                       label="Password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
@@ -276,7 +276,7 @@ export default function StudentLoginPage() {
                   )}
 
                   {loginMethod === 'phone' && showOtpField && (
-                    <Input 
+                    <Input
                       label="Verification Code"
                       placeholder="Enter 6-digit OTP"
                       value={otp}
@@ -297,7 +297,7 @@ export default function StudentLoginPage() {
                       <>
                         <span>{
                           loginMethod === 'phone' ? (showOtpField ? 'Confirm Login' : 'Send Verification OTP') :
-                          loginMethod === 'link' ? 'Email Me a Link' : 'Secure Login'
+                            loginMethod === 'link' ? 'Email Me a Link' : 'Secure Login'
                         }</span>
                         <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                       </>

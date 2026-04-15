@@ -226,6 +226,7 @@ export default function StudentRegisterPage() {
         // Re-using login logic for seamless entry
         localStorage.setItem('token', response.accessToken);
         localStorage.setItem('user', JSON.stringify(response.user));
+        localStorage.setItem('sessionId', response.sessionId);
         navigate('/student/portal');
       }
     } catch (err) {

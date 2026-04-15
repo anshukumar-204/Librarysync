@@ -34,6 +34,7 @@ import {
   Zap,
   AlertCircle,
   ShieldCheck,
+  Smartphone,
   MapPin,
   Mail,
   Phone,
@@ -93,20 +94,21 @@ import {
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { cn } from '../utils/cn';
+import ActiveSessions from '../components/ActiveSessions';
 
 export default function StudentDashboard() {
   const { user } = useSelector((state) => state.adminAuth);
   const {
     todayStatus,
     metrics,
-    history,
-    leaderboard,
-    studyLogs,
-    tasks,
-    historyTasks,
+    history = [],
+    leaderboard = [],
+    studyLogs = [],
+    tasks = [],
+    historyTasks = [],
     pomodoro,
-    weeklyRoutine,
-    subjectAnalytics,
+    weeklyRoutine = [],
+    subjectAnalytics = [],
     loading,
     actionLoading,
     historyTasksLoading
@@ -1273,6 +1275,31 @@ export default function StudentDashboard() {
             <textarea name="bio" value={profileFormData.bio || ''} onChange={handleProfileChange} placeholder="Tell us about your preparation or goals..." className="w-full bg-black/40 border border-white/5 rounded-2xl p-6 text-sm font-medium text-white h-32 focus:border-blue-500/50 outline-none transition-all resize-none leading-relaxed" />
           </div>
 
+          {/* Section: Connected Devices */}
+          <div className="bg-zinc-900/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-6 sm:p-8 space-y-6 shadow-xl group/card">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover/card:bg-emerald-500/20 transition-all">
+                <Smartphone size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-white uppercase tracking-widest italic">Connected Devices</h3>
+                <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">Active sessions across all platforms</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <ActiveSessions />
+              <div className="p-4 bg-zinc-950/50 rounded-2xl border border-white/5">
+                <div className="flex gap-3">
+                  <ShieldCheck className="text-zinc-600 shrink-0" size={14} />
+                  <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest leading-relaxed">
+                    Identity security protocol: If you see an unrecognized device, logout immediately and contact support.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Action Footer */}
           <div className="pt-8 space-y-4">
             <button
@@ -1908,7 +1935,7 @@ export default function StudentDashboard() {
           <div className="glass-card p-8 rounded-[3rem] bg-gradient-to-br from-blue-600/5 to-transparent border border-white/5 relative overflow-hidden shadow-2xl">
             <div className="flex flex-col items-center">
               <div className="w-48 h-48 relative mb-8">
-                <ResponsiveContainer width="99%" height="100%" minHeight={150}>
+                <ResponsiveContainer width="99%" height={150} minHeight={150}>
                   <PieChart>
                     <Pie
                       data={[
@@ -2281,7 +2308,7 @@ export default function StudentDashboard() {
               analyticsRange === '30D' ? "w-[150%] sm:w-full min-w-[600px]" : 
               "w-[300%] sm:w-full min-w-[1000px]"
             )}>
-              <ResponsiveContainer width="100%" height="100%" minHeight={220}>
+              <ResponsiveContainer width="100%" height={220} minHeight={220}>
                 <AreaChart data={analyticsData} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">

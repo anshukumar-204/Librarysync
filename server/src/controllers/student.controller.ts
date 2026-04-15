@@ -3,6 +3,7 @@ import { prisma } from "../db/prisma.js";
 import { generateSecureOTP, hashPassword } from "../utils/security.js";
 import { sendMail } from "../utils/mailer.js";
 import { normalizeMobile, isValidEmail } from "./student-validation.controller.js";
+import { getUserSessions, revokeSession } from "../services/session.service.js";
 
 // Basic Student creation handler (Admin feature)
 export const createStudent = async (req: Request, res: Response) => {
@@ -790,5 +791,59 @@ export const resetStudentPassword = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("PASSWORD RESET ERROR:", error);
     return res.status(500).json({ success: false, message: "Internal security failure" });
+  }
+};
+
+// --- SESSION MANAGEMENT ---
+
+export const fetchActiveSessions = async (req: Request, res: Response) => {
+  try {
+    const sessions = await getUserSessions(req.user!.id);
+    return res.json({ success: true, data: sessions });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch active sessions" });
+  }
+};
+
+export const terminateSession = async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+    await revokeSession(sessionId, req.user!.id);
+    return res.json({ success: true, message: "Session terminated successfully" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to terminate session" });
+  }
+};
+
+export const getStudentSessions = async (req: Request, res: Response) => {
+  try {
+    if (req.user?.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Forbidden: Admin access required" });
+    }
+    const studentId = Number(req.params.id);
+    const student = await prisma.student.findUnique({ where: { id: studentId } });
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const sessions = await getUserSessions(student.userId);
+    return res.json({ success: true, data: sessions });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch student sessions" });
+  }
+};
+
+export const revokeStudentSession = async (req: Request, res: Response) => {
+  try {
+    if (req.user?.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Forbidden: Admin access required" });
+    }
+    const { sessionId } = req.params;
+    const studentId = Number(req.params.id);
+    const student = await prisma.student.findUnique({ where: { id: studentId } });
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    await revokeSession(sessionId, student.userId);
+    return res.json({ success: true, message: "Student session successfully terminated" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to revoke student session" });
   }
 };

@@ -4,11 +4,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, User, Settings, ShieldCheck,
   Loader2, Camera, Check, ChevronRight, AlertCircle,
-  GraduationCap, Mail, MapPin, Home, CreditCard, Lock, Key
+  GraduationCap, Mail, MapPin, Home, CreditCard, Lock, Key, Smartphone
 } from "lucide-react";
 import { registerStudent, modifyStudent, closeEditModal, overridePassword } from './studentSlice';
 import StudentProfileView from './StudentProfileView';
 import StudentFeeSection from './StudentFeeSection';
+import ActiveSessions from '../../components/ActiveSessions';
 import { uploadImageToCloudinary } from '../../services/cloudinary';
 import { checkAvailability } from '../../services/studentApi';
 import toast from "react-hot-toast";
@@ -490,6 +491,24 @@ export default function StudentEditModal() {
                           <p className="text-[10px] text-rose-500/70 font-bold uppercase tracking-widest mt-1">This action resets the student's password and terminates all active sessions across all devices.</p>
                         </div>
                       </div>
+
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                            <Smartphone size={20} />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-black text-white uppercase tracking-widest italic">Live Session History</h3>
+                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Active nodes for this identity</p>
+                          </div>
+                        </div>
+
+                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                           <ActiveSessions studentId={editingStudent?.id} isAdmin={true} />
+                        </div>
+                      </div>
+
+                      <div className="h-px bg-white/5 my-4" />
 
                       <div className="space-y-6">
                         <div className="space-y-3">
