@@ -692,15 +692,15 @@ export const requestProfileUpdateOtp = async (req: Request, res: Response) => {
 export const updateStudentProfileSelf = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    const { otp, fullName, fatherName, address, village, post, district, city, state, pincode, bio, profileImage } = req.body;
+    const { fullName, fatherName, address, village, post, district, city, state, pincode, bio, profileImage } = req.body;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { student: true }
     });
 
-    if (!user || user.verifyOtp !== otp || !user.verifyOtpExpiresAt || user.verifyOtpExpiresAt < new Date()) {
-      return res.status(401).json({ success: false, message: "The verification code provided is invalid or has already expired." });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found." });
     }
 
     // Update Transactional Registry
@@ -708,8 +708,6 @@ export const updateStudentProfileSelf = async (req: Request, res: Response) => {
       where: { id: user.id },
       data: {
         ...(fullName && { name: fullName }),
-        verifyOtp: null,
-        verifyOtpExpiresAt: null,
         student: {
           upsert: {
             create: {

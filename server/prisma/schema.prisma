@@ -81,6 +81,7 @@ model Student {
   tasks        Task[]
   routines     WeeklyRoutine[]
   feePayments  FeePayment[]
+  transactions Transaction[]
 }
 
 model FeePayment {
@@ -145,4 +146,48 @@ model Attendance {
   student       Student  @relation(fields: [studentId], references: [id])
 
   @@unique([studentId, date])
+}
+
+model Book {
+  id              Int           @id @default(autoincrement())
+  title           String
+  author          String?
+  isbn            String?       @unique
+  category        String?
+  publisher       String?
+  publishYear     Int?
+  totalCopies     Int           @default(1)
+  availableCopies Int           @default(1)
+  description     String?
+  status          String        @default("Active") // Active, Retired
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  transactions    Transaction[]
+}
+
+model Transaction {
+  id           Int       @id @default(autoincrement())
+  studentId    Int
+  bookId       Int
+  borrowDate   DateTime  @default(now())
+  dueDate      DateTime
+  returnDate   DateTime?
+  status       String    @default("Borrowed") // Borrowed, Returned, Overdue
+  fineAmount   Float     @default(0)
+  finePaid     Boolean   @default(false)
+
+  student      Student   @relation(fields: [studentId], references: [id])
+  book         Book      @relation(fields: [bookId], references: [id])
+
+  @@index([studentId, status])
+  @@index([bookId, status])
+}
+
+model Setting {
+  id            Int      @id @default(autoincrement())
+  key           String   @unique
+  value         String
+  description   String?
+  updatedAt     DateTime @updatedAt
 }

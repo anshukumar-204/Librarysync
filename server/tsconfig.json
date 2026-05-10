@@ -1,5 +1,5 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
+   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
     "rootDir": "./src",
@@ -37,4 +37,6 @@
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "prisma/seed.ts", "prisma.config.ts"]
+
+
 }

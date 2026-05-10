@@ -373,10 +373,14 @@ export default function StudentLoginPage() {
           <div id="recaptcha-container"></div>
         </div>
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 text-center flex flex-col gap-2">
           <p className="text-gray-500 text-sm">
             Don't have an account?{' '}
             <Link to="/register" className="text-blue-500 hover:text-blue-400 font-bold underline-offset-4 hover:underline">Register Presence</Link>
+          </p>
+          <p className="text-gray-500 text-sm mt-2">
+            Library Head?{' '}
+            <Link to="/admin/login" className="text-emerald-500 hover:text-emerald-400 font-bold underline-offset-4 hover:underline">Admin Login</Link>
           </p>
         </div>
       </motion.div>

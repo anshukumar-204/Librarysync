@@ -931,27 +931,10 @@ export default function StudentDashboard() {
     setProfileFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleRequestOtp = async () => {
-    setOtpRequestPending(true);
+  const handleSaveProfile = async () => {
     try {
-      await dispatch(requestProfileOtp()).unwrap();
-      toast.success('A verification code has been sent to your email.');
-      setActiveModal('profile_otp');
-    } catch (err) {
-      const errorMsg = typeof err === 'string' ? err : (err?.message || 'Failed to send verification code');
-      toast.error(errorMsg);
-    } finally {
-      setOtpRequestPending(false);
-    }
-  };
-
-  const handleVerifyAndUpdate = async () => {
-    if (!otpValue) return toast.error('Please enter the verification code');
-    try {
-      await dispatch(updateProfileSelf({ ...profileFormData, otp: otpValue })).unwrap();
+      await dispatch(updateProfileSelf(profileFormData)).unwrap();
       toast.success('Your profile has been updated successfully');
-      setActiveModal(null);
-      setOtpValue('');
       dispatch(fetchMetrics()); // Refresh data
       setIsProfileSynced(false); // Refocus sync on next metrics load
     } catch (err) {
